@@ -1,8 +1,15 @@
+"use client";
+
+import { PageHeader } from "@/components/layout/PageHeader";
+
 export default function DashboardPage() {
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-      <p className="text-muted">Dashboard content coming soon...</p>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Welcome back, User"
+        action={{ label: "+ Log Workout", onClick: () => { } }}
+      />
     </div>
   );
 }
