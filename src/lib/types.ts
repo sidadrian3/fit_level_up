@@ -1,3 +1,6 @@
+/** Type alias for ISO date strings — makes refactoring to Date objects easier later */
+export type DateString = string;
+
 export interface User {
     name: string;
     avatar: string;
@@ -7,14 +10,14 @@ export interface User {
     streak: number;
     totalWorkouts: number;
     totalDistance: number; //km
-    joinDate: string;
+    joinDate: DateString;
 }
 
 export interface Exercise {
     name: string;
     sets: number;
     reps: number;
-    weight: number;
+    weight: number | null; // null for bodyweight exercises
 }
 
 export interface Workout {
@@ -24,7 +27,7 @@ export interface Workout {
     exercises: Exercise[];
     duration: number;       // minutes
     xpEarned: number;
-    date: string;
+    date: DateString;
 }
 
 
@@ -35,7 +38,7 @@ export interface Run {
     pace: number;           // min/km
     difficulty: "easy" | "moderate" | "hard" | "intense";
     xpEarned: number;
-    date: string;
+    date: DateString;
 }
 
 export interface Quest {
@@ -56,7 +59,7 @@ export interface Achievement {
     icon: string;
     rarity: "common" | "rare" | "epic" | "legendary";
     unlocked: boolean;
-    unlockedDate?: string;
+    unlockedDate?: DateString;
 }
 export interface DashboardStats {
     weeklyWorkouts: number;
@@ -64,4 +67,3 @@ export interface DashboardStats {
     totalAchievements: number;
     lifetimeXP: number;
 }
-

@@ -1,4 +1,4 @@
-import {
+import type {
   User,
   Workout,
   Run,
@@ -19,7 +19,7 @@ export const mockUser: User = {
   joinDate: "2025-01-15",
 };
 
-export const mockWorkouts: Workout[] = [
+export const mockWorkouts: readonly Workout[] = [
   {
     id: "w1",
     type: "strength",
@@ -39,10 +39,10 @@ export const mockWorkouts: Workout[] = [
     type: "hiit",
     title: "HIIT Circuit Burn",
     exercises: [
-      { name: "Burpees", sets: 4, reps: 15, weight: 0 },
+      { name: "Burpees", sets: 4, reps: 15, weight: null },
       { name: "Kettlebell Swings", sets: 4, reps: 20, weight: 16 },
-      { name: "Box Jumps", sets: 3, reps: 12, weight: 0 },
-      { name: "Mountain Climbers", sets: 3, reps: 30, weight: 0 },
+      { name: "Box Jumps", sets: 3, reps: 12, weight: null },
+      { name: "Mountain Climbers", sets: 3, reps: 30, weight: null },
     ],
     duration: 35,
     xpEarned: 200,
@@ -67,8 +67,8 @@ export const mockWorkouts: Workout[] = [
     type: "cardio",
     title: "Rowing Endurance",
     exercises: [
-      { name: "Rowing Machine", sets: 1, reps: 1, weight: 0 },
-      { name: "Jump Rope", sets: 5, reps: 100, weight: 0 },
+      { name: "Rowing Machine", sets: 1, reps: 1, weight: null },
+      { name: "Jump Rope", sets: 5, reps: 100, weight: null },
     ],
     duration: 40,
     xpEarned: 120,
@@ -79,9 +79,9 @@ export const mockWorkouts: Workout[] = [
     type: "flexibility",
     title: "Recovery & Mobility",
     exercises: [
-      { name: "Foam Rolling", sets: 1, reps: 1, weight: 0 },
-      { name: "Hip Flexor Stretch", sets: 3, reps: 1, weight: 0 },
-      { name: "Shoulder Dislocates", sets: 3, reps: 15, weight: 0 },
+      { name: "Foam Rolling", sets: 1, reps: 1, weight: null },
+      { name: "Hip Flexor Stretch", sets: 3, reps: 1, weight: null },
+      { name: "Shoulder Dislocates", sets: 3, reps: 15, weight: null },
     ],
     duration: 30,
     xpEarned: 75,
@@ -89,7 +89,7 @@ export const mockWorkouts: Workout[] = [
   },
 ];
 
-export const mockRuns: Run[] = [
+export const mockRuns: readonly Run[] = [
   {
     id: "r1",
     distance: 5.2,
@@ -137,7 +137,7 @@ export const mockRuns: Run[] = [
   },
 ];
 
-export const mockQuests: Quest[] = [
+export const mockQuests: readonly Quest[] = [
   // Daily quests
   {
     id: "q1",
@@ -231,7 +231,7 @@ export const mockQuests: Quest[] = [
   },
 ];
 
-export const mockAchievements: Achievement[] = [
+export const mockAchievements: readonly Achievement[] = [
   {
     id: "a1",
     title: "First Steps",
