@@ -2,24 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Dumbbell,
-  Footprints,
-  Scroll,
-  UserCircle,
-  Flame,
-} from "lucide-react";
+import { Flame } from "lucide-react";
 import { mockUser } from "@/lib/mock-data";
-
-// Navigation links — each maps to a route
-const navLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/workouts", label: "Workouts", icon: Dumbbell },
-  { href: "/runs", label: "Running", icon: Footprints },
-  { href: "/quests", label: "Quests", icon: Scroll },
-  { href: "/profile", label: "Profile", icon: UserCircle },
-];
+import { navLinks } from "@/lib/constants/navigation";
 
 export function Sidebar() {
   // usePathname() gives us the current URL path so we can highlight the active link
@@ -29,7 +14,7 @@ export function Sidebar() {
   const xpPercent = Math.round((mockUser.xp / mockUser.xpToNextLevel) * 100);
 
   return (
-    <aside className="fixed top-0 left-0 h-full w-64 bg-card border-r border-border flex flex-col z-50">
+    <aside className="fixed top-0 left-0 h-full w-64 bg-card border-r border-border hidden lg:flex flex-col z-50">
       {/* ===== BRAND ===== */}
       <div className="p-6 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-2">

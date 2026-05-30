@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -21,12 +20,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex bg-background text-foreground">
-        {/* Sidebar — fixed left navigation */}
-        <Sidebar />
-
-        {/* Main content area — offset by sidebar width */}
-        <main className="flex-1 ml-64 p-8">{children}</main>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        {children}
       </body>
     </html>
   );
