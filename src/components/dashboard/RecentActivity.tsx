@@ -2,20 +2,12 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { formatDate, formatDuration } from "@/lib/utils";
 import type { Workout } from "@/lib/types";
-import { Dumbbell, Activity, Flame, StretchHorizontal } from "lucide-react";
+import { workoutTypeConfig } from "@/lib/constants/workout-icons";
 
 export interface RecentActivityProps {
     workouts: readonly Workout[];
     className?: string;
 }
-
-// Map workout types to specific icons and colors
-const typeConfig = {
-    strength: { icon: Dumbbell, color: "text-accent-orange", bg: "bg-accent-orange/10" },
-    cardio: { icon: Activity, color: "text-accent-blue", bg: "bg-accent-blue/10" },
-    hiit: { icon: Flame, color: "text-accent-red", bg: "bg-accent-red/10" },
-    flexibility: { icon: StretchHorizontal, color: "text-accent-purple", bg: "bg-accent-purple/10" }
-};
 
 export function RecentActivity({ workouts, className = "" }: RecentActivityProps) {
     if (!workouts || workouts.length === 0) {
@@ -32,7 +24,7 @@ export function RecentActivity({ workouts, className = "" }: RecentActivityProps
             <h3 className="text-lg font-bold text-foreground">Recent Activity</h3>
             <div className="space-y-3">
                 {workouts.map((workout) => {
-                    const config = typeConfig[workout.type] || typeConfig.strength;
+                    const config = workoutTypeConfig[workout.type] || workoutTypeConfig.strength;
                     const Icon = config.icon;
                     
                     return (
