@@ -30,6 +30,13 @@ export interface Workout {
     date: DateString;
 }
 
+export type CreateWorkoutInput = {
+    type: Workout["type"];
+    title: string;
+    exercises: Exercise[];
+    duration: number;
+}
+
 
 export interface Run {
     id: string;

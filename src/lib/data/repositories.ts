@@ -11,7 +11,6 @@
 
 import {
   mockUser,
-  mockWorkouts,
   mockRuns,
   mockQuests,
   mockAchievements,
@@ -25,14 +24,36 @@ import type {
   Quest,
   Achievement,
   DashboardStats,
+  CreateWorkoutInput,
 } from "@/lib/types";
 
 export function getUser(): User {
   return mockUser;
 }
 
-export function getWorkouts(): readonly Workout[] {
-  return mockWorkouts;
+export async function getWorkouts(): Promise<readonly Workout[]> {
+  const res = await fetch("/api/workouts");
+  if (!res.ok) {
+    throw new Error("Failed to fetch workouts");
+  }
+  return res.json();
+}
+
+export async function createWorkout(
+  input: CreateWorkoutInput
+): Promise<Workout> {
+  const res = await fetch("/api/workouts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Failed to create workout"
+    );
+  }
+  return res.json();
 }
 
 export function getRuns(): readonly Run[] {

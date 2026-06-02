@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# personal dev guide
+# personal dev guides
 DEV_GUIDE.md
+DEV_GUIDE_API.md
