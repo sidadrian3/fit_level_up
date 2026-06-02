@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
-import { getWorkouts } from "@/lib/data/repositories";
+import { getWorkouts, deleteWorkout } from "@/lib/data/repositories";
 import type { Workout } from "@/lib/types";
 
 export default function WorkoutsPage() {
@@ -24,6 +24,16 @@ export default function WorkoutsPage() {
             setIsLoading(false);
         }
     }
+
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteWorkout(id);
+            await loadWorkouts();
+        } catch (err) {
+            console.error("Delete failed:", err);
+            setError("Failed to delete workout");
+        }
+    };
 
     useEffect(() => {
         loadWorkouts();
@@ -58,6 +68,8 @@ export default function WorkoutsPage() {
                             <WorkoutCard
                                 key={workout.id}
                                 workout={workout}
+                                onDelete={handleDelete}
+
                             />
                         ))}
                 </div>

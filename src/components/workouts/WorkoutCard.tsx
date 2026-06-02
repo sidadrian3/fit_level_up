@@ -1,4 +1,5 @@
 import React from "react";
+import { Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { formatDate, formatDuration } from "@/lib/utils";
 import { workoutTypeConfig } from "@/lib/constants/workout-icons";
@@ -7,13 +8,14 @@ import type { Workout } from "@/lib/types";
 export interface WorkoutCardProps {
     workout: Workout;
     className?: string;
+    onDelete?: (id: string) => Promise<void>;
 }
 
 /**
  * Displays a single workout in a rich card layout.
  * Shows type badge, title, exercise breakdown, and stats footer.
  */
-export function WorkoutCard({ workout, className = "" }: WorkoutCardProps) {
+export function WorkoutCard({ workout, className = "", onDelete }: WorkoutCardProps) {
     const config = workoutTypeConfig[workout.type] || workoutTypeConfig.strength;
     const Icon = config.icon;
 
@@ -38,6 +40,13 @@ export function WorkoutCard({ workout, className = "" }: WorkoutCardProps) {
                         {config.label}
                     </span>
                 </div>
+                <button
+                    className="p-2 text-muted hover:text-foreground hover:bg-background rounded-lg transition-colors shrink-0"
+                    aria-label="Delete workout"
+                    onClick={() => onDelete?.(workout.id)}
+                >
+                    <Trash2 size={18} />
+                </button>
             </div>
 
             {/* Exercise list */}
