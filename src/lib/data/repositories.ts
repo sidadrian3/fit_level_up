@@ -56,6 +56,19 @@ export async function createWorkout(
   return res.json();
 }
 
+export async function deleteWorkout(id: string): Promise<boolean> {
+  const res = await fetch(`/api/workouts/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Failed to delete workout"
+    );
+  }
+  return true;
+}
+
 export function getRuns(): readonly Run[] {
   return mockRuns;
 }
