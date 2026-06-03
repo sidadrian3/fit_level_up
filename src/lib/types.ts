@@ -48,6 +48,12 @@ export interface Run {
     date: DateString;
 }
 
+export type CreateRunInput = {
+    distance: number;
+    duration: number;
+    difficulty: Run["difficulty"];  
+}
+
 export interface Quest {
     id: string;
     title: string;

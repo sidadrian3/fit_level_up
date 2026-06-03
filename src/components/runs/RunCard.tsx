@@ -2,11 +2,13 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { formatDate, formatDuration, formatPace } from "@/lib/utils";
 import type { Run } from "@/lib/types";
-import { Footprints } from "lucide-react";
+import { Footprints, Edit2, Trash2 } from "lucide-react";
 
 export interface RunCardProps {
     run: Run;
     className?: string;
+    onDelete?: (id: string) => void;
+    onUpdate?: (id: string) => void;
 }
 
 /** Difficulty → color mapping for the pill badge */
@@ -19,9 +21,14 @@ const difficultyColors: Record<Run["difficulty"], { text: string; bg: string }> 
 
 /**
  * Displays a single run log entry.
- * Compact horizontal layout with distance, pace, difficulty badge, and XP.
+ * Compact horizontal layout with distance, pace, difficulty badge, XP, and action buttons.
  */
-export function RunCard({ run, className = "" }: RunCardProps) {
+export function RunCard({
+    run,
+    className = "",
+    onDelete,
+    onUpdate,
+}: RunCardProps) {
     const diff = difficultyColors[run.difficulty] || difficultyColors.easy;
 
     return (
@@ -58,6 +65,28 @@ export function RunCard({ run, className = "" }: RunCardProps) {
             <span className="text-sm font-bold text-accent-green whitespace-nowrap">
                 +{run.xpEarned} XP
             </span>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+                {onUpdate && (
+                    <button
+                        onClick={() => onUpdate(run.id)}
+                        className="p-2 text-muted hover:text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-default"
+                        aria-label="Edit run"
+                    >
+                        <Edit2 size={16} />
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        onClick={() => onDelete(run.id)}
+                        className="p-2 text-muted hover:text-accent-red hover:bg-accent-red/10 rounded-lg transition-default"
+                        aria-label="Delete run"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
+            </div>
         </Card>
     );
 }

@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { createRun, updateRun } from "@/lib/data/repositories";
 import type { Run } from "@/lib/types";
+import { X } from "lucide-react";
 
 const difficulties: Run["difficulty"][] = [
     "easy",
@@ -36,21 +38,117 @@ const difficultyChipColors: Record<
 };
 
 /**
- * Visual-only run logging form.
- * Distance, duration, difficulty selector — no submit logic yet.
+ * Run logging form — creates new or edits existing run.
+ * When initialRun is provided, enters edit mode.
  */
-export function RunForm({ className = "" }: { className?: string }) {
+export function RunForm({
+    className = "",
+    onRunLogged,
+    initialRun,
+    onCancel,
+}: {
+    className?: string;
+    onRunLogged?: () => void;
+    initialRun?: Run;
+    onCancel?: () => void;
+}) {
+    const isEditMode = !!initialRun;
     const [distance, setDistance] = useState<number>(5.0);
     const [duration, setDuration] = useState<number>(30);
     const [selectedDifficulty, setSelectedDifficulty] =
         useState<Run["difficulty"]>("moderate");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Populate form when editing
+    useEffect(() => {
+        if (initialRun) {
+            setDistance(initialRun.distance);
+            setDuration(initialRun.duration);
+            setSelectedDifficulty(initialRun.difficulty);
+            setError(null);
+        }
+    }, [initialRun]);
+
+    function resetForm() {
+        setDistance(0);
+        setDuration(0);
+        setSelectedDifficulty("moderate");
+        setError(null);
+    }
+
+    function handleCancel() {
+        resetForm();
+        onCancel?.();
+    }
+
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        setError(null);
+
+        if (distance <= 0) {
+            setError("Distance must be greater than 0");
+            return;
+        }
+        if (duration <= 0) {
+            setError("Duration must be greater than 0");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            if (isEditMode && initialRun) {
+                await updateRun(initialRun.id, {
+                    distance,
+                    duration,
+                    difficulty: selectedDifficulty,
+                });
+            } else {
+                await createRun({
+                    distance,
+                    duration,
+                    difficulty: selectedDifficulty,
+                });
+            }
+            if (!isEditMode) {
+                resetForm();
+            }
+            onRunLogged?.();
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : isEditMode
+                    ? "Failed to update run"
+                    : "Failed to log run"
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
 
     const inputBase =
         "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-foreground text-sm placeholder:text-muted focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/50 focus:outline-none transition-default";
 
     return (
         <Card className={`flex flex-col gap-6 ${className}`}>
-            <h2 className="text-lg font-bold text-foreground">Log Run</h2>
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-foreground">
+                    {isEditMode ? "Edit Run" : "Log Run"}
+                </h2>
+                {isEditMode && onCancel && (
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="p-1 text-muted hover:text-foreground hover:bg-card-hover rounded transition-default"
+                        aria-label="Cancel edit"
+                    >
+                        <X size={20} />
+                    </button>
+                )}
+            </div>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
             {/* Distance input */}
             <div>
@@ -128,9 +226,36 @@ export function RunForm({ className = "" }: { className?: string }) {
             </div>
 
             {/* Submit */}
-            <Button className="w-full" disabled>
-                Log Run
-            </Button>
+            <div className="flex gap-3">
+                <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting
+                        ? isEditMode
+                            ? "Updating..."
+                            : "Logging..."
+                        : isEditMode
+                        ? "Update Run"
+                        : "Log Run"}
+                </Button>
+                {isEditMode && onCancel && (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleCancel}
+                        disabled={isSubmitting}
+                    >
+                        Cancel
+                    </Button>
+                )}
+            </div>
+
+            {error && (
+                <p className="text-sm text-accent-red">{error}</p>
+            )}
+            </form>
         </Card>
     );
 }

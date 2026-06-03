@@ -25,6 +25,7 @@ import type {
   Achievement,
   DashboardStats,
   CreateWorkoutInput,
+  CreateRunInput,
 } from "@/lib/types";
 
 export function getUser(): User {
@@ -87,8 +88,60 @@ export async function updateWorkout(
   return res.json();
 }
 
-export function getRuns(): readonly Run[] {
-  return mockRuns;
+export async function getRuns(): Promise<readonly Run[]> {
+  const res = await fetch("/api/runs");
+  if (!res.ok) {
+    throw new Error("Failed to fetch runs");
+  }
+  return res.json();
+}
+
+export async function createRun(
+  input: CreateRunInput
+): Promise<Run> {
+  const res = await fetch("/api/runs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Failed to create run"
+    );
+  }
+  return res.json();
+}
+
+export async function deleteRun(id: string): Promise<boolean> {
+  const res = await fetch(`/api/runs/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Failed to delete run"
+    );
+  }
+  return true;
+}
+
+export async function updateRun(
+  id: string,
+  input: CreateRunInput
+): Promise<Run> {
+  const res = await fetch(`/api/runs/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Failed to update run"
+    );
+  }
+  return res.json();
 }
 
 export function getQuests(): readonly Quest[] {
