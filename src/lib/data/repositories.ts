@@ -69,6 +69,24 @@ export async function deleteWorkout(id: string): Promise<boolean> {
   return true;
 }
 
+export async function updateWorkout(
+  id: string,
+  input: CreateWorkoutInput
+): Promise<Workout> {
+  const res = await fetch(`/api/workouts/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Failed to update workout"
+    );
+  }
+  return res.json();
+}
+
 export function getRuns(): readonly Run[] {
   return mockRuns;
 }

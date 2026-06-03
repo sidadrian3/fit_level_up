@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { workoutTypeConfig } from "@/lib/constants/workout-icons";
-import { createWorkout } from "@/lib/data/repositories";
+import { createWorkout, updateWorkout } from "@/lib/data/repositories";
 import type { Workout, Exercise } from "@/lib/types";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 
 const workoutTypes: Workout["type"][] = [
     "strength",
@@ -23,15 +23,21 @@ const emptyExercise: Exercise = {
 };
 
 /**
- * Workout logging form — submits to POST /api/workouts via repository.
+ * Workout form — creates new or edits existing workout.
+ * When initialWorkout is provided, enters edit mode.
  */
 export function WorkoutForm({
     className = "",
     onWorkoutLogged,
+    initialWorkout,
+    onCancel,
 }: {
     className?: string;
     onWorkoutLogged?: () => void;
+    initialWorkout?: Workout;
+    onCancel?: () => void;
 }) {
+    const isEditMode = !!initialWorkout;
     const [title, setTitle] = useState("");
     const [selectedType, setSelectedType] =
         useState<Workout["type"]>("strength");
@@ -41,6 +47,17 @@ export function WorkoutForm({
     const [duration, setDuration] = useState<number>(45);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Populate form when editing
+    useEffect(() => {
+        if (initialWorkout) {
+            setTitle(initialWorkout.title);
+            setSelectedType(initialWorkout.type);
+            setExercises(initialWorkout.exercises);
+            setDuration(initialWorkout.duration);
+            setError(null);
+        }
+    }, [initialWorkout]);
 
     const addExercise = () => {
         setExercises((prev) => [...prev, { ...emptyExercise }]);
@@ -65,6 +82,12 @@ export function WorkoutForm({
         setSelectedType("strength");
         setExercises([{ ...emptyExercise }]);
         setDuration(45);
+        setError(null);
+    }
+
+    function handleCancel() {
+        resetForm();
+        onCancel?.();
     }
 
     async function handleSubmit(e: React.FormEvent) {
@@ -83,17 +106,28 @@ export function WorkoutForm({
 
         try {
             setIsSubmitting(true);
-            await createWorkout({
-                type: selectedType,
-                title: title.trim(),
-                exercises: namedExercises,
-                duration,
-            });
-            resetForm();
+            if (isEditMode && initialWorkout) {
+                await updateWorkout(initialWorkout.id, {
+                    type: selectedType,
+                    title: title.trim(),
+                    exercises: namedExercises,
+                    duration,
+                });
+            } else {
+                await createWorkout({
+                    type: selectedType,
+                    title: title.trim(),
+                    exercises: namedExercises,
+                    duration,
+                });
+            }
+            if (!isEditMode) {
+                resetForm();
+            }
             onWorkoutLogged?.();
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : "Failed to log workout"
+                err instanceof Error ? err.message : isEditMode ? "Failed to update workout" : "Failed to log workout"
             );
         } finally {
             setIsSubmitting(false);
@@ -105,9 +139,21 @@ export function WorkoutForm({
 
     return (
         <Card className={`flex flex-col gap-6 ${className}`}>
-            <h2 className="text-lg font-bold text-foreground">
-                Log Workout
-            </h2>
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-foreground">
+                    {isEditMode ? "Edit Workout" : "Log Workout"}
+                </h2>
+                {isEditMode && onCancel && (
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="p-1 text-muted hover:text-foreground hover:bg-card-hover rounded transition-default"
+                        aria-label="Cancel edit"
+                    >
+                        <X size={20} />
+                    </button>
+                )}
+            </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 <div>
@@ -292,13 +338,31 @@ export function WorkoutForm({
                     />
                 </div>
 
-                <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isSubmitting}
-                >
-                    {isSubmitting ? "Logging..." : "Log Workout"}
-                </Button>
+                <div className="flex gap-3">
+                    <Button
+                        type="submit"
+                        className="flex-1"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting
+                            ? isEditMode
+                                ? "Updating..."
+                                : "Logging..."
+                            : isEditMode
+                            ? "Update Workout"
+                            : "Log Workout"}
+                    </Button>
+                    {isEditMode && onCancel && (
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleCancel}
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                    )}
+                </div>
 
                 {error && (
                     <p className="text-sm text-accent-red">{error}</p>

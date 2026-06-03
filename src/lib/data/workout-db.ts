@@ -111,3 +111,44 @@ export async function deleteWorkoutFromDb(id: string): Promise<boolean> {
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
 }
+
+export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): Promise<Workout | boolean> {
+    if (!ObjectId.isValid(id)) {
+        return false;
+    }
+
+    validateInput(input);
+
+    const namedExercises = input.exercises.filter((ex) => ex.name.trim());
+    
+    const { dbName, collectionName } = getDbConfig();
+    const client = await clientPromise;
+    const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
+
+    // Fetch original to preserve date
+    const existing = await collection.findOne({ _id: new ObjectId(id) });
+    if (!existing) {
+        return false;
+    }
+
+    const updatedDoc = {
+        type: input.type,
+        title: input.title.trim(),
+        exercises: namedExercises,
+        duration: input.duration,
+        xpEarned: calcXpEarned(input.duration, namedExercises.length),
+        date: existing.date,  //Keep original date
+    };
+
+    const result = await collection.findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $set: updatedDoc },
+        { returnDocument: "after" }
+    );
+
+    if (!result) {
+        return false;
+    }
+
+    return toWorkout(result);
+}

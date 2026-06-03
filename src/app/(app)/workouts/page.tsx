@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
-import { getWorkouts, deleteWorkout } from "@/lib/data/repositories";
+import { getWorkouts, deleteWorkout, updateWorkout } from "@/lib/data/repositories";
 import type { Workout } from "@/lib/types";
 
 export default function WorkoutsPage() {
     const [workouts, setWorkouts] = useState<Workout[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
+
+    const editingWorkout = workouts.find(w => w.id === editingId);
 
     async function loadWorkouts() {
         try {
@@ -35,6 +38,15 @@ export default function WorkoutsPage() {
         }
     };
 
+    const handleUpdate = async (id: string) => {
+        setEditingId(id);
+    };
+
+    const handleEditComplete = async () => {
+        setEditingId(null);
+        await loadWorkouts();
+    };
+
     useEffect(() => {
         loadWorkouts();
     }, []);
@@ -49,7 +61,9 @@ export default function WorkoutsPage() {
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                 <WorkoutForm
                     className="xl:col-span-3"
-                    onWorkoutLogged={loadWorkouts}
+                    initialWorkout={editingWorkout}
+                    onWorkoutLogged={handleEditComplete}
+                    onCancel={() => setEditingId(null)}
                 />
 
                 <div className="xl:col-span-2 space-y-4">
@@ -69,7 +83,7 @@ export default function WorkoutsPage() {
                                 key={workout.id}
                                 workout={workout}
                                 onDelete={handleDelete}
-
+                                onUpdate={handleUpdate}
                             />
                         ))}
                 </div>

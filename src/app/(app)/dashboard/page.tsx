@@ -6,6 +6,7 @@ import { ActivityTracker } from "@/components/dashboard/ActivityTracker";
 import { DailyQuests } from "@/components/dashboard/DailyQuests";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { StatCard } from "@/components/ui/StatCard";
+import { useRouter } from "next/navigation";
 
 import {
     getUser,
@@ -26,6 +27,8 @@ export default function DashboardPage() {
 
     // 2. State for async workouts
     const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
+
+    const router = useRouter();
     
     useEffect(() => {
         async function loadWorkouts() {
@@ -52,7 +55,7 @@ export default function DashboardPage() {
                 subtitle="Here's your progress for today."
                 action={{
                     label: "+ Log Workout",
-                    onClick: () => { console.log("Open log modal") }
+                    onClick: () => { router.push("/workouts") }
                 }}
             />
 

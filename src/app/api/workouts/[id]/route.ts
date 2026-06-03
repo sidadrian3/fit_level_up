@@ -1,5 +1,29 @@
 import { NextResponse } from "next/server";
-import { deleteWorkoutFromDb } from "@/lib/data/workout-db";
+import { deleteWorkoutFromDb, updateWorkoutInDb } from "@/lib/data/workout-db";
+
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const body = await request.json();
+        const result = await updateWorkoutInDb(id, body);
+
+        if (result === false) {
+            return NextResponse.json(
+                { error: "Workout not found or invalid ID" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json(result, { status: 200 });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Invalid request";
+        console.error("PUT /api/workouts/[id] error:", err);
+        return NextResponse.json({ error: message }, { status: 400 });
+    }
+}
 
 export async function DELETE(
     request: Request,
