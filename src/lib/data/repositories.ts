@@ -11,7 +11,6 @@
 
 import {
   mockUser,
-  mockRuns,
   mockQuests,
   mockAchievements,
   mockDashboardStats,
@@ -144,9 +143,12 @@ export async function updateRun(
   return res.json();
 }
 
-export function getQuests(): readonly Quest[] {
-  return mockQuests;
-}
+export async function getQuests(): Promise<readonly Quest[]> {
+  const res = await fetch("/api/quests");
+    if (!res.ok) {
+      throw new Error("Failed to fetch quests");
+  }
+  return res.json();}
 
 export function getAchievements(): readonly Achievement[] {
   return mockAchievements;

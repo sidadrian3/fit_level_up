@@ -17,16 +17,18 @@ import {
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 
 import { useState, useEffect } from "react";
-import type { Workout } from "@/lib/types";
+import type { Quest, Workout } from "@/lib/types";
 
 export default function DashboardPage() {
     // 1. Fetch synchronous mock data
     const user = getUser();
-    const allQuests = getQuests();
+    // const allQuests = getQuests();
     const stats = getDashboardStats();
 
     // 2. State for async workouts
     const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
+    const [quests, setQuests] = useState<Quest[]>([]);
+    
 
     const router = useRouter();
     
@@ -39,11 +41,21 @@ export default function DashboardPage() {
                 console.error("Failed to load workouts for dashboard", err);
             }
         }
+
+        async function loadQuests() {
+            try {
+                const data = await getQuests();
+                setQuests(data.slice(0, 5));
+            } catch (err) {
+                console.error("Failed to load quests for dashboard", err);
+            }
+        }
         loadWorkouts();
+        loadQuests();
     }, []);
 
     // 3. Filter and prepare data for the specific components
-    const dailyQuests = allQuests.filter(q => q.category === "daily");
+    const dailyQuests = quests.filter(q => q.category === "daily");
 
     // Simulating active days array
     const activeDays = [true, true, false, true, true, false, true];

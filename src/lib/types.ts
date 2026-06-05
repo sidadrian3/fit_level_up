@@ -54,6 +54,7 @@ export type CreateRunInput = {
     difficulty: Run["difficulty"];  
 }
 
+
 export interface Quest {
     id: string;
     title: string;
@@ -61,10 +62,42 @@ export interface Quest {
     category: "daily" | "weekly" | "special";
     xpReward: number;
     progress: number;
-    total: number;
+    target: number;
     completed: boolean;
     icon: string;
 }
+
+export type QuestCategory = "daily" | "weekly" | "special";
+
+export type QuestMetric =
+  | "workout_count"
+  | "run_count"
+  | "run_distance";
+
+export type QuestTemplateDoc = {
+  id: string;
+  title: string;
+  description: string;
+  category: QuestCategory;
+  metric: QuestMetric;
+  target: number;
+  xpReward: number;
+  icon: string;
+  isActive: boolean;
+};
+
+export type UserQuestDoc = {
+  id: string;
+  userId: string;
+  questTemplateId: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+  claimed: boolean;
+  periodStart: string;
+  periodEnd: string;
+};
+
 export interface Achievement {
     id: string;
     title: string;
