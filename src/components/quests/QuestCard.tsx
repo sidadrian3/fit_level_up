@@ -7,12 +7,13 @@ import { CheckCircle } from "lucide-react";
 export interface QuestCardProps {
     quest: Quest;
     className?: string;
+    onClaim?: (id: string) => void;
 }
 
 /**
  * Displays a single quest with progress/completion state.
  */
-export function QuestCard({ quest, className = "" }: QuestCardProps) {
+export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
     const isCompleted = quest.completed;
     
     return (
@@ -45,20 +46,30 @@ export function QuestCard({ quest, className = "" }: QuestCardProps) {
 
             <div className="mt-auto pt-2">
                 {isCompleted ? (
-                    <div className="flex items-center gap-2 text-accent-green font-semibold text-sm">
-                        <CheckCircle size={16} />
-                        <span>Completed</span>
-                    </div>
+                    quest.claimed ? (
+                        <div className="flex items-center gap-2 text-accent-green font-semibold text-sm">
+                            <CheckCircle size={16} />
+                            <span>Claimed ✓</span>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => onClaim?.(quest.id)}
+                            className="rounded-md bg-accent-green px-3 py-2 text-sm font-semibold text-black hover:opacity-90"
+                        >
+                            Claim +{quest.xpReward} XP
+                        </button>
+                    )
                 ) : (
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-xs text-muted">
                             <span>Progress</span>
                             <span>{quest.progress} / {quest.target}</span>
                         </div>
-                        <ProgressBar 
-                            value={quest.progress} 
-                            max={quest.target} 
-                            colorClass="bg-accent-green" 
+
+                        <ProgressBar
+                            value={quest.progress}
+                            max={quest.target}
+                            colorClass="bg-accent-green"
                         />
                     </div>
                 )}

@@ -157,3 +157,20 @@ export function getAchievements(): readonly Achievement[] {
 export function getDashboardStats(): DashboardStats {
   return mockDashboardStats;
 }
+
+export async function claimQuest(
+  id: string,
+): Promise<void> {
+  const res = await fetch(`/api/quests/${id}/claim`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Failed to  claim quest"
+    );
+  }
+  return res.json();
+}
+

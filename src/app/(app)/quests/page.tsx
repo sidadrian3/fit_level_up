@@ -1,10 +1,11 @@
 "use client";
 import {useEffect, useState} from "react";
 import {Quest} from "@/lib/types";
-import {getQuests} from "@/lib/data/repositories";
+import {getQuests, claimQuest} from "@/lib/data/repositories";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { QuestSection } from "@/components/quests/QuestSection";
 import { Calendar, Sun, Target } from "lucide-react";
+
 
 export default function QuestsPage() {
 
@@ -30,9 +31,23 @@ export default function QuestsPage() {
             }
         }
 
+    async function handleClaim(id: string) {
+        try {
+            await claimQuest(id);
+
+            const updatedQuests = await getQuests();
+
+            setQuests([...updatedQuests]);
+        } catch (err) {
+            console.error("Failed to claim quest", err);
+        }
+}
+
     useEffect(() => {
         loadQuests();
     }, []);
+
+    
 
 
 
@@ -47,18 +62,21 @@ export default function QuestsPage() {
                 title="Daily Quests" 
                 quests={dailyQuests} 
                 icon={<Sun size={20} />} 
+                onClaim={handleClaim}
             />
             
             <QuestSection 
                 title="Weekly Quests" 
                 quests={weeklyQuests} 
                 icon={<Calendar size={20} />} 
+                onClaim={handleClaim}
             />
             
             <QuestSection 
                 title="Special Quests" 
                 quests={specialQuests} 
                 icon={<Target size={20} />} 
+                onClaim={handleClaim}
             />
         </div>
     );

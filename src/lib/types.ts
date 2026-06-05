@@ -64,6 +64,7 @@ export interface Quest {
     progress: number;
     target: number;
     completed: boolean;
+    claimed: boolean;
     icon: string;
 }
 

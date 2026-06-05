@@ -8,12 +8,13 @@ export interface QuestSectionProps {
     quests: readonly Quest[];
     icon?: React.ReactNode;
     className?: string;
+    onClaim?: (id: string) => void;
 }
 
 /**
  * Groups quests by category and renders a grid of QuestCards.
  */
-export function QuestSection({ title, quests, icon, className = "" }: QuestSectionProps) {
+export function QuestSection({ title, quests, icon, className = "", onClaim }: QuestSectionProps) {
     return (
         <section className={className}>
             <div className="flex items-center gap-2 mb-4">
@@ -24,7 +25,7 @@ export function QuestSection({ title, quests, icon, className = "" }: QuestSecti
             {quests.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {quests.map((quest) => (
-                        <QuestCard key={quest.id} quest={quest} />
+                        <QuestCard key={quest.id} quest={quest} onClaim={onClaim} />
                     ))}
                 </div>
             ) : (

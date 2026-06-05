@@ -115,6 +115,7 @@ function toQuestView(
     target: userQuest.target,
     xpReward: template.xpReward,
     completed: userQuest.completed,
+    claimed: userQuest.claimed,
     icon: template.icon,
   };
 }
@@ -252,7 +253,7 @@ export async function updateQuestProgressFromActivity(
   activity: QuestActivity
 ): Promise<void> {
   await ensureUserQuests(userId);
-
+    
   const {
     dbName,
     questTemplatesCollection,
@@ -320,6 +321,56 @@ export async function updateQuestProgressFromActivity(
       );
     }
   }
+}
+
+export async function claimQuestRewardFromDb(
+    userId: string,
+    questId: string
+): Promise<void> {
+    await ensureUserQuests(userId);
+
+    const {
+        dbName,
+        userQuestsCollection,
+    } = getDbConfig();
+
+    const client = await clientPromise;
+    const db = client.db(dbName);
+
+    const collection = db.collection<UserQuestMongoDoc>(userQuestsCollection);
+
+    console.log("questId:", questId);
+    console.log("userId:", userId);
+
+    const quest = await collection.findOne({
+        _id: new ObjectId(questId),
+        userId,
+    });
+
+    if (!quest) {
+        throw new Error("Quest not found");
+    }
+
+    if (!quest.completed) {
+        throw new Error("Quest is not completed");
+    }
+
+    if (quest.claimed) {
+        throw new Error("Quest already claimed");
+    }
+
+    await collection.updateOne(
+        { _id: quest._id },
+        {
+        $set: {
+            claimed: true,
+        },
+        }
+    );
+
+   
+    
+
 }
 
 
