@@ -53,11 +53,11 @@ export function QuestCard({ quest, className = "" }: QuestCardProps) {
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-xs text-muted">
                             <span>Progress</span>
-                            <span>{quest.progress} / {quest.total}</span>
+                            <span>{quest.progress} / {quest.target}</span>
                         </div>
                         <ProgressBar 
                             value={quest.progress} 
-                            max={quest.total} 
+                            max={quest.target} 
                             colorClass="bg-accent-green" 
                         />
                     </div>

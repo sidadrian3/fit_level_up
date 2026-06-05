@@ -211,3 +211,115 @@ export async function getUserQuestsFromDb(
 
   return quests;
 }
+
+
+// This functions are meant to be called after any activity that could impact quest progress (e.g. creating a workout or run)
+type QuestActivity =
+  | {
+      type: "workout_created";
+      xpEarned: number;
+    }
+  | {
+      type: "run_created";
+      distance: number;
+      xpEarned: number;
+    };
+
+function getQuestProgressUpdates(activity: QuestActivity) {
+  if (activity.type === "workout_created") {
+    return [
+      {
+        metric: "workout_count" as const,
+        amount: 1,
+      },
+    ];
+  }
+
+  return [
+    {
+      metric: "run_count" as const,
+      amount: 1,
+    },
+    {
+      metric: "run_distance" as const,
+      amount: activity.distance,
+    },
+  ];
+}
+
+export async function updateQuestProgressFromActivity(
+  userId: string,
+  activity: QuestActivity
+): Promise<void> {
+  await ensureUserQuests(userId);
+
+  const {
+    dbName,
+    questTemplatesCollection,
+    userQuestsCollection,
+  } = getDbConfig();
+
+  const client = await clientPromise;
+  const db = client.db(dbName);
+
+  const templatesCollection =
+    db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+
+  const userQuests =
+    db.collection<UserQuestMongoDoc>(userQuestsCollection);
+
+  const updates = getQuestProgressUpdates(activity);
+
+  for (const update of updates) {
+    const matchingTemplates = await templatesCollection
+      .find({
+        isActive: true,
+        metric: update.metric,
+      })
+      .toArray();
+
+    for (const template of matchingTemplates) {
+      if (!template._id) {
+        continue;
+      }
+
+      const { periodStart, periodEnd } = getPeriodForCategory(
+        template.category
+      );
+
+      const questTemplateId = template._id.toString();
+
+      const userQuest = await userQuests.findOne({
+        userId,
+        questTemplateId,
+        periodStart,
+        periodEnd,
+      });
+
+      if (!userQuest) {
+        continue;
+      }
+
+      if (userQuest.completed) {
+        continue;
+      }
+
+      const nextProgress = Math.min(
+        userQuest.progress + update.amount,
+        userQuest.target
+      );
+
+      await userQuests.updateOne(
+        { _id: userQuest._id },
+        {
+          $set: {
+            progress: nextProgress,
+            completed: nextProgress >= userQuest.target,
+          },
+        }
+      );
+    }
+  }
+}
+
+

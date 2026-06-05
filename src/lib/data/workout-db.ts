@@ -1,6 +1,8 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { CreateWorkoutInput, Exercise, Workout } from "@/lib/types";
+import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
+import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 
 type WorkoutDoc = {
     _id?: ObjectId;
@@ -95,8 +97,14 @@ export async function addWorkoutToDb(
         _id: result.insertedId,
         ...docToInsert,
     };
+    const createdWorkout = toWorkout(createdDoc);
 
-    return toWorkout(createdDoc);
+    await updateQuestProgressFromActivity(DEMO_USER_ID, {
+        type: "workout_created",
+        xpEarned: createdWorkout.xpEarned,
+    });
+
+    return createdWorkout;
 }
 
 export async function deleteWorkoutFromDb(id: string): Promise<boolean> {

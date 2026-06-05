@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 import  { getUserQuestsFromDb } from "@/lib/data/quests-db";
+import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 
-const DEMO_USER_ID = "demo-user";
 
 export async function GET() {
     try{

@@ -1,6 +1,8 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { CreateRunInput, Run } from "@/lib/types";
+import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
+import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 
 type RunDoc = {
     _id?: ObjectId;
@@ -85,6 +87,8 @@ export async function addRunToDb(
 ): Promise<Run> {
     validateInput(input);
 
+    
+
     const docToInsert = {
         distance: input.distance,
         duration: input.duration,
@@ -105,7 +109,14 @@ export async function addRunToDb(
         ...docToInsert,
     };
 
-    return toRun(createdDoc);
+    const createdRun = toRun(createdDoc);
+    await updateQuestProgressFromActivity(DEMO_USER_ID, {
+        type: "run_created",
+        distance: createdRun.distance,
+        xpEarned: createdRun.xpEarned,
+    });
+
+    return createdRun
 }
 
 export async function deleteRunFromDb(id: string): Promise<boolean> {
