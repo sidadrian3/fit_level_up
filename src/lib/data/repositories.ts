@@ -10,10 +10,7 @@
  */
 
 import {
-  mockUser,
-  mockQuests,
   mockAchievements,
-  mockDashboardStats,
 } from "@/lib/mock-data";
 
 import type {
@@ -157,17 +154,22 @@ export async function updateRun(
 
 export async function getQuests(): Promise<readonly Quest[]> {
   const res = await fetch("/api/quests");
-    if (!res.ok) {
-      throw new Error("Failed to fetch quests");
+  if (!res.ok) {
+    throw new Error("Failed to fetch quests");
   }
-  return res.json();}
+  return res.json();
+}
 
 export function getAchievements(): readonly Achievement[] {
   return mockAchievements;
 }
 
-export function getDashboardStats(): DashboardStats {
-  return mockDashboardStats;
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const res = await fetch("/api/stats/dashboard");
+  if (!res.ok) {
+    throw new Error("Failed to fetch dashboard stats");
+  }
+  return res.json();
 }
 
 export async function claimQuest(

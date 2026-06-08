@@ -17,21 +17,20 @@ import {
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 
 import { useState, useEffect } from "react";
-import type { Quest, Workout, User } from "@/lib/types";
+import type { Quest, Workout, User, DashboardStats } from "@/lib/types";
 
 export default function DashboardPage() {
     // 1. State for async user and data
     const [user, setUser] = useState<User | null>(null);
-    // const allQuests = getQuests();
-    const stats = getDashboardStats();
+    const [stats, setStats] = useState<DashboardStats | null>(null);
 
     // 2. State for async workouts
     const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
     const [quests, setQuests] = useState<Quest[]>([]);
-    
+
 
     const router = useRouter();
-    
+
     useEffect(() => {
         async function loadWorkouts() {
             try {
@@ -60,16 +59,26 @@ export default function DashboardPage() {
             }
         }
 
+        async function loadStats() {
+            try {
+                const data = await getDashboardStats();
+                setStats(data);
+            } catch (err) {
+                console.error("Failed to load stats for dashboard", err);
+            }
+        }
+
         loadUser();
+        loadStats();
         loadWorkouts();
         loadQuests();
-        
-        const handleUserUpdate = () => loadUser();
+
+        const handleUserUpdate = () => { loadUser(); loadStats(); };
         window.addEventListener("user-updated", handleUserUpdate);
         return () => window.removeEventListener("user-updated", handleUserUpdate);
     }, []);
 
-    if (!user) {
+    if (!user || !stats) {
         return (
             <div className="space-y-6 pb-12 animate-pulse">
                 <div className="h-20 bg-card rounded-xl w-full"></div>
