@@ -39,7 +39,7 @@ export function DailyQuests({ quests, className = "" }: DailyQuestsProps) {
                                 </span>
                             </div>
                             <p className="text-xs text-muted truncate mb-2">{quest.description}</p>
-                            
+
                             {quest.completed ? (
                                 <div className="flex items-center gap-1.5 text-xs font-semibold text-accent-green">
                                     <CheckCircle2 size={14} />
@@ -49,9 +49,9 @@ export function DailyQuests({ quests, className = "" }: DailyQuestsProps) {
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between text-[10px] text-muted">
                                         <span>Progress</span>
-                                        <span>{quest.progress} / {quest.total}</span>
+                                        <span>{quest.progress} / {quest.target}</span>
                                     </div>
-                                    <ProgressBar value={quest.progress} max={quest.total} />
+                                    <ProgressBar value={quest.progress} max={quest.target} />
                                 </div>
                             )}
                         </div>

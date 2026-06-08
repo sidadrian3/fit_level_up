@@ -10,7 +10,7 @@ export async function PUT(
         const body = await request.json();
         const result = await updateWorkoutInDb(id, body);
 
-        if (result === false) {
+        if (!result) {
             return NextResponse.json(
                 { error: "Workout not found or invalid ID" },
                 { status: 404 }

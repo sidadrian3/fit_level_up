@@ -80,7 +80,7 @@ export async function getAllRunsFromDb(): Promise<Run[]> {
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
-    const docs = await collection.find().sort({ date: -1 }).toArray();
+    const docs = await collection.find().sort({ _id: -1 }).toArray();
     return docs.map(toRun);
 }
 
@@ -137,9 +137,9 @@ export async function deleteRunFromDb(id: string): Promise<boolean> {
     return result.deletedCount === 1;
 }
 
-export async function updateRunInDb(id: string, input: CreateRunInput): Promise<Run | boolean> {
+export async function updateRunInDb(id: string, input: CreateRunInput): Promise<Run | null> {
     if (!ObjectId.isValid(id)) {
-        return false;
+        return null;
     }
 
     validateInput(input);
@@ -150,7 +150,7 @@ export async function updateRunInDb(id: string, input: CreateRunInput): Promise<
 
     const existing = await collection.findOne({ _id: new ObjectId(id) });
     if (!existing) {
-        return false;
+        return null;
     }
 
     const updateDoc = {
@@ -169,7 +169,7 @@ export async function updateRunInDb(id: string, input: CreateRunInput): Promise<
     );
 
     if (!result) {
-        return false;
+        return null;
     }
 
     return toRun(result);

@@ -75,8 +75,10 @@ export async function getDashboardStatsFromDb(
         lifetimeXP += userDoc.xp;
     }
 
-    // 4. Achievements — hardcoded placeholder until Phase 6
-    const totalAchievements = 0;
+    // 4. Count unlocked achievements
+    const userAchievementsCollection = process.env.MONGODB_USER_ACHIEVEMENTS_COLLECTION || "user_achievements";
+    const totalAchievements = await db.collection(userAchievementsCollection).countDocuments({ userId });
+
     return {
         weeklyWorkouts,
         weeklyDistance,

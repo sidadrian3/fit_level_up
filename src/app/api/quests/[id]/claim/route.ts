@@ -9,8 +9,6 @@ export async function POST(
     try {
         const { id } = await params;
 
-        console.log("claim route questId:", id);
-
         await claimQuestRewardFromDb(
             DEMO_USER_ID,
             id

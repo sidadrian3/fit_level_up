@@ -1,6 +1,6 @@
-import {ObjectId} from "mongodb";
+import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-import type { Quest, QuestCategory, QuestMetric,} from "@/lib/types";
+import type { Quest, QuestCategory, QuestMetric, } from "@/lib/types";
 import { grantXP } from "@/lib/data/user-db";
 
 type QuestTemplateMongoDoc = {
@@ -197,12 +197,14 @@ export async function getUserQuestsFromDb(
     .find({ userId })
     .toArray();
 
+  const templateIds = [...new Set(userQuests.map(uq => new ObjectId(uq.questTemplateId)))];
+  const templates = await templatesCollection.find({ _id: { $in: templateIds } }).toArray();
+  const templateMap = new Map(templates.map(t => [t._id.toString(), t]));
+
   const quests: Quest[] = [];
 
   for (const userQuest of userQuests) {
-    const template = await templatesCollection.findOne({
-      _id: new ObjectId(userQuest.questTemplateId),
-    });
+    const template = templateMap.get(userQuest.questTemplateId);
 
     if (!template) {
       continue;
@@ -218,14 +220,14 @@ export async function getUserQuestsFromDb(
 // This functions are meant to be called after any activity that could impact quest progress (e.g. creating a workout or run)
 type QuestActivity =
   | {
-      type: "workout_created";
-      xpEarned: number;
-    }
+    type: "workout_created";
+    xpEarned: number;
+  }
   | {
-      type: "run_created";
-      distance: number;
-      xpEarned: number;
-    };
+    type: "run_created";
+    distance: number;
+    xpEarned: number;
+  };
 
 function getQuestProgressUpdates(activity: QuestActivity) {
   if (activity.type === "workout_created") {
@@ -254,7 +256,7 @@ export async function updateQuestProgressFromActivity(
   activity: QuestActivity
 ): Promise<void> {
   await ensureUserQuests(userId);
-    
+
   const {
     dbName,
     questTemplatesCollection,
@@ -325,57 +327,55 @@ export async function updateQuestProgressFromActivity(
 }
 
 export async function claimQuestRewardFromDb(
-    userId: string,
-    questId: string
+  userId: string,
+  questId: string
 ): Promise<void> {
-    await ensureUserQuests(userId);
+  await ensureUserQuests(userId);
 
-    const {
-        dbName,
-        userQuestsCollection,
-        questTemplatesCollection,
-    } = getDbConfig();
+  const {
+    dbName,
+    userQuestsCollection,
+    questTemplatesCollection,
+  } = getDbConfig();
 
-    const client = await clientPromise;
-    const db = client.db(dbName);
+  const client = await clientPromise;
+  const db = client.db(dbName);
 
-    const collection = db.collection<UserQuestMongoDoc>(userQuestsCollection);
+  const collection = db.collection<UserQuestMongoDoc>(userQuestsCollection);
 
-    console.log("questId:", questId);
-    console.log("userId:", userId);
 
-    const quest = await collection.findOne({
-        _id: new ObjectId(questId),
-        userId,
-    });
+  const quest = await collection.findOne({
+    _id: new ObjectId(questId),
+    userId,
+  });
 
-    if (!quest) {
-        throw new Error("Quest not found");
+  if (!quest) {
+    throw new Error("Quest not found");
+  }
+
+  if (!quest.completed) {
+    throw new Error("Quest is not completed");
+  }
+
+  if (quest.claimed) {
+    throw new Error("Quest already claimed");
+  }
+
+  await collection.updateOne(
+    { _id: quest._id },
+    {
+      $set: {
+        claimed: true,
+      },
     }
+  );
 
-    if (!quest.completed) {
-        throw new Error("Quest is not completed");
-    }
+  const templatesCollection = db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+  const template = await templatesCollection.findOne({ _id: new ObjectId(quest.questTemplateId) });
 
-    if (quest.claimed) {
-        throw new Error("Quest already claimed");
-    }
-
-    await collection.updateOne(
-        { _id: quest._id },
-        {
-        $set: {
-            claimed: true,
-        },
-        }
-    );
-
-    const templatesCollection = db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
-    const template = await templatesCollection.findOne({ _id: new ObjectId(quest.questTemplateId) });
-    
-    if (template) {
-        await grantXP(userId, template.xpReward);
-    }
+  if (template) {
+    await grantXP(userId, template.xpReward);
+  }
 }
 
 

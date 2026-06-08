@@ -126,9 +126,9 @@ export async function deleteWorkoutFromDb(id: string): Promise<boolean> {
     return result.deletedCount === 1;
 }
 
-export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): Promise<Workout | boolean> {
+export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): Promise<Workout | null> {
     if (!ObjectId.isValid(id)) {
-        return false;
+        return null;
     }
 
     validateInput(input);
@@ -142,7 +142,7 @@ export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): 
     // Fetch original to preserve date
     const existing = await collection.findOne({ _id: new ObjectId(id) });
     if (!existing) {
-        return false;
+        return null;
     }
 
     const updatedDoc = {
@@ -161,7 +161,7 @@ export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): 
     );
 
     if (!result) {
-        return false;
+        return null;
     }
 
     return toWorkout(result);

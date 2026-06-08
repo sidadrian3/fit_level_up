@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deleteRunFromDb, getAllRunsFromDb, updateRunInDb  } from "@/lib/data/runs-db";
+import { deleteRunFromDb, updateRunInDb  } from "@/lib/data/runs-db";
 
 export async function PUT(
     request: Request,
@@ -10,7 +10,7 @@ export async function PUT(
         const body = await request.json();
         const result = await updateRunInDb(id, body);
 
-        if (result === false) {
+        if (!result) {
             return NextResponse.json(
                 { error: "Run not found or invalid ID" },
                 { status: 404 }
@@ -41,9 +41,10 @@ export async function DELETE(
     } catch (err) {
         const message = err instanceof Error ? err.message : "Invalid request";
         console.error("DELETE /api/runs/[id] error:", err);
-                return NextResponse.json(
-                    { error: "Failed to delete run" },
-                    { status: 500 }
-                );    }
+        return NextResponse.json(
+            { error: "Failed to delete run" },
+            { status: 500 }
+        );
+    }
 
 }

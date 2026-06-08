@@ -75,29 +75,7 @@ export type QuestMetric =
   | "run_count"
   | "run_distance";
 
-export type QuestTemplateDoc = {
-  id: string;
-  title: string;
-  description: string;
-  category: QuestCategory;
-  metric: QuestMetric;
-  target: number;
-  xpReward: number;
-  icon: string;
-  isActive: boolean;
-};
 
-export type UserQuestDoc = {
-  id: string;
-  userId: string;
-  questTemplateId: string;
-  progress: number;
-  target: number;
-  completed: boolean;
-  claimed: boolean;
-  periodStart: string;
-  periodEnd: string;
-};
 
 export interface Achievement {
     id: string;
