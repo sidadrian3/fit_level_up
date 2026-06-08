@@ -17,11 +17,11 @@ import {
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 
 import { useState, useEffect } from "react";
-import type { Quest, Workout } from "@/lib/types";
+import type { Quest, Workout, User } from "@/lib/types";
 
 export default function DashboardPage() {
-    // 1. Fetch synchronous mock data
-    const user = getUser();
+    // 1. State for async user and data
+    const [user, setUser] = useState<User | null>(null);
     // const allQuests = getQuests();
     const stats = getDashboardStats();
 
@@ -50,9 +50,33 @@ export default function DashboardPage() {
                 console.error("Failed to load quests for dashboard", err);
             }
         }
+
+        async function loadUser() {
+            try {
+                const data = await getUser();
+                setUser(data);
+            } catch (err) {
+                console.error("Failed to load user for dashboard", err);
+            }
+        }
+
+        loadUser();
         loadWorkouts();
         loadQuests();
+        
+        const handleUserUpdate = () => loadUser();
+        window.addEventListener("user-updated", handleUserUpdate);
+        return () => window.removeEventListener("user-updated", handleUserUpdate);
     }, []);
+
+    if (!user) {
+        return (
+            <div className="space-y-6 pb-12 animate-pulse">
+                <div className="h-20 bg-card rounded-xl w-full"></div>
+                <div className="h-64 bg-card rounded-xl w-full"></div>
+            </div>
+        );
+    }
 
     // 3. Filter and prepare data for the specific components
     const dailyQuests = quests.filter(q => q.category === "daily");

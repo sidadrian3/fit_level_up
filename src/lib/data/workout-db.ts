@@ -3,6 +3,7 @@ import clientPromise from "@/lib/mongodb";
 import type { CreateWorkoutInput, Exercise, Workout } from "@/lib/types";
 import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
 import { DEMO_USER_ID } from "@/lib/constants/demo-user";
+import { grantXP, updateUserStats } from "@/lib/data/user-db";
 
 type WorkoutDoc = {
     _id?: ObjectId;
@@ -103,6 +104,9 @@ export async function addWorkoutToDb(
         type: "workout_created",
         xpEarned: createdWorkout.xpEarned,
     });
+
+    await grantXP(DEMO_USER_ID, createdWorkout.xpEarned);
+    await updateUserStats(DEMO_USER_ID, { incrementWorkouts: 1 });
 
     return createdWorkout;
 }

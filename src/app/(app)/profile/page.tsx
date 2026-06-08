@@ -1,13 +1,42 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { AchievementGrid } from "@/components/profile/AchievementGrid";
 import { PersonalRecords } from "@/components/profile/PersonalRecords";
 import { getUser, getAchievements, getDashboardStats } from "@/lib/data/repositories";
+import type { User } from "@/lib/types";
 
 export default function ProfilePage() {
-    const user = getUser();
+    const [user, setUser] = useState<User | null>(null);
     const achievements = getAchievements();
     const stats = getDashboardStats();
+
+    useEffect(() => {
+        async function loadUser() {
+            try {
+                const data = await getUser();
+                setUser(data);
+            } catch (err) {
+                console.error("Failed to load user for profile", err);
+            }
+        }
+        loadUser();
+
+        const handleUserUpdate = () => loadUser();
+        window.addEventListener("user-updated", handleUserUpdate);
+        return () => window.removeEventListener("user-updated", handleUserUpdate);
+    }, []);
+
+    if (!user) {
+        return (
+            <div className="space-y-6 pb-12 animate-pulse">
+                <div className="h-20 bg-card rounded-xl w-full"></div>
+                <div className="h-64 bg-card rounded-xl w-full"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 pb-12">

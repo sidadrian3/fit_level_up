@@ -27,8 +27,12 @@ import type {
   CreateRunInput,
 } from "@/lib/types";
 
-export function getUser(): User {
-  return mockUser;
+export async function getUser(): Promise<User> {
+  const res = await fetch("/api/user");
+  if (!res.ok) {
+    throw new Error("Failed to fetch user");
+  }
+  return res.json();
 }
 
 export async function getWorkouts(): Promise<readonly Workout[]> {
@@ -53,7 +57,9 @@ export async function createWorkout(
       typeof data.error === "string" ? data.error : "Failed to create workout"
     );
   }
-  return res.json();
+  const result = await res.json();
+  window.dispatchEvent(new Event("user-updated"));
+  return result;
 }
 
 export async function deleteWorkout(id: string): Promise<boolean> {
@@ -84,7 +90,9 @@ export async function updateWorkout(
       typeof data.error === "string" ? data.error : "Failed to update workout"
     );
   }
-  return res.json();
+  const result = await res.json();
+  window.dispatchEvent(new Event("user-updated"));
+  return result;
 }
 
 export async function getRuns(): Promise<readonly Run[]> {
@@ -109,7 +117,9 @@ export async function createRun(
       typeof data.error === "string" ? data.error : "Failed to create run"
     );
   }
-  return res.json();
+  const result = await res.json();
+  window.dispatchEvent(new Event("user-updated"));
+  return result;
 }
 
 export async function deleteRun(id: string): Promise<boolean> {
@@ -140,7 +150,9 @@ export async function updateRun(
       typeof data.error === "string" ? data.error : "Failed to update run"
     );
   }
-  return res.json();
+  const result = await res.json();
+  window.dispatchEvent(new Event("user-updated"));
+  return result;
 }
 
 export async function getQuests(): Promise<readonly Quest[]> {
@@ -171,6 +183,8 @@ export async function claimQuest(
       typeof data.error === "string" ? data.error : "Failed to  claim quest"
     );
   }
-  return res.json();
+  const result = await res.json();
+  window.dispatchEvent(new Event("user-updated"));
+  return result;
 }
 

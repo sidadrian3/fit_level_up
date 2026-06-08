@@ -3,15 +3,43 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Flame } from "lucide-react";
-import { mockUser } from "@/lib/mock-data";
+import { getUser } from "@/lib/data/repositories";
+import type { User } from "@/lib/types";
+import { useEffect, useState } from "react";
 import { navLinks } from "@/lib/constants/navigation";
 
 export function Sidebar() {
-  // usePathname() gives us the current URL path so we can highlight the active link
   const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
 
-  // Calculate XP progress percentage for the mini XP bar
-  const xpPercent = Math.round((mockUser.xp / mockUser.xpToNextLevel) * 100);
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const data = await getUser();
+        setUser(data);
+      } catch (err) {
+        console.error("Failed to load user in sidebar", err);
+      }
+    }
+
+    loadUser();
+
+    // Listen for level up or user update events
+    const handleUserUpdate = () => loadUser();
+    window.addEventListener("user-updated", handleUserUpdate);
+    return () => window.removeEventListener("user-updated", handleUserUpdate);
+  }, []);
+
+  if (!user) {
+    return (
+      <aside className="fixed top-0 left-0 h-full w-64 bg-card border-r border-border hidden lg:flex flex-col z-50 p-6">
+        <div className="animate-pulse bg-border h-8 w-32 rounded mb-10"></div>
+        <div className="animate-pulse bg-border h-10 w-full rounded mb-6"></div>
+      </aside>
+    );
+  }
+
+  const xpPercent = Math.round((user.xp / user.xpToNextLevel) * 100);
 
   return (
     <aside className="fixed top-0 left-0 h-full w-64 bg-card border-r border-border hidden lg:flex flex-col z-50">
@@ -27,13 +55,13 @@ export function Sidebar() {
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center text-lg">
-            {mockUser.avatar}
+            {user.avatar}
           </div>
           <div>
             <p className="font-semibold text-sm text-foreground">
-              {mockUser.name}
+              {user.name}
             </p>
-            <p className="text-xs text-muted">Level {mockUser.level}</p>
+            <p className="text-xs text-muted">Level {user.level}</p>
           </div>
         </div>
 
@@ -45,7 +73,7 @@ export function Sidebar() {
           />
         </div>
         <p className="text-xs text-muted mt-1">
-          {mockUser.xp} / {mockUser.xpToNextLevel} XP
+          {user.xp} / {user.xpToNextLevel} XP
         </p>
       </div>
 
@@ -85,7 +113,7 @@ export function Sidebar() {
           <Flame size={20} className="text-accent-orange" />
           <div>
             <p className="text-sm font-semibold text-accent-orange">
-              {mockUser.streak}-day streak
+              {user.streak}-day streak
             </p>
             <p className="text-xs text-muted">Keep it going!</p>
           </div>

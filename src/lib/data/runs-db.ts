@@ -3,6 +3,7 @@ import clientPromise from "@/lib/mongodb";
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
 import { DEMO_USER_ID } from "@/lib/constants/demo-user";
+import { grantXP, updateUserStats } from "@/lib/data/user-db";
 
 type RunDoc = {
     _id?: ObjectId;
@@ -115,6 +116,9 @@ export async function addRunToDb(
         distance: createdRun.distance,
         xpEarned: createdRun.xpEarned,
     });
+
+    await grantXP(DEMO_USER_ID, createdRun.xpEarned);
+    await updateUserStats(DEMO_USER_ID, { incrementDistance: createdRun.distance });
 
     return createdRun
 }

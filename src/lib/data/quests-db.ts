@@ -1,6 +1,7 @@
 import {ObjectId} from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Quest, QuestCategory, QuestMetric,} from "@/lib/types";
+import { grantXP } from "@/lib/data/user-db";
 
 type QuestTemplateMongoDoc = {
   _id?: ObjectId;
@@ -332,6 +333,7 @@ export async function claimQuestRewardFromDb(
     const {
         dbName,
         userQuestsCollection,
+        questTemplatesCollection,
     } = getDbConfig();
 
     const client = await clientPromise;
@@ -368,9 +370,12 @@ export async function claimQuestRewardFromDb(
         }
     );
 
-   
+    const templatesCollection = db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+    const template = await templatesCollection.findOne({ _id: new ObjectId(quest.questTemplateId) });
     
-
+    if (template) {
+        await grantXP(userId, template.xpReward);
+    }
 }
 
 

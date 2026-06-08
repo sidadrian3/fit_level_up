@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileTabs } from "@/components/layout/MobileTabs";
+import { LevelUpManager } from "@/components/ui/LevelUpManager";
 
 export default function AppLayout({
   children,
@@ -18,6 +19,9 @@ export default function AppLayout({
       
       {/* Mobile Tabs — fixed bottom navigation on mobile */}
       <MobileTabs />
+
+      {/* Global Toast Manager */}
+      <LevelUpManager />
     </div>
   );
 }
