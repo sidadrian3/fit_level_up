@@ -4,6 +4,7 @@ import type { CreateWorkoutInput, Exercise, Workout } from "@/lib/types";
 import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
 import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 import { grantXP, updateUserStats } from "@/lib/data/user-db";
+import { evaluateAchievements } from "@/lib/data/achievements-db";
 
 type WorkoutDoc = {
     _id?: ObjectId;
@@ -107,6 +108,7 @@ export async function addWorkoutToDb(
 
     await grantXP(DEMO_USER_ID, createdWorkout.xpEarned);
     await updateUserStats(DEMO_USER_ID, { incrementWorkouts: 1 });
+    await evaluateAchievements(DEMO_USER_ID);
 
     return createdWorkout;
 }
@@ -132,7 +134,7 @@ export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): 
     validateInput(input);
 
     const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-    
+
     const { dbName, collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);

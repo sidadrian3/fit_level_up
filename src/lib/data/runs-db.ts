@@ -4,6 +4,7 @@ import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
 import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 import { grantXP, updateUserStats } from "@/lib/data/user-db";
+import { evaluateAchievements } from "@/lib/data/achievements-db";
 
 type RunDoc = {
     _id?: ObjectId;
@@ -88,7 +89,7 @@ export async function addRunToDb(
 ): Promise<Run> {
     validateInput(input);
 
-    
+
 
     const docToInsert = {
         distance: input.distance,
@@ -96,7 +97,7 @@ export async function addRunToDb(
         pace: calcPace(input.distance, input.duration),
         difficulty: input.difficulty,
         xpEarned: calcXpEarned(input.distance, input.duration, input.difficulty),
-        date: new Date().toISOString().slice(0, 10),   
+        date: new Date().toISOString().slice(0, 10),
     }
 
     const { dbName, collectionName } = getDbConfig();
@@ -104,7 +105,7 @@ export async function addRunToDb(
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
     const result = await collection.insertOne(docToInsert);
-    
+
     const createdDoc: RunDoc = {
         _id: result.insertedId,
         ...docToInsert,
@@ -119,6 +120,7 @@ export async function addRunToDb(
 
     await grantXP(DEMO_USER_ID, createdRun.xpEarned);
     await updateUserStats(DEMO_USER_ID, { incrementDistance: createdRun.distance });
+    await evaluateAchievements(DEMO_USER_ID);
 
     return createdRun
 }

@@ -9,10 +9,6 @@
  * Every component stays untouched — that's Dependency Inversion in action.
  */
 
-import {
-  mockAchievements,
-} from "@/lib/mock-data";
-
 import type {
   User,
   Workout,
@@ -160,8 +156,12 @@ export async function getQuests(): Promise<readonly Quest[]> {
   return res.json();
 }
 
-export function getAchievements(): readonly Achievement[] {
-  return mockAchievements;
+export async function getAchievements(): Promise<readonly Achievement[]> {
+  const res = await fetch("/api/achievements")
+  if (!res.ok) {
+    throw new Error("Failed to fetch achievements")
+  }
+  return res.json();
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {

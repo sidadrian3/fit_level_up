@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileTabs } from "@/components/layout/MobileTabs";
 import { LevelUpManager } from "@/components/ui/LevelUpManager";
+import { AchievementManager } from "@/components/ui/AchievementManager";
 
 export default function AppLayout({
   children,
@@ -16,12 +17,13 @@ export default function AppLayout({
       <main className="flex-1 lg:ml-64 p-4 lg:p-8 mb-20 lg:mb-0 w-full overflow-x-hidden">
         {children}
       </main>
-      
+
       {/* Mobile Tabs — fixed bottom navigation on mobile */}
       <MobileTabs />
 
       {/* Global Toast Manager */}
       <LevelUpManager />
+      <AchievementManager />
     </div>
   );
 }
