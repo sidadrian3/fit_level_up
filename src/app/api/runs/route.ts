@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAllRunsFromDb, addRunToDb } from "@/lib/data/runs-db";
+import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {
     try {
-        const runs = await getAllRunsFromDb();
+        const userId = await getAuthUserId();
+        const runs = await getAllRunsFromDb(userId);
         return NextResponse.json(runs);
     } catch (err) {
         console.error("GET /api/runs error:", err);
@@ -13,8 +15,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try{
+        const userId = await getAuthUserId();
         const body = await request.json();
-        const run = await addRunToDb(body);
+        const run = await addRunToDb(body, userId);
         return NextResponse.json(run, { status: 201 });
     }catch (err) {
         const message = err instanceof Error ? err.message : "Invalid request";

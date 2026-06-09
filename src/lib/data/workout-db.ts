@@ -2,12 +2,12 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { CreateWorkoutInput, Exercise, Workout } from "@/lib/types";
 import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
-import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 import { grantXP, updateUserStats } from "@/lib/data/user-db";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
 
 type WorkoutDoc = {
     _id?: ObjectId;
+    userId: string;
     type: Workout["type"];
     title: string;
     exercises: Exercise[];
@@ -64,23 +64,25 @@ function calcXpEarned(duration: number, exerciseCount: number): number {
     return Math.round(duration * 2 + exerciseCount * 15);
 }
 
-export async function getAllWorkoutsFromDb(): Promise<Workout[]> {
+export async function getAllWorkoutsFromDb(userId: string): Promise<Workout[]> {
     const { dbName, collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
-    const docs = await collection.find({}).sort({ _id: -1 }).toArray();
+    const docs = await collection.find({ userId }).sort({ _id: -1 }).toArray();
     return docs.map(toWorkout);
 }
 
 export async function addWorkoutToDb(
-    input: CreateWorkoutInput
+    input: CreateWorkoutInput,
+    userId: string
 ): Promise<Workout> {
     validateInput(input);
 
     const namedExercises = input.exercises.filter((ex) => ex.name.trim());
 
     const docToInsert = {
+        userId,
         type: input.type,
         title: input.title.trim(),
         exercises: namedExercises,
@@ -101,19 +103,19 @@ export async function addWorkoutToDb(
     };
     const createdWorkout = toWorkout(createdDoc);
 
-    await updateQuestProgressFromActivity(DEMO_USER_ID, {
+    await updateQuestProgressFromActivity(userId, {
         type: "workout_created",
         xpEarned: createdWorkout.xpEarned,
     });
 
-    await grantXP(DEMO_USER_ID, createdWorkout.xpEarned);
-    await updateUserStats(DEMO_USER_ID, { incrementWorkouts: 1 });
-    await evaluateAchievements(DEMO_USER_ID);
+    await grantXP(userId, createdWorkout.xpEarned);
+    await updateUserStats(userId, { incrementWorkouts: 1 });
+    await evaluateAchievements(userId);
 
     return createdWorkout;
 }
 
-export async function deleteWorkoutFromDb(id: string): Promise<boolean> {
+export async function deleteWorkoutFromDb(id: string, userId: string): Promise<boolean> {
     if (!ObjectId.isValid(id)) {
         return false;
     }
@@ -122,11 +124,11 @@ export async function deleteWorkoutFromDb(id: string): Promise<boolean> {
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
-    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    const result = await collection.deleteOne({ _id: new ObjectId(id), userId });
     return result.deletedCount === 1;
 }
 
-export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): Promise<Workout | null> {
+export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput, userId: string): Promise<Workout | null> {
     if (!ObjectId.isValid(id)) {
         return null;
     }
@@ -140,7 +142,7 @@ export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput): 
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
     // Fetch original to preserve date
-    const existing = await collection.findOne({ _id: new ObjectId(id) });
+    const existing = await collection.findOne({ _id: new ObjectId(id), userId });
     if (!existing) {
         return null;
     }

@@ -1,25 +1,26 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { User } from "@/lib/types";
-import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
-  userId: string;
+  id?: string;
+  email: string;
   name: string;
-  avatar: string;
-  level: number;
-  xp: number;
-  xpToNextLevel: number;
-  streak: number;
-  totalWorkouts: number;
-  totalDistance: number;
-  joinDate: string;
+  image?: string;
+  avatar?: string;
+  level?: number;
+  xp?: number;
+  xpToNextLevel?: number;
+  streak?: number;
+  totalWorkouts?: number;
+  totalDistance?: number;
+  createdAt?: Date;
 };
 
 function getDbConfig() {
   const dbName = process.env.MONGODB_DB;
-  const usersCollection = process.env.MONGODB_USERS_COLLECTION || "users";
+  const usersCollection = "user"; // Better Auth uses 'user' by default
 
   if (!dbName) {
     throw new Error("Missing MONGODB_DB in .env.local");
@@ -30,47 +31,33 @@ function getDbConfig() {
 
 function toUser(doc: UserMongoDoc): User {
   return {
-    name: doc.name,
-    avatar: doc.avatar,
-    level: doc.level,
-    xp: doc.xp,
-    xpToNextLevel: doc.xpToNextLevel,
-    streak: doc.streak,
-    totalWorkouts: doc.totalWorkouts,
-    totalDistance: doc.totalDistance,
-    joinDate: doc.joinDate,
+    id: doc._id?.toString() || doc.id || "",
+    email: doc.email || "",
+    name: doc.name || "",
+    avatar: doc.avatar || doc.image || "⚡",
+    level: doc.level || 1,
+    xp: doc.xp || 0,
+    xpToNextLevel: doc.xpToNextLevel || 500,
+    streak: doc.streak || 0,
+    totalWorkouts: doc.totalWorkouts || 0,
+    totalDistance: doc.totalDistance || 0,
+    // Better Auth sets createdAt as a Date.
+    joinDate: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
   };
 }
 
-export async function createOrGetDemoUser(userId: string = DEMO_USER_ID): Promise<UserMongoDoc> {
+export async function getUserFromDb(userId: string): Promise<User> {
   const { dbName, usersCollection } = getDbConfig();
   const client = await clientPromise;
   const collection = client.db(dbName).collection<UserMongoDoc>(usersCollection);
 
-  const existing = await collection.findOne({ userId });
-  if (existing) {
-    return existing;
+  // Better Auth stores id as ObjectId in _id
+  console.log("getUserFromDb called with userId:", userId, "typeof:", typeof userId);
+  const userDoc = await collection.findOne({ _id: new ObjectId(userId) });
+  if (!userDoc) {
+    console.log("Could not find userDoc for _id:", new ObjectId(userId));
+    throw new Error("User not found");
   }
-
-  const newUser: UserMongoDoc = {
-    userId,
-    name: "Sid",
-    avatar: "⚔️",
-    level: 1,
-    xp: 0,
-    xpToNextLevel: 500,
-    streak: 0,
-    totalWorkouts: 0,
-    totalDistance: 0,
-    joinDate: new Date().toISOString().slice(0, 10),
-  };
-
-  const result = await collection.insertOne(newUser);
-  return { ...newUser, _id: result.insertedId };
-}
-
-export async function getUserFromDb(userId: string = DEMO_USER_ID): Promise<User> {
-  const userDoc = await createOrGetDemoUser(userId);
   return toUser(userDoc);
 }
 
@@ -79,7 +66,7 @@ export async function grantXP(userId: string, amount: number): Promise<{ user: U
   const client = await clientPromise;
   const collection = client.db(dbName).collection<UserMongoDoc>(usersCollection);
 
-  const userDoc = await createOrGetDemoUser(userId);
+  const userDoc = await getUserFromDb(userId);
   
   let newXp = userDoc.xp + amount;
   let newLevel = userDoc.level;
@@ -94,7 +81,7 @@ export async function grantXP(userId: string, amount: number): Promise<{ user: U
   }
 
   const result = await collection.findOneAndUpdate(
-    { userId },
+    { _id: new ObjectId(userId) },
     {
       $set: {
         xp: newXp,
@@ -132,5 +119,5 @@ export async function updateUserStats(
     return;
   }
 
-  await collection.updateOne({ userId }, { $inc: incParams });
+  await collection.updateOne({ _id: new ObjectId(userId) }, { $inc: incParams });
 }

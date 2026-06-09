@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from "@/lib/auth"
 
 const protectedRoutes = ['/dashboard', '/workouts', '/runs', '/quests', '/profile']
 const publicAuthRoutes = ['/login', '/signup']
@@ -10,22 +9,13 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
   const isPublicAuthRoute = publicAuthRoutes.includes(path)
 
-  // Try to get session to determine auth state
-  // Using try-catch because DB connection might fail
-  let session = null;
-  try {
-    session = await auth.api.getSession({
-      headers: request.headers
-    });
-  } catch (error) {
-    console.error("Auth session check failed in proxy:", error);
-  }
+  const sessionToken = request.cookies.get('better-auth.session_token')
 
-  if (isProtectedRoute && !session) {
+  if (isProtectedRoute && !sessionToken) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (isPublicAuthRoute && session) {
+  if (isPublicAuthRoute && sessionToken) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

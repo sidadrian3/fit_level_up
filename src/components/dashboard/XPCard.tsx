@@ -14,8 +14,12 @@ export function XPCard({ user }: XPCardProps) {
     return (
         <Card className="flex flex-col justify-center h-full">
             <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-accent-green/20 flex items-center justify-center text-3xl">
-                    {user.avatar}
+                <div className="w-16 h-16 rounded-2xl bg-accent-green/20 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+                    {user.avatar?.startsWith('http') ? (
+                        <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                        user.avatar
+                    )}
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-foreground">Level {user.level}</h3>

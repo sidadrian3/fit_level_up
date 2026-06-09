@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { addWorkoutToDb, getAllWorkoutsFromDb } from "@/lib/data/workout-db";
+import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {
     try {
-        const workouts = await getAllWorkoutsFromDb();
+        const userId = await getAuthUserId();
+        const workouts = await getAllWorkoutsFromDb(userId);
         return NextResponse.json(workouts);
     } catch (err) {
         console.error("GET /api/workouts error:", err);
@@ -13,8 +15,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        const userId = await getAuthUserId();
         const body = await request.json();
-        const workout = await addWorkoutToDb(body);
+        const workout = await addWorkoutToDb(body, userId);
         return NextResponse.json(workout, { status: 201 });
     } catch (err) {
         const message = err instanceof Error ? err.message : "Invalid request";

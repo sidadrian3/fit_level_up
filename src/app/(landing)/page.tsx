@@ -20,7 +20,7 @@ export default function LandingPage() {
                 </p>
                 
                 <div className="pt-8">
-                    <Link href="/dashboard">
+                    <Link href="/signup">
                         <Button className="px-8 py-4 text-lg bg-accent-green text-background hover:scale-105 hover:shadow-lg hover:shadow-accent-green/20 transition-all duration-300">
                             Get Started Now
                         </Button>

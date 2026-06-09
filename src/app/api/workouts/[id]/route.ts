@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { deleteWorkoutFromDb, updateWorkoutInDb } from "@/lib/data/workout-db";
+import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const userId = await getAuthUserId();
         const { id } = await params;
         const body = await request.json();
-        const result = await updateWorkoutInDb(id, body);
+        const result = await updateWorkoutInDb(id, body, userId);
 
         if (!result) {
             return NextResponse.json(
@@ -30,8 +32,9 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const userId = await getAuthUserId();
         const { id } = await params;
-        const success = await deleteWorkoutFromDb(id);
+        const success = await deleteWorkoutFromDb(id, userId);
 
         if (!success) {
             return NextResponse.json(

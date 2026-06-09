@@ -1,7 +1,6 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Achievement } from "@/lib/types";
-import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 import { getUserFromDb } from "@/lib/data/user-db";
 
 export type AchievementCondition = {
@@ -98,7 +97,7 @@ export async function ensureAchievementDefinitions() {
 // ----------------------------------------------------------------------------
 // FETCH LOGIC
 // ----------------------------------------------------------------------------
-export async function getAllAchievementsForUser(userId: string = DEMO_USER_ID): Promise<Achievement[]> {
+export async function getAllAchievementsForUser(userId: string): Promise<Achievement[]> {
     await ensureAchievementDefinitions(); // Make sure templates exist
 
     const { dbName, definitionsCollection, userAchievementsCollection } = getDbConfig();
@@ -130,7 +129,7 @@ export async function getAllAchievementsForUser(userId: string = DEMO_USER_ID): 
 }
 
 
-export async function evaluateAchievements(userId: string = DEMO_USER_ID): Promise<Achievement[]> {
+export async function evaluateAchievements(userId: string): Promise<Achievement[]> {
     await ensureAchievementDefinitions();
 
     const { dbName, definitionsCollection, userAchievementsCollection } = getDbConfig();

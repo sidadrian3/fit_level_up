@@ -7,6 +7,7 @@ import { getUser } from "@/lib/data/repositories";
 import type { User } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { navLinks } from "@/lib/constants/navigation";
+import { authClient } from "@/lib/auth-client";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -54,8 +55,12 @@ export function Sidebar() {
       {/* ===== USER MINI PROFILE ===== */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center text-lg">
-            {user.avatar}
+          <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center text-lg overflow-hidden shrink-0">
+            {user.avatar?.startsWith('http') ? (
+              <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              user.avatar
+            )}
           </div>
           <div>
             <p className="font-semibold text-sm text-foreground">
@@ -109,7 +114,7 @@ export function Sidebar() {
 
       {/* ===== STREAK CARD ===== */}
       <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-accent-orange/10">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-accent-orange/10 mb-4">
           <Flame size={20} className="text-accent-orange" />
           <div>
             <p className="text-sm font-semibold text-accent-orange">
@@ -118,6 +123,16 @@ export function Sidebar() {
             <p className="text-xs text-muted">Keep it going!</p>
           </div>
         </div>
+        
+        <button
+          onClick={async () => {
+            await authClient.signOut();
+            window.location.href = "/login";
+          }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+        >
+          Log Out
+        </button>
       </div>
     </aside>
   );

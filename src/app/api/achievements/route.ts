@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAllAchievementsForUser } from "@/lib/data/achievements-db";
+import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {
     try {
-        const achievements = await getAllAchievementsForUser();
+        const userId = await getAuthUserId();
+        const achievements = await getAllAchievementsForUser(userId);
         return NextResponse.json(achievements);
     } catch (error) {
         console.error("Failed to fetch achievements:", error);

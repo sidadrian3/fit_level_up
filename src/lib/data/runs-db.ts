@@ -2,12 +2,12 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
-import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 import { grantXP, updateUserStats } from "@/lib/data/user-db";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
 
 type RunDoc = {
     _id?: ObjectId;
+    userId: string;
     distance: number;
     duration: number;
     pace: number;
@@ -75,23 +75,25 @@ function calcPace(distance: number, duration: number): number {
     return duration / distance;
 }
 
-export async function getAllRunsFromDb(): Promise<Run[]> {
+export async function getAllRunsFromDb(userId: string): Promise<Run[]> {
     const { dbName, collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
-    const docs = await collection.find().sort({ _id: -1 }).toArray();
+    const docs = await collection.find({ userId }).sort({ _id: -1 }).toArray();
     return docs.map(toRun);
 }
 
 export async function addRunToDb(
-    input: CreateRunInput
+    input: CreateRunInput,
+    userId: string
 ): Promise<Run> {
     validateInput(input);
 
 
 
     const docToInsert = {
+        userId,
         distance: input.distance,
         duration: input.duration,
         pace: calcPace(input.distance, input.duration),
@@ -112,20 +114,20 @@ export async function addRunToDb(
     };
 
     const createdRun = toRun(createdDoc);
-    await updateQuestProgressFromActivity(DEMO_USER_ID, {
+    await updateQuestProgressFromActivity(userId, {
         type: "run_created",
         distance: createdRun.distance,
         xpEarned: createdRun.xpEarned,
     });
 
-    await grantXP(DEMO_USER_ID, createdRun.xpEarned);
-    await updateUserStats(DEMO_USER_ID, { incrementDistance: createdRun.distance });
-    await evaluateAchievements(DEMO_USER_ID);
+    await grantXP(userId, createdRun.xpEarned);
+    await updateUserStats(userId, { incrementDistance: createdRun.distance });
+    await evaluateAchievements(userId);
 
     return createdRun
 }
 
-export async function deleteRunFromDb(id: string): Promise<boolean> {
+export async function deleteRunFromDb(id: string, userId: string): Promise<boolean> {
     if (!ObjectId.isValid(id)) {
         return false;
     }
@@ -133,11 +135,11 @@ export async function deleteRunFromDb(id: string): Promise<boolean> {
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
-    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    const result = await collection.deleteOne({ _id: new ObjectId(id), userId });
     return result.deletedCount === 1;
 }
 
-export async function updateRunInDb(id: string, input: CreateRunInput): Promise<Run | null> {
+export async function updateRunInDb(id: string, input: CreateRunInput, userId: string): Promise<Run | null> {
     if (!ObjectId.isValid(id)) {
         return null;
     }
@@ -148,7 +150,7 @@ export async function updateRunInDb(id: string, input: CreateRunInput): Promise<
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
-    const existing = await collection.findOne({ _id: new ObjectId(id) });
+    const existing = await collection.findOne({ _id: new ObjectId(id), userId });
     if (!existing) {
         return null;
     }

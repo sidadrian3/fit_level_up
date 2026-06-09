@@ -1,6 +1,6 @@
+import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { DashboardStats } from "@/lib/types";
-import { DEMO_USER_ID } from "@/lib/constants/demo-user";
 import type { UserMongoDoc } from "./user-db";
 
 function getDbConfig() {
@@ -25,7 +25,7 @@ function getWeekStartDate() {
 }
 
 export async function getDashboardStatsFromDb(
-    userId: string = DEMO_USER_ID
+    userId: string
 ): Promise<DashboardStats> {
     const { dbName, workoutsCollection, runsCollection, usersCollection } = getDbConfig();
     const client = await clientPromise;
@@ -34,6 +34,7 @@ export async function getDashboardStatsFromDb(
     const weekStart = getWeekStartDate();
 
     const weeklyWorkouts = await db.collection(workoutsCollection).countDocuments({
+        userId,
         date: {
             $gte: weekStart
         }
@@ -43,6 +44,7 @@ export async function getDashboardStatsFromDb(
         .aggregate([
             {
                 $match: {
+                    userId,
                     date: {
                         $gte: weekStart
                     }
@@ -63,16 +65,18 @@ export async function getDashboardStatsFromDb(
     // 3. Get lifetime XP from user document
     const userDoc = await db
         .collection<UserMongoDoc>(usersCollection)
-        .findOne({ userId });
+        .findOne({ _id: new ObjectId(userId) });
 
     // lifetimeXP = all XP ever earned = (level - 1) worth of XP + current xp
     // Each level N required N*500 XP, so total spent = sum of (1*500 + 2*500 + ... + (level-1)*500)
     let lifetimeXP = 0;
     if (userDoc) {
-        for (let i = 1; i < userDoc.level; i++) {
+        const level = userDoc.level || 1;
+        const xp = userDoc.xp || 0;
+        for (let i = 1; i < level; i++) {
             lifetimeXP += i * 500;
         }
-        lifetimeXP += userDoc.xp;
+        lifetimeXP += xp;
     }
 
     // 4. Count unlocked achievements
