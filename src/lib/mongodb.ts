@@ -35,4 +35,5 @@ if (process.env.NODE_ENV === "development") {
     clientPromise = client.connect();
 }
 
+export { client };
 export default clientPromise;
