@@ -114,10 +114,18 @@ export default function DashboardPage() {
             <PageHeader
                 title={`Welcome back, ${user.name}!`}
                 subtitle="Here's your progress for today."
-                action={{
-                    label: "+ Log Workout",
-                    onClick: () => { router.push("/workouts") }
-                }}
+                actions={[
+                    {
+                        label: "+ Log Workout",
+                        onClick: () => { router.push("/workouts") },
+                        variant: "primary"
+                    },
+                    {
+                        label: "+ Log Run",
+                        onClick: () => { router.push("/runs") },
+                        variant: "secondary"
+                    }
+                ]}
             />
 
             {/* Top row: XP Card & 4 Stat Cards */}
