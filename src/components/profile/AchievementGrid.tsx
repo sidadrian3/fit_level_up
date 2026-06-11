@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Achievement } from "@/lib/types";
+import { Trophy } from "lucide-react";
 
 export interface AchievementGridProps {
     achievements: readonly Achievement[];
@@ -19,7 +20,7 @@ export function AchievementGrid({ achievements, className = "" }: AchievementGri
     return (
         <Card className={`flex flex-col gap-6 ${className}`}>
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground">Achievements</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">Achievements</h2>
                 <div className="text-sm font-medium text-muted bg-background px-3 py-1 rounded-full border border-border">
                     {unlockedCount} / {totalCount} Unlocked
                 </div>
@@ -33,7 +34,7 @@ export function AchievementGrid({ achievements, className = "" }: AchievementGri
                 </div>
             ) : (
                 <EmptyState 
-                    icon="🏆" 
+                    icon={<Trophy className="w-12 h-12" />} 
                     title="No achievements yet" 
                     description="Keep working out to unlock your first achievement!" 
                 />

@@ -13,7 +13,7 @@ export function RecentActivity({ workouts, className = "" }: RecentActivityProps
     if (!workouts || workouts.length === 0) {
         return (
             <Card className={className}>
-                <h3 className="text-lg font-bold text-foreground mb-4">Recent Activity</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h3>
                 <p className="text-sm text-muted text-center py-4">No recent workouts logged.</p>
             </Card>
         );
@@ -21,7 +21,7 @@ export function RecentActivity({ workouts, className = "" }: RecentActivityProps
 
     return (
         <Card className={`flex flex-col gap-4 ${className}`}>
-            <h3 className="text-lg font-bold text-foreground">Recent Activity</h3>
+            <h3 className="text-lg font-semibold text-foreground">Recent Activity</h3>
             <div className="space-y-3">
                 {workouts.map((workout) => {
                     const config = workoutTypeConfig[workout.type] || workoutTypeConfig.strength;
@@ -40,7 +40,7 @@ export function RecentActivity({ workouts, className = "" }: RecentActivityProps
                                     <span>{formatDuration(workout.duration)}</span>
                                 </div>
                             </div>
-                            <div className="text-sm font-bold text-accent-green whitespace-nowrap">
+                            <div className="text-sm font-semibold text-accent-green whitespace-nowrap">
                                 +{workout.xpEarned} XP
                             </div>
                         </div>

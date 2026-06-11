@@ -34,7 +34,7 @@ function toUser(doc: UserMongoDoc): User {
     id: doc._id?.toString() || doc.id || "",
     email: doc.email || "",
     name: doc.name || "",
-    avatar: doc.avatar || doc.image || "⚡",
+    avatar: doc.avatar || doc.image || "zap",
     level: doc.level || 1,
     xp: doc.xp || 0,
     xpToNextLevel: doc.xpToNextLevel || 500,

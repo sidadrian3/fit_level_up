@@ -43,11 +43,11 @@ export function RunCard({
             {/* Main info */}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg font-bold text-foreground">
+                    <span className="text-lg font-semibold text-foreground">
                         {run.distance} km
                     </span>
                     <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${diff.text} ${diff.bg}`}
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${diff.text} ${diff.bg}`}
                     >
                         {run.difficulty}
                     </span>
@@ -62,7 +62,7 @@ export function RunCard({
             </div>
 
             {/* XP earned */}
-            <span className="text-sm font-bold text-accent-green whitespace-nowrap">
+            <span className="text-sm font-medium text-accent-green whitespace-nowrap">
                 +{run.xpEarned} XP
             </span>
 

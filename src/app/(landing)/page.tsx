@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { Zap, Flame, Trophy, LineChart } from "lucide-react";
 
 export default function LandingPage() {
     return (
@@ -8,7 +9,7 @@ export default function LandingPage() {
             
             <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out flex flex-col items-center max-w-3xl mx-auto space-y-8">
                 <div className="w-24 h-24 rounded-full bg-accent-green/10 flex items-center justify-center border border-accent-green/20 mb-4 shadow-[0_0_50px_rgba(34,197,94,0.3)]">
-                    <span className="text-5xl">⚡</span>
+                    <Zap className="w-12 h-12 text-accent-green" />
                 </div>
                 
                 <h1 className="text-5xl md:text-7xl font-extrabold text-foreground tracking-tight">
@@ -29,18 +30,18 @@ export default function LandingPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16 w-full opacity-80">
                     <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card border border-border">
-                        <span className="text-3xl text-accent-orange">🔥</span>
-                        <h3 className="font-bold text-lg">Build Streaks</h3>
+                        <Flame className="w-8 h-8 text-accent-orange" />
+                        <h3 className="font-semibold text-lg">Build Streaks</h3>
                         <p className="text-sm text-muted">Stay consistent and watch your streak multiplier grow.</p>
                     </div>
                     <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card border border-border">
-                        <span className="text-3xl text-accent-purple">🏆</span>
-                        <h3 className="font-bold text-lg">Unlock Badges</h3>
+                        <Trophy className="w-8 h-8 text-accent-purple" />
+                        <h3 className="font-semibold text-lg">Unlock Badges</h3>
                         <p className="text-sm text-muted">Earn rare achievements for pushing your limits.</p>
                     </div>
                     <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card border border-border">
-                        <span className="text-3xl text-accent-blue">📈</span>
-                        <h3 className="font-bold text-lg">Track Progress</h3>
+                        <LineChart className="w-8 h-8 text-accent-blue" />
+                        <h3 className="font-semibold text-lg">Track Progress</h3>
                         <p className="text-sm text-muted">Watch your stats improve with detailed analytics.</p>
                     </div>
                 </div>

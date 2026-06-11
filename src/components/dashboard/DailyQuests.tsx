@@ -13,7 +13,7 @@ export function DailyQuests({ quests, className = "" }: DailyQuestsProps) {
     if (!quests || quests.length === 0) {
         return (
             <Card className={className}>
-                <h3 className="text-lg font-bold text-foreground mb-4">Daily Quests</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Daily Quests</h3>
                 <p className="text-sm text-muted text-center py-4">No daily quests available.</p>
             </Card>
         );
@@ -22,7 +22,7 @@ export function DailyQuests({ quests, className = "" }: DailyQuestsProps) {
     return (
         <Card className={`flex flex-col gap-4 ${className}`}>
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold text-foreground">Daily Quests</h3>
+                <h3 className="text-lg font-semibold text-foreground">Daily Quests</h3>
                 <span className="text-xs text-muted">{quests.filter(q => q.completed).length}/{quests.length} completed</span>
             </div>
             <div className="space-y-4">
@@ -34,7 +34,7 @@ export function DailyQuests({ quests, className = "" }: DailyQuestsProps) {
                         <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
                                 <h4 className="font-semibold text-foreground truncate pr-2">{quest.title}</h4>
-                                <span className="text-xs font-bold text-accent-green whitespace-nowrap px-2 py-0.5 rounded bg-accent-green/10">
+                                <span className="text-xs font-semibold text-accent-green whitespace-nowrap px-2 py-0.5 rounded bg-accent-green/10">
                                     +{quest.xpReward} XP
                                 </span>
                             </div>

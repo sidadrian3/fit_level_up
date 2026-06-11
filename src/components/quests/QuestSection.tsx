@@ -2,6 +2,7 @@ import React from "react";
 import { QuestCard } from "./QuestCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Quest } from "@/lib/types";
+import { Target } from "lucide-react";
 
 export interface QuestSectionProps {
     title: string;
@@ -19,7 +20,7 @@ export function QuestSection({ title, quests, icon, className = "", onClaim }: Q
         <section className={className}>
             <div className="flex items-center gap-2 mb-4">
                 {icon && <span className="text-accent-green">{icon}</span>}
-                <h2 className="text-xl font-bold text-foreground">{title}</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">{title}</h2>
             </div>
             
             {quests.length > 0 ? (
@@ -30,7 +31,7 @@ export function QuestSection({ title, quests, icon, className = "", onClaim }: Q
                 </div>
             ) : (
                 <EmptyState 
-                    icon="🎯" 
+                    icon={<Target className="w-12 h-12" />} 
                     title={`No ${title.toLowerCase()}`}
                     description="Check back later for new challenges!"
                 />

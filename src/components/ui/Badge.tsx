@@ -1,5 +1,14 @@
 import React from "react";
 import type { Achievement } from "@/lib/types";
+import { Footprints, Zap, Shield, Flame, Crown, Trophy } from "lucide-react";
+
+const IconMap: Record<string, React.ReactNode> = {
+    footprints: <Footprints className="w-8 h-8" />,
+    zap: <Zap className="w-8 h-8" />,
+    shield: <Shield className="w-8 h-8" />,
+    flame: <Flame className="w-8 h-8" />,
+    crown: <Crown className="w-8 h-8" />,
+};
 
 export interface BadgeProps {
     achievement: Achievement;
@@ -27,10 +36,12 @@ export function Badge({ achievement, className = "" }: BadgeProps) {
             } ${className}`}
             aria-label={`${title} achievement, ${unlocked ? 'Unlocked' : 'Locked'}`}
         >
-            <div className="text-4xl mb-3">{icon}</div>
-            <h4 className="font-bold text-foreground text-sm mb-1">{title}</h4>
+            <div className="mb-3 flex justify-center text-foreground">
+                {typeof icon === "string" && IconMap[icon] ? IconMap[icon] : <Trophy className="w-8 h-8" />}
+            </div>
+            <h4 className="font-semibold text-foreground text-sm mb-1">{title}</h4>
             <p className="text-xs text-muted mb-3 flex-1">{description}</p>
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
+            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full ${
                 unlocked ? `${colors.bg} ${colors.text}` : "bg-border text-muted"
             }`}>
                 {rarity}

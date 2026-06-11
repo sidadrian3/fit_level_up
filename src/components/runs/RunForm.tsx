@@ -133,7 +133,7 @@ export function RunForm({
     return (
         <Card className={`flex flex-col gap-6 ${className}`}>
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-foreground">
+                <h2 className="text-lg font-semibold text-foreground">
                     {isEditMode ? "Edit Run" : "Log Run"}
                 </h2>
                 {isEditMode && onCancel && (

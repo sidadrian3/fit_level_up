@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Zap } from "lucide-react";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -36,9 +37,9 @@ export default function LoginPage() {
         <Card className="hover:scale-100 hover:shadow-sm">
             <div className="flex flex-col items-center mb-8">
                 <div className="w-16 h-16 rounded-full bg-accent-green/10 flex items-center justify-center border border-accent-green/20 mb-4 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
-                    <span className="text-3xl">⚡</span>
+                    <Zap className="w-8 h-8 text-accent-green" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">Welcome Back</h1>
                 <p className="text-muted text-sm mt-2">Log in to continue your journey</p>
             </div>
 

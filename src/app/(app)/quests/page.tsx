@@ -54,7 +54,7 @@ export default function QuestsPage() {
     return (
         <div className="space-y-10 pb-12">
             <PageHeader
-                title="Quests 🎯"
+                title="Quests"
                 subtitle="Complete challenges to earn XP and level up faster."
             />
 

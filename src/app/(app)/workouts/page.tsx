@@ -54,7 +54,7 @@ export default function WorkoutsPage() {
     return (
         <div className="space-y-6 pb-12">
             <PageHeader
-                title="Workouts 🏋️"
+                title="Workouts"
                 subtitle="Track your training sessions"
             />
 
@@ -67,7 +67,7 @@ export default function WorkoutsPage() {
                 />
 
                 <div className="xl:col-span-2 space-y-4">
-                    <h2 className="text-lg font-bold text-foreground">
+                    <h2 className="text-lg font-semibold text-foreground">
                         Workout History
                     </h2>
                     {isLoading && (

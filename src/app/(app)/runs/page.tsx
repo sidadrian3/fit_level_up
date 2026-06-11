@@ -58,7 +58,7 @@ export default function RunsPage() {
     return (
         <div className="space-y-6 pb-12">
             <PageHeader
-                title="Running 🏃"
+                title="Running"
                 subtitle="Track your runs and pace"
             />
 
@@ -110,7 +110,7 @@ export default function RunsPage() {
 
                 {/* Run history — wider on the right */}
                 <div className="xl:col-span-3 space-y-4">
-                    <h2 className="text-lg font-bold text-foreground">
+                    <h2 className="text-lg font-semibold text-foreground">
                         Run History
                     </h2>
                     {isLoading && (

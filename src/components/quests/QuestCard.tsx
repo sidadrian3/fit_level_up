@@ -30,7 +30,7 @@ export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
                         {quest.icon}
                     </div>
                     <div>
-                        <h4 className={`font-bold ${isCompleted ? "line-through text-muted" : "text-foreground"}`}>
+                        <h4 className={`font-semibold ${isCompleted ? "line-through text-muted" : "text-foreground"}`}>
                             {quest.title}
                         </h4>
                         <p className="text-sm text-muted mt-1">
@@ -39,7 +39,7 @@ export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
                     </div>
                 </div>
                 
-                <div className="shrink-0 flex items-center justify-center font-bold text-xs bg-accent-green/10 text-accent-green px-2.5 py-1 rounded-full whitespace-nowrap">
+                <div className="shrink-0 flex items-center justify-center font-semibold text-xs bg-accent-green/10 text-accent-green px-2.5 py-1 rounded-full whitespace-nowrap">
                     +{quest.xpReward} XP
                 </div>
             </div>

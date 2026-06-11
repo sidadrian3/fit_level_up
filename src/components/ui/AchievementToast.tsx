@@ -18,8 +18,8 @@ export function AchievementToast({ achievement, onClose }: { achievement: Achiev
                 {achievement.icon}
             </div>
             <div>
-                <p className="text-xs font-bold text-accent-purple uppercase tracking-wider">Achievement Unlocked!</p>
-                <h3 className="font-bold text-foreground">{achievement.title}</h3>
+                <p className="text-xs font-semibold text-accent-purple uppercase tracking-wider">Achievement Unlocked!</p>
+                <h3 className="font-semibold text-foreground">{achievement.title}</h3>
             </div>
             <button onClick={() => setVisible(false)} className="absolute top-2 right-2 text-muted hover:text-foreground">
                 ×

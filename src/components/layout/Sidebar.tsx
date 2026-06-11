@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flame } from "lucide-react";
+import { Flame, Zap } from "lucide-react";
 import { getUser } from "@/lib/data/repositories";
 import type { User } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -47,8 +47,8 @@ export function Sidebar() {
       {/* ===== BRAND ===== */}
       <div className="p-6 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="text-2xl">⚡</span>
-          <span className="text-xl font-bold text-foreground">FitLevelUp</span>
+          <Zap className="w-6 h-6 text-accent-green" />
+          <span className="text-xl font-semibold tracking-tight text-foreground">FitLevelUp</span>
         </Link>
       </div>
 
@@ -58,6 +58,8 @@ export function Sidebar() {
           <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center text-lg overflow-hidden shrink-0">
             {user.avatar?.startsWith('http') ? (
               <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            ) : user.avatar === 'zap' ? (
+              <Zap className="w-5 h-5 text-accent-purple" />
             ) : (
               user.avatar
             )}

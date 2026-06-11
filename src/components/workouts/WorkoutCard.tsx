@@ -32,7 +32,7 @@ export function WorkoutCard({ workout, className = "", onDelete, onUpdate }: Wor
                     <Icon size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-foreground truncate">
+                    <h3 className="font-semibold text-foreground truncate">
                         {workout.title}
                     </h3>
                     <span
@@ -86,7 +86,7 @@ export function WorkoutCard({ workout, className = "", onDelete, onUpdate }: Wor
                     <span>•</span>
                     <span>{formatDate(workout.date)}</span>
                 </div>
-                <span className="text-sm font-bold text-accent-green">
+                <span className="text-sm font-semibold text-accent-green">
                     +{workout.xpEarned} XP
                 </span>
             </div>

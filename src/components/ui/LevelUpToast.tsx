@@ -18,7 +18,7 @@ export function LevelUpToast({ level, onClose }: { level: number; onClose: () =>
                 <Trophy className="text-accent-green" size={24} />
             </div>
             <div>
-                <h3 className="font-bold text-foreground text-lg">Level Up!</h3>
+                <h3 className="font-semibold text-foreground text-lg">Level Up!</h3>
                 <p className="text-sm text-muted">You are now Level {level}!</p>
             </div>
             <button onClick={() => setVisible(false)} className="absolute top-2 right-2 text-muted hover:text-foreground">

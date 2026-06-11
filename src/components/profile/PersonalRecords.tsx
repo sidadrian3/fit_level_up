@@ -24,7 +24,7 @@ export function PersonalRecords({ className = "" }: PersonalRecordsProps) {
         <Card className={`flex flex-col gap-6 ${className}`}>
             <div className="flex items-center gap-2">
                 <Trophy className="text-accent-orange" size={24} />
-                <h2 className="text-xl font-bold text-foreground">Personal Records</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">Personal Records</h2>
             </div>
 
             <div className="space-y-3">
@@ -36,7 +36,7 @@ export function PersonalRecords({ className = "" }: PersonalRecordsProps) {
                         <span className="text-sm font-medium text-muted">
                             {record.label}
                         </span>
-                        <span className="font-bold text-foreground">
+                        <span className="font-semibold text-foreground">
                             {record.value}
                         </span>
                     </div>

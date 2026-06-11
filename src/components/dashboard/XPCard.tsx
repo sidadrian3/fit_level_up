@@ -22,7 +22,7 @@ export function XPCard({ user }: XPCardProps) {
                     )}
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold text-foreground">Level {user.level}</h3>
+                    <h3 className="text-xl font-semibold tracking-tight text-foreground">Level {user.level}</h3>
                     <p className="text-sm text-muted">Keep grinding! You're doing great.</p>
                 </div>
             </div>

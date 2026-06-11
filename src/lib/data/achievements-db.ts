@@ -43,7 +43,7 @@ const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
         id: "first_workout",
         title: "First Steps",
         description: "Complete your first workout",
-        icon: "👟",
+        icon: "footprints",
         rarity: "common",
         condition: { metric: "total_workouts", target: 1 }
     },
@@ -51,7 +51,7 @@ const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
         id: "speed_demon",
         title: "Speed Demon",
         description: "Run a total of 5 km",
-        icon: "⚡",
+        icon: "zap",
         rarity: "rare",
         condition: { metric: "total_distance", target: 5 }
     },
@@ -59,7 +59,7 @@ const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
         id: "iron_will",
         title: "Iron Will",
         description: "Complete 50 workouts",
-        icon: "🛡️",
+        icon: "shield",
         rarity: "epic",
         condition: { metric: "total_workouts", target: 50 }
     },
@@ -67,7 +67,7 @@ const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
         id: "unstoppable",
         title: "Unstoppable",
         description: "Reach a 30-day streak",
-        icon: "🔥",
+        icon: "flame",
         rarity: "epic",
         condition: { metric: "streak", target: 30 }
     },
@@ -75,7 +75,7 @@ const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
         id: "legendary_warrior",
         title: "Legendary Warrior",
         description: "Reach level 25",
-        icon: "👑",
+        icon: "crown",
         rarity: "legendary",
         condition: { metric: "level", target: 25 }
     }

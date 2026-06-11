@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Rocket } from "lucide-react";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -39,9 +40,9 @@ export default function SignupPage() {
         <Card className="hover:scale-100 hover:shadow-sm">
             <div className="flex flex-col items-center mb-8">
                 <div className="w-16 h-16 rounded-full bg-accent-blue/10 flex items-center justify-center border border-accent-blue/20 mb-4 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-                    <span className="text-3xl">🚀</span>
+                    <Rocket className="w-8 h-8 text-accent-blue" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">Create Account</h1>
                 <p className="text-muted text-sm mt-2">Start your fitness journey today</p>
             </div>
 
