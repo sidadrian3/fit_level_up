@@ -18,6 +18,7 @@ import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 
 import { useState, useEffect } from "react";
 import type { Quest, Workout, User, DashboardStats } from "@/lib/types";
+import { calcActiveDays } from "@/lib/utils";
 
 export default function DashboardPage() {
     // 1. State for async user and data
@@ -27,15 +28,21 @@ export default function DashboardPage() {
     // 2. State for async workouts
     const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
     const [quests, setQuests] = useState<Quest[]>([]);
-
+    const [activeDays, setActiveDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
 
     const router = useRouter();
+
+
 
     useEffect(() => {
         async function loadWorkouts() {
             try {
                 const data = await getWorkouts();
                 setRecentWorkouts(data.slice(0, 3));
+
+                // Calculate active days for current week from workouts
+                const dates = data.map(w => w.date);
+                setActiveDays(calcActiveDays(dates));
             } catch (err) {
                 console.error("Failed to load workouts for dashboard", err);
             }
@@ -90,8 +97,17 @@ export default function DashboardPage() {
     // 3. Filter and prepare data for the specific components
     const dailyQuests = quests.filter(q => q.category === "daily");
 
-    // Simulating active days array
-    const activeDays = [true, true, false, true, true, false, true];
+    const workoutDiff = stats.weeklyWorkouts - stats.lastWeekWorkouts;
+    let workoutTrendPercent = 0;
+
+    if (stats.lastWeekWorkouts === 0 && stats.weeklyWorkouts > 0) {
+        workoutTrendPercent = 100;
+    }
+    else if (stats.lastWeekWorkouts > 0) {
+        workoutTrendPercent = Math.round((workoutDiff / stats.lastWeekWorkouts) * 100);
+    }
+
+    const isWorkoutTrendPositive = workoutTrendPercent >= 0;
 
     return (
         <div className="space-y-6 pb-12">
@@ -113,7 +129,11 @@ export default function DashboardPage() {
                         icon={<Dumbbell size={24} className="text-accent-green" />}
                         value={stats.weeklyWorkouts.toString()}
                         label="Workouts This Week"
-                        trend={{ value: 15, label: "vs last week", isPositive: true }}
+                        trend={{
+                            value: Math.abs(workoutTrendPercent),
+                            label: "vs last week",
+                            isPositive: isWorkoutTrendPositive
+                        }}
                     />
                     <StatCard
                         icon={<Footprints size={24} className="text-accent-blue" />}

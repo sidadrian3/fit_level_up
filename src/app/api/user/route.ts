@@ -9,6 +9,7 @@ export async function GET() {
         return NextResponse.json(user);
     } catch (err) {
         console.error("GET /api/user error:", err);
-        return NextResponse.json({ error: "Failed to fetch user" }, { status: 500 });
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch user";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

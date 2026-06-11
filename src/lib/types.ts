@@ -53,7 +53,7 @@ export interface Run {
 export type CreateRunInput = {
     distance: number;
     duration: number;
-    difficulty: Run["difficulty"];  
+    difficulty: Run["difficulty"];
 }
 
 
@@ -73,9 +73,9 @@ export interface Quest {
 export type QuestCategory = "daily" | "weekly" | "special";
 
 export type QuestMetric =
-  | "workout_count"
-  | "run_count"
-  | "run_distance";
+    | "workout_count"
+    | "run_count"
+    | "run_distance";
 
 
 
@@ -90,6 +90,7 @@ export interface Achievement {
 }
 export interface DashboardStats {
     weeklyWorkouts: number;
+    lastWeekWorkouts: number;
     weeklyDistance: number;
     totalAchievements: number;
     lifetimeXP: number;

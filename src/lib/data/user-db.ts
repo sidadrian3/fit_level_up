@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { User } from "@/lib/types";
+import { calculateStreak } from "@/lib/utils/calculations";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
@@ -21,12 +22,14 @@ export type UserMongoDoc = {
 function getDbConfig() {
   const dbName = process.env.MONGODB_DB;
   const usersCollection = "user"; // Better Auth uses 'user' by default
+  const workoutsCollection = process.env.MONGODB_WORKOUTS_COLLECTION || "workouts";
+  const runsCollection = process.env.MONGODB_RUNS_COLLECTION || "runs";
 
   if (!dbName) {
     throw new Error("Missing MONGODB_DB in .env.local");
   }
 
-  return { dbName, usersCollection };
+  return { dbName, usersCollection, workoutsCollection, runsCollection };
 }
 
 function toUser(doc: UserMongoDoc): User {
@@ -47,9 +50,10 @@ function toUser(doc: UserMongoDoc): User {
 }
 
 export async function getUserFromDb(userId: string): Promise<User> {
-  const { dbName, usersCollection } = getDbConfig();
+  const { dbName, usersCollection, workoutsCollection, runsCollection } = getDbConfig();
   const client = await clientPromise;
-  const collection = client.db(dbName).collection<UserMongoDoc>(usersCollection);
+  const db = client.db(dbName);
+  const collection = db.collection<UserMongoDoc>(usersCollection);
 
   // Better Auth stores id as ObjectId in _id
   console.log("getUserFromDb called with userId:", userId, "typeof:", typeof userId);
@@ -58,6 +62,23 @@ export async function getUserFromDb(userId: string): Promise<User> {
     console.log("Could not find userDoc for _id:", new ObjectId(userId));
     throw new Error("User not found");
   }
+
+  // Calculate streak dynamically
+  const workoutDocs = await db.collection(workoutsCollection).find({ userId }, { projection: { date: 1 } }).toArray();
+  const runDocs = await db.collection(runsCollection).find({ userId }, { projection: { date: 1 } }).toArray();
+  const allDates = [...workoutDocs.map(d => d.date), ...runDocs.map(d => d.date)].filter(Boolean) as string[];
+  
+  const currentStreak = calculateStreak(allDates);
+
+  // If streak changed, update it
+  if (userDoc.streak !== currentStreak) {
+    userDoc.streak = currentStreak;
+    await collection.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { streak: currentStreak } }
+    );
+  }
+
   return toUser(userDoc);
 }
 

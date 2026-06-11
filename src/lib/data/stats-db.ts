@@ -24,6 +24,21 @@ function getWeekStartDate() {
     return monday.toISOString().slice(0, 10);
 }
 
+function getLastWeekBoundaries() {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const lastMonday = new Date(now);
+    lastMonday.setDate(now.getDate() + diff - 7);
+    const lastSunday = new Date(now);
+    lastSunday.setDate(now.getDate() + diff - 1);
+
+    return {
+        lastMonday: lastMonday.toISOString().slice(0, 10),
+        lastSunday: lastSunday.toISOString().slice(0, 10)
+    }
+}
+
 export async function getDashboardStatsFromDb(
     userId: string
 ): Promise<DashboardStats> {
@@ -37,6 +52,15 @@ export async function getDashboardStatsFromDb(
         userId,
         date: {
             $gte: weekStart
+        }
+    });
+
+    const lastWeek = getLastWeekBoundaries();
+    const lastWeekWorkouts = await db.collection(workoutsCollection).countDocuments({
+        userId,
+        date: {
+            $gte: lastWeek.lastMonday,
+            $lte: lastWeek.lastSunday
         }
     });
 
@@ -85,6 +109,7 @@ export async function getDashboardStatsFromDb(
 
     return {
         weeklyWorkouts,
+        lastWeekWorkouts,
         weeklyDistance,
         totalAchievements,
         lifetimeXP,
