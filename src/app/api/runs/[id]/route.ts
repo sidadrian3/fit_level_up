@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { deleteRunFromDb, updateRunInDb  } from "@/lib/data/runs-db";
+import { deleteRunFromDb } from "@/lib/data/runs-db";
+import { updateRun } from "@/lib/services/update-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function PUT(
@@ -10,7 +11,7 @@ export async function PUT(
         const userId = await getAuthUserId();
         const { id } = await params;
         const body = await request.json();
-        const result = await updateRunInDb(id, body, userId);
+        const result = await updateRun(id, body, userId);
 
         if (!result) {
             return NextResponse.json(
@@ -32,7 +33,7 @@ export async function DELETE(
     try {
         const userId = await getAuthUserId();
         const { id } = await params;
-        const success = await deleteRunFromDb(id, userId); 
+        const success = await deleteRunFromDb(id, userId);
 
         if (!success) {
             return NextResponse.json(
@@ -42,12 +43,10 @@ export async function DELETE(
         }
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (err) {
-        const message = err instanceof Error ? err.message : "Invalid request";
         console.error("DELETE /api/runs/[id] error:", err);
         return NextResponse.json(
             { error: "Failed to delete run" },
             { status: 500 }
         );
     }
-
 }

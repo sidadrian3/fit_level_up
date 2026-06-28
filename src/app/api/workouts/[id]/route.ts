@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { deleteWorkoutFromDb, updateWorkoutInDb } from "@/lib/data/workout-db";
+import { deleteWorkoutFromDb } from "@/lib/data/workout-db";
+import { updateWorkout } from "@/lib/services/update-workout";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function PUT(
@@ -10,7 +11,7 @@ export async function PUT(
         const userId = await getAuthUserId();
         const { id } = await params;
         const body = await request.json();
-        const result = await updateWorkoutInDb(id, body, userId);
+        const result = await updateWorkout(id, body, userId);
 
         if (!result) {
             return NextResponse.json(

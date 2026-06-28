@@ -1,9 +1,6 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-import type { CreateWorkoutInput, Exercise, Workout } from "@/lib/types";
-import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
-import { grantXP, updateUserStats } from "@/lib/data/user-db";
-import { evaluateAchievements } from "@/lib/data/achievements-db";
+import type { Exercise, Workout } from "@/lib/types";
 
 type WorkoutDoc = {
     _id?: ObjectId;
@@ -46,23 +43,6 @@ function toWorkout(doc: WorkoutDoc): Workout {
     };
 }
 
-function validateInput(input: CreateWorkoutInput): void {
-    if (!input.title.trim()) {
-        throw new Error("Title is required");
-    }
-    if (input.duration <= 0) {
-        throw new Error("Duration must be greater than 0");
-    }
-
-    const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-    if (namedExercises.length === 0) {
-        throw new Error("Add at least one exercise with a name");
-    }
-}
-
-function calcXpEarned(duration: number, exerciseCount: number): number {
-    return Math.round(duration * 2 + exerciseCount * 15);
-}
 
 export async function getAllWorkoutsFromDb(userId: string): Promise<Workout[]> {
     const { dbName, collectionName } = getDbConfig();
@@ -73,46 +53,19 @@ export async function getAllWorkoutsFromDb(userId: string): Promise<Workout[]> {
     return docs.map(toWorkout);
 }
 
-export async function addWorkoutToDb(
-    input: CreateWorkoutInput,
-    userId: string
+export async function insertWorkout(
+    doc: Omit<WorkoutDoc, "_id">
 ): Promise<Workout> {
-    validateInput(input);
-
-    const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-
-    const docToInsert = {
-        userId,
-        type: input.type,
-        title: input.title.trim(),
-        exercises: namedExercises,
-        duration: input.duration,
-        xpEarned: calcXpEarned(input.duration, namedExercises.length),
-        date: new Date().toISOString().slice(0, 10),
-    };
-
     const { dbName, collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
-    const result = await collection.insertOne(docToInsert);
+    const result = await collection.insertOne(doc);
 
-    const createdDoc: WorkoutDoc = {
+    return toWorkout({
         _id: result.insertedId,
-        ...docToInsert,
-    };
-    const createdWorkout = toWorkout(createdDoc);
-
-    await updateQuestProgressFromActivity(userId, {
-        type: "workout_created",
-        xpEarned: createdWorkout.xpEarned,
+        ...doc,
     });
-
-    await grantXP(userId, createdWorkout.xpEarned);
-    await updateUserStats(userId, { incrementWorkouts: 1 });
-    await evaluateAchievements(userId);
-
-    return createdWorkout;
 }
 
 export async function deleteWorkoutFromDb(id: string, userId: string): Promise<boolean> {
@@ -128,14 +81,14 @@ export async function deleteWorkoutFromDb(id: string, userId: string): Promise<b
     return result.deletedCount === 1;
 }
 
-export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput, userId: string): Promise<Workout | null> {
+export async function updateWorkoutInDb(
+    id: string,
+    fields: { type: Workout["type"]; title: string; exercises: Exercise[]; duration: number; xpEarned: number },
+    userId: string
+): Promise<Workout | null> {
     if (!ObjectId.isValid(id)) {
         return null;
     }
-
-    validateInput(input);
-
-    const namedExercises = input.exercises.filter((ex) => ex.name.trim());
 
     const { dbName, collectionName } = getDbConfig();
     const client = await clientPromise;
@@ -148,12 +101,8 @@ export async function updateWorkoutInDb(id: string, input: CreateWorkoutInput, u
     }
 
     const updatedDoc = {
-        type: input.type,
-        title: input.title.trim(),
-        exercises: namedExercises,
-        duration: input.duration,
-        xpEarned: calcXpEarned(input.duration, namedExercises.length),
-        date: existing.date,  //Keep original date
+        ...fields,
+        date: existing.date,  // Keep original date
     };
 
     const result = await collection.findOneAndUpdate(

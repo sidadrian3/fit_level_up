@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAllRunsFromDb, addRunToDb } from "@/lib/data/runs-db";
+import { getAllRunsFromDb } from "@/lib/data/runs-db";
+import { logRun } from "@/lib/services/log-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {
@@ -14,14 +15,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-    try{
+    try {
         const userId = await getAuthUserId();
         const body = await request.json();
-        const run = await addRunToDb(body, userId);
+        const run = await logRun(body, userId);
         return NextResponse.json(run, { status: 201 });
-    }catch (err) {
+    } catch (err) {
         const message = err instanceof Error ? err.message : "Invalid request";
         return NextResponse.json({ error: message }, { status: 400 });
     }
 }
-

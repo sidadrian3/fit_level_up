@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { addWorkoutToDb, getAllWorkoutsFromDb } from "@/lib/data/workout-db";
+import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
+import { logWorkout } from "@/lib/services/log-workout";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {
@@ -17,11 +18,10 @@ export async function POST(request: Request) {
     try {
         const userId = await getAuthUserId();
         const body = await request.json();
-        const workout = await addWorkoutToDb(body, userId);
+        const workout = await logWorkout(body, userId);
         return NextResponse.json(workout, { status: 201 });
     } catch (err) {
         const message = err instanceof Error ? err.message : "Invalid request";
-        // Assuming validation errors are thrown as Error objects with messages from workout-db
         return NextResponse.json({ error: message }, { status: 400 });
     }
 }
