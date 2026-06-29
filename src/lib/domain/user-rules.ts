@@ -30,3 +30,12 @@ export function calcLevelUp(
     levelUp,
   };
 }
+
+export function calcLifetimeXp(level: number, currentXp: number): number {
+  let lifetimeXP = 0;
+  for (let i = 1; i < level; i++) {
+    lifetimeXP += i * 500;
+  }
+  lifetimeXP += currentXp;
+  return lifetimeXP;
+}

@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { User } from "@/lib/types";
 import { getDbConfig } from "@/lib/data/db-config";
-
+import { ClientSession } from "mongodb";
 export type UserMongoDoc = {
   _id?: ObjectId;
   id?: string;
@@ -61,10 +61,11 @@ export async function updateUserStreakInDb(userId: string, currentStreak: number
 }
 
 export async function updateUserXPInDb(
-  userId: string, 
-  newXp: number, 
-  newLevel: number, 
-  newXpToNextLevel: number
+  userId: string,
+  newXp: number,
+  newLevel: number,
+  newXpToNextLevel: number,
+  session?: ClientSession
 ): Promise<User> {
   const { dbName, usersCollection } = getDbConfig();
   const client = await clientPromise;
@@ -79,7 +80,7 @@ export async function updateUserXPInDb(
         xpToNextLevel: newXpToNextLevel,
       },
     },
-    { returnDocument: "after" }
+    { session, returnDocument: "after" }
   );
 
   if (!result) {
@@ -91,7 +92,8 @@ export async function updateUserXPInDb(
 
 export async function updateUserStatsInDb(
   userId: string,
-  stats: { incrementWorkouts?: number; incrementDistance?: number }
+  stats: { incrementWorkouts?: number; incrementDistance?: number },
+  session?: ClientSession
 ): Promise<void> {
   const { dbName, usersCollection } = getDbConfig();
   const client = await clientPromise;
@@ -109,5 +111,5 @@ export async function updateUserStatsInDb(
     return;
   }
 
-  await collection.updateOne({ _id: new ObjectId(userId) }, { $inc: incParams });
+  await collection.updateOne({ _id: new ObjectId(userId) }, { $inc: incParams }, { session });
 }

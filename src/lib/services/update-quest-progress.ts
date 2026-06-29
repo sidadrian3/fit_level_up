@@ -2,8 +2,13 @@ import type { QuestActivity } from "@/lib/types";
 import { syncUserQuests } from "@/lib/services/sync-user-quests";
 import { getQuestProgressUpdates, getPeriodForCategory, calcNextProgress } from "@/lib/domain/quest-rules";
 import { getQuestTemplatesByMetricFromDb, findUserQuestFromDb, updateUserQuestProgressInDb } from "@/lib/data/quests-db";
+import { ClientSession } from "mongodb";
 
-export async function updateQuestProgress(userId: string, activity: QuestActivity): Promise<void> {
+export async function updateQuestProgress(
+  userId: string,
+  activity: QuestActivity,
+  session?: ClientSession
+): Promise<void> {
   await syncUserQuests(userId);
 
   const updates = getQuestProgressUpdates(activity);
@@ -38,7 +43,7 @@ export async function updateQuestProgress(userId: string, activity: QuestActivit
       const isCompleted = nextProgress >= userQuest.target;
 
       if (userQuest._id) {
-         await updateUserQuestProgressInDb(userQuest._id.toString(), nextProgress, isCompleted);
+         await updateUserQuestProgressInDb(userQuest._id.toString(), nextProgress, isCompleted, session);
       }
     }
   }

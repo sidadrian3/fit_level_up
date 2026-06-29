@@ -1,6 +1,8 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Exercise, Workout } from "@/lib/types";
+import { getDbConfig } from "@/lib/data/db-config";
+import { ClientSession } from "mongodb";
 
 type WorkoutDoc = {
     _id?: ObjectId;
@@ -13,19 +15,7 @@ type WorkoutDoc = {
     date: string;
 };
 
-function getDbConfig() {
-    const dbName = process.env.MONGODB_DB;
-    const collectionName = process.env.MONGODB_WORKOUTS_COLLECTION;
 
-    if (!dbName) {
-        throw new Error("Missing MONGODB_DB in .env.local");
-    }
-    if (!collectionName) {
-        throw new Error("Missing MONGODB_WORKOUTS_COLLECTION in .env.local");
-    }
-
-    return { dbName, collectionName };
-}
 
 function toWorkout(doc: WorkoutDoc): Workout {
     if (!doc._id) {
@@ -45,7 +35,7 @@ function toWorkout(doc: WorkoutDoc): Workout {
 
 
 export async function getAllWorkoutsFromDb(userId: string): Promise<Workout[]> {
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, workoutsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
@@ -54,13 +44,14 @@ export async function getAllWorkoutsFromDb(userId: string): Promise<Workout[]> {
 }
 
 export async function insertWorkout(
-    doc: Omit<WorkoutDoc, "_id">
+    doc: Omit<WorkoutDoc, "_id">,
+    session?: ClientSession
 ): Promise<Workout> {
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, workoutsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
-    const result = await collection.insertOne(doc);
+    const result = await collection.insertOne(doc, { session });
 
     return toWorkout({
         _id: result.insertedId,
@@ -73,7 +64,7 @@ export async function deleteWorkoutFromDb(id: string, userId: string): Promise<b
         return false;
     }
 
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, workoutsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
@@ -90,7 +81,7 @@ export async function updateWorkoutInDb(
         return null;
     }
 
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, workoutsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
 
@@ -116,4 +107,20 @@ export async function updateWorkoutInDb(
     }
 
     return toWorkout(result);
+}
+
+export async function countWorkoutsInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
+    const { dbName, workoutsCollection } = getDbConfig();
+    const client = await clientPromise;
+    const collection = client.db(dbName).collection<WorkoutDoc>(workoutsCollection);
+
+    const dateFilter: any = { $gte: startDate };
+    if (endDate) {
+        dateFilter.$lte = endDate;
+    }
+
+    return collection.countDocuments({
+        userId,
+        date: dateFilter
+    });
 }

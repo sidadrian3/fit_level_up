@@ -4,6 +4,7 @@ import type { CreateWorkoutInput, Workout } from "@/lib/types";
 import {
     validateWorkoutInput,
     filterNamedExercises,
+
     calcWorkoutXP,
 } from "@/lib/domain/workout-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
@@ -11,6 +12,7 @@ import { updateQuestProgress } from "@/lib/services/update-quest-progress";
 import { updateUserStatsInDb } from "@/lib/data/user-db";
 import { grantUserXP } from "@/lib/services/grant-user-xp";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
+import clientPromise from "@/lib/mongodb";
 
 export async function logWorkout(
     input: CreateWorkoutInput,
@@ -23,25 +25,36 @@ export async function logWorkout(
     const exercises = filterNamedExercises(input.exercises);
     const xpEarned = calcWorkoutXP(input.duration, exercises.length);
 
-    // 3. Persistence (single responsibility)
-    const workout = await insertWorkout({
-        userId,
-        type: input.type,
-        title: input.title.trim(),
-        exercises,
-        duration: input.duration,
-        xpEarned,
-        date: new Date().toISOString().slice(0, 10),
-    });
+    const client = await clientPromise;
+    const session = client.startSession();
 
-    // 4. Side-effects (explicitly orchestrated, easy to extend or skip)
-    await updateQuestProgress(userId, {
-        type: "workout_created",
-        xpEarned: workout.xpEarned,
-    });
-    await grantUserXP(userId, workout.xpEarned);
-    await updateUserStatsInDb(userId, { incrementWorkouts: 1 });
-    await evaluateAchievements(userId);
+    try {
+        return await session.withTransaction(async () => {
+            // 3. Persistence
+            const workout = await insertWorkout({
+                userId,
+                type: input.type,
+                title: input.title.trim(),
+                exercises,
+                duration: input.duration,
+                xpEarned,
+                date: new Date().toISOString().slice(0, 10),
+            }, session);
 
-    return workout;
+            // 4. Side-effects (explicitly orchestrated, easy to extend or skip)
+            await updateQuestProgress(userId, {
+                type: "workout_created",
+                xpEarned: workout.xpEarned,
+            }, session);
+            await grantUserXP(userId, workout.xpEarned, session);
+
+
+            await updateUserStatsInDb(userId, { incrementWorkouts: 1 }, session);
+            await evaluateAchievements(userId, session);
+
+            return workout;
+        });
+    } finally {
+        await session.endSession();
+    }
 }

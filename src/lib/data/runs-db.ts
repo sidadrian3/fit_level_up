@@ -1,6 +1,8 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Run } from "@/lib/types";
+import { getDbConfig } from "@/lib/data/db-config";
+import { ClientSession } from "mongodb";
 
 type RunDoc = {
     _id?: ObjectId;
@@ -13,19 +15,7 @@ type RunDoc = {
     date: string;
 }
 
-function getDbConfig() {
-    const dbName = process.env.MONGODB_DB;
-    const collectionName = process.env.MONGODB_RUNS_COLLECTION;
 
-    if (!dbName) {
-        throw new Error("Missing MONGODB_DB in .env.local");
-    }
-    if (!collectionName) {
-        throw new Error("Missing MONGODB_RUNS_COLLECTION in .env.local");
-    }
-
-    return { dbName, collectionName };
-}
 
 function toRun(doc: RunDoc): Run {
     if (!doc._id) {
@@ -43,7 +33,7 @@ function toRun(doc: RunDoc): Run {
 }
 
 export async function getAllRunsFromDb(userId: string): Promise<Run[]> {
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, runsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
@@ -52,13 +42,14 @@ export async function getAllRunsFromDb(userId: string): Promise<Run[]> {
 }
 
 export async function insertRun(
-    doc: Omit<RunDoc, "_id">
+    doc: Omit<RunDoc, "_id">,
+    session?: ClientSession
 ): Promise<Run> {
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, runsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
-    const result = await collection.insertOne(doc);
+    const result = await collection.insertOne(doc, { session });
 
     return toRun({
         _id: result.insertedId,
@@ -70,7 +61,7 @@ export async function deleteRunFromDb(id: string, userId: string): Promise<boole
     if (!ObjectId.isValid(id)) {
         return false;
     }
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, runsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
@@ -87,7 +78,7 @@ export async function updateRunInDb(
         return null;
     }
 
-    const { dbName, collectionName } = getDbConfig();
+    const { dbName, runsCollection: collectionName } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<RunDoc>(collectionName);
 
@@ -112,4 +103,35 @@ export async function updateRunInDb(
     }
 
     return toRun(result);
+}
+
+export async function getTotalDistanceInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
+    const { dbName, runsCollection } = getDbConfig();
+    const client = await clientPromise;
+    const collection = client.db(dbName).collection<RunDoc>(runsCollection);
+
+    const dateFilter: any = { $gte: startDate };
+    if (endDate) {
+        dateFilter.$lte = endDate;
+    }
+
+    const distanceResult = await collection
+        .aggregate([
+            {
+                $match: {
+                    userId,
+                    date: dateFilter
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalDistance: { $sum: "$distance" }
+                }
+            }
+        ]).toArray();
+
+    return distanceResult.length > 0
+        ? Math.round(distanceResult[0].totalDistance * 10) / 10
+        : 0;
 }

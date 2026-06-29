@@ -1,6 +1,9 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Quest, QuestCategory, QuestMetric } from "@/lib/types";
+import { getDbConfig } from "@/lib/data/db-config";
+import { ClientSession } from "mongodb";
+
 
 export type QuestTemplateMongoDoc = {
   _id?: ObjectId;
@@ -26,30 +29,7 @@ export type UserQuestMongoDoc = {
   periodEnd: string;
 };
 
-export function getDbConfig() {
-  const dbName = process.env.MONGODB_DB;
-  const questTemplatesCollection =
-    process.env.MONGODB_QUEST_TEMPLATES_COLLECTION;
-  const userQuestsCollection = process.env.MONGODB_USER_QUESTS_COLLECTION;
 
-  if (!dbName) {
-    throw new Error("Missing MONGODB_DB in .env.local");
-  }
-
-  if (!questTemplatesCollection) {
-    throw new Error("Missing MONGODB_QUEST_TEMPLATES_COLLECTION in .env.local");
-  }
-
-  if (!userQuestsCollection) {
-    throw new Error("Missing MONGODB_USER_QUESTS_COLLECTION in .env.local");
-  }
-
-  return {
-    dbName,
-    questTemplatesCollection,
-    userQuestsCollection,
-  };
-}
 
 export function toQuestView(
   userQuest: UserQuestMongoDoc,
@@ -113,11 +93,11 @@ export async function getUserQuestByIdFromDb(id: string, userId: string): Promis
   return collection.findOne({ _id: new ObjectId(id), userId });
 }
 
-export async function insertUserQuestToDb(doc: Omit<UserQuestMongoDoc, "_id">): Promise<void> {
+export async function insertUserQuestToDb(doc: Omit<UserQuestMongoDoc, "_id">, session?: ClientSession): Promise<void> {
   const { dbName, userQuestsCollection } = getDbConfig();
   const client = await clientPromise;
   const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
-  await collection.insertOne(doc);
+  await collection.insertOne(doc, { session });
 }
 
 export async function getUserQuestsForUserFromDb(userId: string): Promise<UserQuestMongoDoc[]> {
@@ -134,7 +114,7 @@ export async function getQuestTemplatesByIdsFromDb(ids: string[]): Promise<Quest
   return collection.find({ _id: { $in: ids.map(id => new ObjectId(id)) } }).toArray();
 }
 
-export async function updateUserQuestProgressInDb(id: string, progress: number, completed: boolean): Promise<void> {
+export async function updateUserQuestProgressInDb(id: string, progress: number, completed: boolean, session?: ClientSession): Promise<void> {
   const { dbName, userQuestsCollection } = getDbConfig();
   const client = await clientPromise;
   const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
@@ -142,11 +122,12 @@ export async function updateUserQuestProgressInDb(id: string, progress: number, 
     { _id: new ObjectId(id) },
     {
       $set: { progress, completed },
-    }
+    },
+    { session }
   );
 }
 
-export async function markUserQuestClaimedInDb(id: string): Promise<void> {
+export async function markUserQuestClaimedInDb(id: string, session?: ClientSession): Promise<void> {
   const { dbName, userQuestsCollection } = getDbConfig();
   const client = await clientPromise;
   const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
@@ -154,6 +135,7 @@ export async function markUserQuestClaimedInDb(id: string): Promise<void> {
     { _id: new ObjectId(id) },
     {
       $set: { claimed: true },
-    }
+    },
+    { session }
   );
 }

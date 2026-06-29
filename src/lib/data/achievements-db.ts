@@ -2,6 +2,8 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Achievement } from "@/lib/types";
 import { getUser } from "@/lib/services/get-user";
+import { getDbConfig } from "@/lib/data/db-config";
+import { ClientSession } from "mongodb";
 
 export type AchievementCondition = {
     metric: "total_workouts" | "total_distance" | "level" | "streak";
@@ -25,15 +27,7 @@ export type UserAchievementDoc = {
     unlockedDate: string;
 };
 
-function getDbConfig() {
-    const dbName = process.env.MONGODB_DB;
-    const definitionsCollection = process.env.MONGODB_ACHIEVEMENT_DEFINITIONS_COLLECTION || "achievement_definitions";
-    const userAchievementsCollection = process.env.MONGODB_USER_ACHIEVEMENTS_COLLECTION || "user_achievements";
 
-    if (!dbName) throw new Error("Missing MONGODB_DB in .env.local");
-
-    return { dbName, definitionsCollection, userAchievementsCollection };
-}
 
 // ----------------------------------------------------------------------------
 // SEEDING LOGIC: We define the rules of the game here.
@@ -82,7 +76,7 @@ const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
 ];
 
 export async function ensureAchievementDefinitions() {
-    const { dbName, definitionsCollection } = getDbConfig();
+    const { dbName, achievementsCollection: definitionsCollection } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<AchievementDefinitionDoc>(definitionsCollection);
 
@@ -100,7 +94,7 @@ export async function ensureAchievementDefinitions() {
 export async function getAllAchievementsForUser(userId: string): Promise<Achievement[]> {
     await ensureAchievementDefinitions(); // Make sure templates exist
 
-    const { dbName, definitionsCollection, userAchievementsCollection } = getDbConfig();
+    const { dbName, achievementsCollection: definitionsCollection, userAchievementsCollection } = getDbConfig();
     const client = await clientPromise;
     const db = client.db(dbName);
 
@@ -129,10 +123,10 @@ export async function getAllAchievementsForUser(userId: string): Promise<Achieve
 }
 
 
-export async function evaluateAchievements(userId: string): Promise<Achievement[]> {
+export async function evaluateAchievements(userId: string, session?: ClientSession): Promise<Achievement[]> {
     await ensureAchievementDefinitions();
 
-    const { dbName, definitionsCollection, userAchievementsCollection } = getDbConfig();
+    const { dbName, achievementsCollection: definitionsCollection, userAchievementsCollection } = getDbConfig();
     const client = await clientPromise;
     const db = client.db(dbName);
 
@@ -194,10 +188,16 @@ export async function evaluateAchievements(userId: string): Promise<Achievement[
 
     // 6. If we found new unlocks, save them to the database
     if (newlyUnlockedDocs.length > 0) {
-        await db.collection<UserAchievementDoc>(userAchievementsCollection).insertMany(newlyUnlockedDocs);
+        await db.collection<UserAchievementDoc>(userAchievementsCollection).insertMany(newlyUnlockedDocs, { session });
         console.log(`User ${userId} unlocked ${newlyUnlockedDocs.length} new achievements!`);
     }
 
     return newlyUnlockedAchievements;
+}
+
+export async function countUserAchievements(userId: string): Promise<number> {
+    const { dbName, userAchievementsCollection } = getDbConfig();
+    const client = await clientPromise;
+    return client.db(dbName).collection(userAchievementsCollection).countDocuments({ userId });
 }
 

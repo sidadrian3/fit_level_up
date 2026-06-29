@@ -2,8 +2,9 @@ import { syncUserQuests } from "@/lib/services/sync-user-quests";
 import { validateQuestClaim } from "@/lib/domain/quest-rules";
 import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdFromDb } from "@/lib/data/quests-db";
 import { grantUserXP } from "@/lib/services/grant-user-xp";
+import clientPromise from "@/lib/mongodb";
 
-export async function claimQuestReward(userId: string, questId: string): Promise<void> {
+export async function claimQuestReward(userId: string, questId: string): Promise<any> {
   await syncUserQuests(userId);
 
   const quest = await getUserQuestByIdFromDb(questId, userId);
@@ -16,13 +17,22 @@ export async function claimQuestReward(userId: string, questId: string): Promise
   validateQuestClaim({ completed: quest.completed, claimed: quest.claimed });
 
   if (quest._id) {
-     // Update in DB
-     await markUserQuestClaimedInDb(quest._id.toString());
-  }
+    const client = await clientPromise;
+    const session = client.startSession();
 
-  // Apply side effects
-  const template = await getQuestTemplateByIdFromDb(quest.questTemplateId);
-  if (template) {
-    await grantUserXP(userId, template.xpReward);
+    try {
+      return await session.withTransaction(async () => {
+        // Update in DB
+        await markUserQuestClaimedInDb(quest._id!.toString(), session);
+
+        // Apply side effects
+        const template = await getQuestTemplateByIdFromDb(quest.questTemplateId);
+        if (template) {
+          return await grantUserXP(userId, template.xpReward, session);
+        }
+      });
+    } finally {
+      await session.endSession();
+    }
   }
 }
