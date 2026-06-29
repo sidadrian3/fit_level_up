@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { XPCard } from "@/components/dashboard/XPCard";
@@ -6,93 +6,33 @@ import { ActivityTracker } from "@/components/dashboard/ActivityTracker";
 import { DailyQuests } from "@/components/dashboard/DailyQuests";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { StatCard } from "@/components/ui/StatCard";
-import { useRouter } from "next/navigation";
-
-import {
-    getUser,
-    getWorkouts,
-    getQuests,
-    getDashboardStats
-} from "@/lib/data/repositories";
+import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { getUser } from "@/lib/services/get-user";
+import { getDashboardStats } from "@/lib/services/get-dashboard-stats";
+import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
+import { getUserQuests } from "@/lib/services/get-user-quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
-
-import { useState, useEffect } from "react";
-import type { Quest, Workout, User, DashboardStats } from "@/lib/types";
 import { calcActiveDays } from "@/lib/utils";
 
-export default function DashboardPage() {
-    // 1. State for async user and data
-    const [user, setUser] = useState<User | null>(null);
-    const [stats, setStats] = useState<DashboardStats | null>(null);
 
-    // 2. State for async workouts
-    const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
-    const [quests, setQuests] = useState<Quest[]>([]);
-    const [activeDays, setActiveDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
+export default async function DashboardPage() {
 
-    const router = useRouter();
+    const userId = await getAuthUserId();
 
+    const [user, stats, allWorkouts, allQuests] = await
+        Promise.all([
+            getUser(userId),
+            getDashboardStats(userId),
+            getAllWorkoutsFromDb(userId),
+            getUserQuests(userId)
+        ])
 
+    const recentWorkouts = allWorkouts.slice(0, 3);
+    const dates = allWorkouts.map(w => w.date);
+    const activeDays = calcActiveDays(dates);
 
-    useEffect(() => {
-        async function loadWorkouts() {
-            try {
-                const data = await getWorkouts();
-                setRecentWorkouts(data.slice(0, 3));
-
-                // Calculate active days for current week from workouts
-                const dates = data.map(w => w.date);
-                setActiveDays(calcActiveDays(dates));
-            } catch (err) {
-                console.error("Failed to load workouts for dashboard", err);
-            }
-        }
-
-        async function loadQuests() {
-            try {
-                const data = await getQuests();
-                setQuests(data.slice(0, 5));
-            } catch (err) {
-                console.error("Failed to load quests for dashboard", err);
-            }
-        }
-
-        async function loadUser() {
-            try {
-                const data = await getUser();
-                setUser(data);
-            } catch (err) {
-                console.error("Failed to load user for dashboard", err);
-            }
-        }
-
-        async function loadStats() {
-            try {
-                const data = await getDashboardStats();
-                setStats(data);
-            } catch (err) {
-                console.error("Failed to load stats for dashboard", err);
-            }
-        }
-
-        loadUser();
-        loadStats();
-        loadWorkouts();
-        loadQuests();
-
-        const handleUserUpdate = () => { loadUser(); loadStats(); };
-        window.addEventListener("user-updated", handleUserUpdate);
-        return () => window.removeEventListener("user-updated", handleUserUpdate);
-    }, []);
-
-    if (!user || !stats) {
-        return (
-            <div className="space-y-6 pb-12 animate-pulse">
-                <div className="h-20 bg-card rounded-xl w-full"></div>
-                <div className="h-64 bg-card rounded-xl w-full"></div>
-            </div>
-        );
-    }
+    // We already have the formatted quests from your service!
+    const quests = allQuests.slice(0, 5);
 
     // 3. Filter and prepare data for the specific components
     const dailyQuests = quests.filter(q => q.category === "daily");
@@ -117,12 +57,12 @@ export default function DashboardPage() {
                 actions={[
                     {
                         label: "+ Log Workout",
-                        onClick: () => { router.push("/workouts") },
+                        href: "/workouts",
                         variant: "primary"
                     },
                     {
                         label: "+ Log Run",
-                        onClick: () => { router.push("/runs") },
+                        href: "/runs",
                         variant: "secondary"
                     }
                 ]}
