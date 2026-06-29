@@ -1,13 +1,17 @@
+import Link from "next/link";
+
 interface PageHeaderProps {
     title: string;
     subtitle?: string;
     action?: {
         label: string;
-        onClick: () => void;
+        onClick?: () => void;
+        href?: string;
     };
     actions?: Array<{
         label: string;
-        onClick: () => void;
+        onClick?: () => void;
+        href?: string;
         variant?: "primary" | "secondary";
     }>;
 }
@@ -25,18 +29,26 @@ export function PageHeader({ title, subtitle, action, actions }: PageHeaderProps
             </div>
             {allActions.length > 0 && (
                 <div className="flex items-center space-x-3">
-                    {allActions.map((act, idx) => (
-                        <button
-                            key={idx}
-                            onClick={act.onClick}
-                            className={`px-5 py-2.5 font-semibold rounded-lg hover:opacity-90 transition-default text-sm ${act.variant === "secondary"
-                                ? "bg-card border border-border text-foreground hover:bg-white/5"
-                                : "bg-accent-green text-background"
-                                }`}
-                        >
-                            {act.label}
-                        </button>
-                    ))}
+                    {allActions.map((act, idx) => {
+                        const className = `px-5 py-2.5 font-semibold rounded-lg hover:opacity-90 transition-default text-sm ${act.variant === "secondary"
+                            ? "bg-card border border-border text-foreground hover:bg-white/5"
+                            : "bg-accent-green text-background"
+                            }`;
+
+                        if (act.href) {
+                            return (
+                                <Link key={idx} href={act.href} className={className}>
+                                    {act.label}
+                                </Link>
+                            );
+                        }
+
+                        return (
+                            <button key={idx} onClick={act.onClick} className={className}>
+                                {act.label}
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>
