@@ -78,6 +78,18 @@ export type QuestMetric =
     | "run_distance";
 
 
+export type QuestActivity =
+    | {
+        type: "workout_created";
+        xpEarned: number;
+    }
+    | {
+        type: "run_created";
+        distance: number;
+        xpEarned: number;
+    };
+
+
 
 export interface Achievement {
     id: string;

@@ -1,0 +1,23 @@
+export function getTodayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function getMondayDateString(date = new Date()): string {
+  const current = new Date(date);
+  const day = current.getDay();
+
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  current.setDate(current.getDate() + diffToMonday);
+
+  return current.toISOString().slice(0, 10);
+}
+
+export function getSundayDateString(date = new Date()): string {
+  const current = new Date(date);
+  const day = current.getDay();
+
+  const diffToSunday = day === 0 ? 0 : 7 - day;
+  current.setDate(current.getDate() + diffToSunday);
+
+  return current.toISOString().slice(0, 10);
+}

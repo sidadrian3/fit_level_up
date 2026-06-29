@@ -1,5 +1,5 @@
 import type { CreateRunInput, Run } from "@/lib/types";
-import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
+import { updateQuestProgress } from "@/lib/services/update-quest-progress";
 import { grantXP, updateUserStats } from "@/lib/data/user-db";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
 import { insertRun } from "@/lib/data/runs-db";
@@ -35,7 +35,7 @@ export async function logRun(
 
 
     // 4. Side-effects (explicitly orchestrated, easy to extend or skip)
-    await updateQuestProgressFromActivity(userId, {
+    await updateQuestProgress(userId, {
         type: "run_created",
         distance: run.distance,
         xpEarned: run.xpEarned,

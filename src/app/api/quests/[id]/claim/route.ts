@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { claimQuestRewardFromDb } from "@/lib/data/quests-db";
+import { claimQuestReward } from "@/lib/services/claim-quest-reward";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function POST(
@@ -10,10 +10,7 @@ export async function POST(
         const { id } = await params;
         const userId = await getAuthUserId();
 
-        await claimQuestRewardFromDb(
-            userId,
-            id
-        );
+        await claimQuestReward(userId, id);
 
         return NextResponse.json({
             success: true,

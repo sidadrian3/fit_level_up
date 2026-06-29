@@ -7,7 +7,7 @@ import {
     calcWorkoutXP,
 } from "@/lib/domain/workout-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
-import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
+import { updateQuestProgress } from "@/lib/services/update-quest-progress";
 import { grantXP, updateUserStats } from "@/lib/data/user-db";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
 
@@ -34,7 +34,7 @@ export async function logWorkout(
     });
 
     // 4. Side-effects (explicitly orchestrated, easy to extend or skip)
-    await updateQuestProgressFromActivity(userId, {
+    await updateQuestProgress(userId, {
         type: "workout_created",
         xpEarned: workout.xpEarned,
     });

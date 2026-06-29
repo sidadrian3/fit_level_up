@@ -1,9 +1,8 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-import type { Quest, QuestCategory, QuestMetric, } from "@/lib/types";
-import { grantXP } from "@/lib/data/user-db";
+import type { Quest, QuestCategory, QuestMetric } from "@/lib/types";
 
-type QuestTemplateMongoDoc = {
+export type QuestTemplateMongoDoc = {
   _id?: ObjectId;
   title: string;
   description: string;
@@ -15,7 +14,7 @@ type QuestTemplateMongoDoc = {
   isActive: boolean;
 };
 
-type UserQuestMongoDoc = {
+export type UserQuestMongoDoc = {
   _id?: ObjectId;
   userId: string;
   questTemplateId: string;
@@ -27,7 +26,7 @@ type UserQuestMongoDoc = {
   periodEnd: string;
 };
 
-function getDbConfig() {
+export function getDbConfig() {
   const dbName = process.env.MONGODB_DB;
   const questTemplatesCollection =
     process.env.MONGODB_QUEST_TEMPLATES_COLLECTION;
@@ -52,54 +51,7 @@ function getDbConfig() {
   };
 }
 
-function getTodayDateString() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getMondayDateString(date = new Date()) {
-  const current = new Date(date);
-  const day = current.getDay();
-
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  current.setDate(current.getDate() + diffToMonday);
-
-  return current.toISOString().slice(0, 10);
-}
-
-function getSundayDateString(date = new Date()) {
-  const current = new Date(date);
-  const day = current.getDay();
-
-  const diffToSunday = day === 0 ? 0 : 7 - day;
-  current.setDate(current.getDate() + diffToSunday);
-
-  return current.toISOString().slice(0, 10);
-}
-
-function getPeriodForCategory(category: QuestCategory) {
-  if (category === "daily") {
-    const today = getTodayDateString();
-
-    return {
-      periodStart: today,
-      periodEnd: today,
-    };
-  }
-
-  if (category === "weekly") {
-    return {
-      periodStart: getMondayDateString(),
-      periodEnd: getSundayDateString(),
-    };
-  }
-
-  return {
-    periodStart: "all-time",
-    periodEnd: "all-time",
-  };
-}
-
-function toQuestView(
+export function toQuestView(
   userQuest: UserQuestMongoDoc,
   template: QuestTemplateMongoDoc
 ): Quest {
@@ -121,261 +73,87 @@ function toQuestView(
   };
 }
 
-export async function ensureUserQuests(userId: string): Promise<void> {
-  const {
-    dbName,
-    questTemplatesCollection,
-    userQuestsCollection,
-  } = getDbConfig();
-
+export async function getActiveQuestTemplatesFromDb(): Promise<QuestTemplateMongoDoc[]> {
+  const { dbName, questTemplatesCollection } = getDbConfig();
   const client = await clientPromise;
-  const db = client.db(dbName);
-
-  const templatesCollection =
-    db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
-
-  const userQuests =
-    db.collection<UserQuestMongoDoc>(userQuestsCollection);
-
-  const activeTemplates = await templatesCollection
-    .find({ isActive: true })
-    .toArray();
-
-  for (const template of activeTemplates) {
-    if (!template._id) {
-      continue;
-    }
-
-    const { periodStart, periodEnd } = getPeriodForCategory(template.category);
-    const questTemplateId = template._id.toString();
-
-    const existingQuest = await userQuests.findOne({
-      userId,
-      questTemplateId,
-      periodStart,
-      periodEnd,
-    });
-
-    if (existingQuest) {
-      continue;
-    }
-
-    await userQuests.insertOne({
-      userId,
-      questTemplateId,
-      progress: 0,
-      target: template.target,
-      completed: false,
-      claimed: false,
-      periodStart,
-      periodEnd,
-    });
-  }
+  const collection = client.db(dbName).collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+  return collection.find({ isActive: true }).toArray();
 }
 
-export async function getUserQuestsFromDb(
-  userId: string
-): Promise<Quest[]> {
-  const {
-    dbName,
-    questTemplatesCollection,
-    userQuestsCollection,
-  } = getDbConfig();
-
-  await ensureUserQuests(userId);
-
+export async function getQuestTemplateByIdFromDb(id: string): Promise<QuestTemplateMongoDoc | null> {
+  const { dbName, questTemplatesCollection } = getDbConfig();
   const client = await clientPromise;
-  const db = client.db(dbName);
-
-  const templatesCollection =
-    db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
-
-  const userQuestsCollectionRef =
-    db.collection<UserQuestMongoDoc>(userQuestsCollection);
-
-  const userQuests = await userQuestsCollectionRef
-    .find({ userId })
-    .toArray();
-
-  const templateIds = [...new Set(userQuests.map(uq => new ObjectId(uq.questTemplateId)))];
-  const templates = await templatesCollection.find({ _id: { $in: templateIds } }).toArray();
-  const templateMap = new Map(templates.map(t => [t._id.toString(), t]));
-
-  const quests: Quest[] = [];
-
-  for (const userQuest of userQuests) {
-    const template = templateMap.get(userQuest.questTemplateId);
-
-    if (!template) {
-      continue;
-    }
-
-    quests.push(toQuestView(userQuest, template));
-  }
-
-  return quests;
+  const collection = client.db(dbName).collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+  return collection.findOne({ _id: new ObjectId(id) });
 }
 
-
-// This functions are meant to be called after any activity that could impact quest progress (e.g. creating a workout or run)
-type QuestActivity =
-  | {
-    type: "workout_created";
-    xpEarned: number;
-  }
-  | {
-    type: "run_created";
-    distance: number;
-    xpEarned: number;
-  };
-
-function getQuestProgressUpdates(activity: QuestActivity) {
-  if (activity.type === "workout_created") {
-    return [
-      {
-        metric: "workout_count" as const,
-        amount: 1,
-      },
-    ];
-  }
-
-  return [
-    {
-      metric: "run_count" as const,
-      amount: 1,
-    },
-    {
-      metric: "run_distance" as const,
-      amount: activity.distance,
-    },
-  ];
+export async function getQuestTemplatesByMetricFromDb(metric: QuestMetric): Promise<QuestTemplateMongoDoc[]> {
+  const { dbName, questTemplatesCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+  return collection.find({ isActive: true, metric }).toArray();
 }
 
-export async function updateQuestProgressFromActivity(
+export async function findUserQuestFromDb(
   userId: string,
-  activity: QuestActivity
-): Promise<void> {
-  await ensureUserQuests(userId);
-
-  const {
-    dbName,
-    questTemplatesCollection,
-    userQuestsCollection,
-  } = getDbConfig();
-
+  questTemplateId: string,
+  periodStart: string,
+  periodEnd: string
+): Promise<UserQuestMongoDoc | null> {
+  const { dbName, userQuestsCollection } = getDbConfig();
   const client = await clientPromise;
-  const db = client.db(dbName);
-
-  const templatesCollection =
-    db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
-
-  const userQuests =
-    db.collection<UserQuestMongoDoc>(userQuestsCollection);
-
-  const updates = getQuestProgressUpdates(activity);
-
-  for (const update of updates) {
-    const matchingTemplates = await templatesCollection
-      .find({
-        isActive: true,
-        metric: update.metric,
-      })
-      .toArray();
-
-    for (const template of matchingTemplates) {
-      if (!template._id) {
-        continue;
-      }
-
-      const { periodStart, periodEnd } = getPeriodForCategory(
-        template.category
-      );
-
-      const questTemplateId = template._id.toString();
-
-      const userQuest = await userQuests.findOne({
-        userId,
-        questTemplateId,
-        periodStart,
-        periodEnd,
-      });
-
-      if (!userQuest) {
-        continue;
-      }
-
-      if (userQuest.completed) {
-        continue;
-      }
-
-      const nextProgress = Math.min(
-        userQuest.progress + update.amount,
-        userQuest.target
-      );
-
-      await userQuests.updateOne(
-        { _id: userQuest._id },
-        {
-          $set: {
-            progress: nextProgress,
-            completed: nextProgress >= userQuest.target,
-          },
-        }
-      );
-    }
-  }
+  const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
+  return collection.findOne({ userId, questTemplateId, periodStart, periodEnd });
 }
 
-export async function claimQuestRewardFromDb(
-  userId: string,
-  questId: string
-): Promise<void> {
-  await ensureUserQuests(userId);
-
-  const {
-    dbName,
-    userQuestsCollection,
-    questTemplatesCollection,
-  } = getDbConfig();
-
+export async function getUserQuestByIdFromDb(id: string, userId: string): Promise<UserQuestMongoDoc | null> {
+  const { dbName, userQuestsCollection } = getDbConfig();
   const client = await clientPromise;
-  const db = client.db(dbName);
+  const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
+  return collection.findOne({ _id: new ObjectId(id), userId });
+}
 
-  const collection = db.collection<UserQuestMongoDoc>(userQuestsCollection);
+export async function insertUserQuestToDb(doc: Omit<UserQuestMongoDoc, "_id">): Promise<void> {
+  const { dbName, userQuestsCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
+  await collection.insertOne(doc);
+}
 
+export async function getUserQuestsForUserFromDb(userId: string): Promise<UserQuestMongoDoc[]> {
+  const { dbName, userQuestsCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
+  return collection.find({ userId }).toArray();
+}
 
-  const quest = await collection.findOne({
-    _id: new ObjectId(questId),
-    userId,
-  });
+export async function getQuestTemplatesByIdsFromDb(ids: string[]): Promise<QuestTemplateMongoDoc[]> {
+  const { dbName, questTemplatesCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+  return collection.find({ _id: { $in: ids.map(id => new ObjectId(id)) } }).toArray();
+}
 
-  if (!quest) {
-    throw new Error("Quest not found");
-  }
-
-  if (!quest.completed) {
-    throw new Error("Quest is not completed");
-  }
-
-  if (quest.claimed) {
-    throw new Error("Quest already claimed");
-  }
-
+export async function updateUserQuestProgressInDb(id: string, progress: number, completed: boolean): Promise<void> {
+  const { dbName, userQuestsCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
   await collection.updateOne(
-    { _id: quest._id },
+    { _id: new ObjectId(id) },
     {
-      $set: {
-        claimed: true,
-      },
+      $set: { progress, completed },
     }
   );
-
-  const templatesCollection = db.collection<QuestTemplateMongoDoc>(questTemplatesCollection);
-  const template = await templatesCollection.findOne({ _id: new ObjectId(quest.questTemplateId) });
-
-  if (template) {
-    await grantXP(userId, template.xpReward);
-  }
 }
 
-
+export async function markUserQuestClaimedInDb(id: string): Promise<void> {
+  const { dbName, userQuestsCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
+  await collection.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: { claimed: true },
+    }
+  );
+}
