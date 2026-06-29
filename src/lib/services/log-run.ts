@@ -1,6 +1,7 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/update-quest-progress";
-import { grantXP, updateUserStats } from "@/lib/data/user-db";
+import { updateUserStatsInDb } from "@/lib/data/user-db";
+import { grantUserXP } from "@/lib/services/grant-user-xp";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
 import { insertRun } from "@/lib/data/runs-db";
 import {
@@ -40,8 +41,8 @@ export async function logRun(
         distance: run.distance,
         xpEarned: run.xpEarned,
     });
-    await grantXP(userId, run.xpEarned);
-    await updateUserStats(userId, { incrementDistance: run.distance });
+    await grantUserXP(userId, run.xpEarned);
+  await updateUserStatsInDb(userId, { incrementDistance: run.distance });
     await evaluateAchievements(userId);
 
     return run;

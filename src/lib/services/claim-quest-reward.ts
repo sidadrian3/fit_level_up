@@ -1,7 +1,7 @@
 import { syncUserQuests } from "@/lib/services/sync-user-quests";
 import { validateQuestClaim } from "@/lib/domain/quest-rules";
 import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdFromDb } from "@/lib/data/quests-db";
-import { grantXP } from "@/lib/data/user-db";
+import { grantUserXP } from "@/lib/services/grant-user-xp";
 
 export async function claimQuestReward(userId: string, questId: string): Promise<void> {
   await syncUserQuests(userId);
@@ -23,6 +23,6 @@ export async function claimQuestReward(userId: string, questId: string): Promise
   // Apply side effects
   const template = await getQuestTemplateByIdFromDb(quest.questTemplateId);
   if (template) {
-    await grantXP(userId, template.xpReward);
+    await grantUserXP(userId, template.xpReward);
   }
 }

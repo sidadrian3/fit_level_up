@@ -8,7 +8,8 @@ import {
 } from "@/lib/domain/workout-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
 import { updateQuestProgress } from "@/lib/services/update-quest-progress";
-import { grantXP, updateUserStats } from "@/lib/data/user-db";
+import { updateUserStatsInDb } from "@/lib/data/user-db";
+import { grantUserXP } from "@/lib/services/grant-user-xp";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
 
 export async function logWorkout(
@@ -38,8 +39,8 @@ export async function logWorkout(
         type: "workout_created",
         xpEarned: workout.xpEarned,
     });
-    await grantXP(userId, workout.xpEarned);
-    await updateUserStats(userId, { incrementWorkouts: 1 });
+    await grantUserXP(userId, workout.xpEarned);
+    await updateUserStatsInDb(userId, { incrementWorkouts: 1 });
     await evaluateAchievements(userId);
 
     return workout;

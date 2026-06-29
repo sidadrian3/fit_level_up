@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Achievement } from "@/lib/types";
-import { getUserFromDb } from "@/lib/data/user-db";
+import { getUser } from "@/lib/services/get-user";
 
 export type AchievementCondition = {
     metric: "total_workouts" | "total_distance" | "level" | "streak";
@@ -137,7 +137,7 @@ export async function evaluateAchievements(userId: string): Promise<Achievement[
     const db = client.db(dbName);
 
     //Fetch user to check their stats
-    const user = await getUserFromDb(userId);
+    const user = await getUser(userId);
 
     //Fetch all achievement definitions
     const definitions = await db.collection<AchievementDefinitionDoc>(definitionsCollection).find({}).toArray();
