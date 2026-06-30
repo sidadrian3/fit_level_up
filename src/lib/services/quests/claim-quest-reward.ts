@@ -1,7 +1,7 @@
-import { syncUserQuests } from "@/lib/services/sync-user-quests";
+import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { validateQuestClaim } from "@/lib/domain/quest-rules";
 import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdFromDb } from "@/lib/data/quests-db";
-import { grantUserXP } from "@/lib/services/grant-user-xp";
+import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import clientPromise from "@/lib/mongodb";
 
 export async function claimQuestReward(userId: string, questId: string): Promise<any> {

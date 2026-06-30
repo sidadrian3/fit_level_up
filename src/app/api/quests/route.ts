@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server";
-import  { getUserQuests } from "@/lib/services/get-user-quests";
+import  { getUserQuests } from "@/lib/services/quests/get-user-quests";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 

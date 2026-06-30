@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteWorkoutFromDb } from "@/lib/data/workout-db";
-import { updateWorkout } from "@/lib/services/update-workout";
+import { updateWorkout } from "@/lib/services/workouts/update-workout";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function PUT(

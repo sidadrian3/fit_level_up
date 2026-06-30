@@ -1,5 +1,5 @@
 import type { Quest } from "@/lib/types";
-import { syncUserQuests } from "@/lib/services/sync-user-quests";
+import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { getUserQuestsForUserFromDb, getQuestTemplatesByIdsFromDb, toQuestView } from "@/lib/data/quests-db";
 
 export async function getUserQuests(userId: string): Promise<Quest[]> {

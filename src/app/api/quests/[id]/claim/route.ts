@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { claimQuestReward } from "@/lib/services/claim-quest-reward";
+import { claimQuestReward } from "@/lib/services/quests/claim-quest-reward";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function POST(

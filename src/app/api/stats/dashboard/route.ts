@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDashboardStats } from "@/lib/services/get-dashboard-stats";
+import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {

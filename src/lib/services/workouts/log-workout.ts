@@ -8,9 +8,9 @@ import {
     calcWorkoutXP,
 } from "@/lib/domain/workout-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
-import { updateQuestProgress } from "@/lib/services/update-quest-progress";
+import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { updateUserStatsInDb } from "@/lib/data/user-db";
-import { grantUserXP } from "@/lib/services/grant-user-xp";
+import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import { evaluateAchievements } from "@/lib/data/achievements-db";
 import clientPromise from "@/lib/mongodb";
 

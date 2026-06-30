@@ -7,10 +7,10 @@ import { DailyQuests } from "@/components/dashboard/DailyQuests";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { getUser } from "@/lib/services/get-user";
-import { getDashboardStats } from "@/lib/services/get-dashboard-stats";
+import { getUser } from "@/lib/services/users/get-user";
+import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
-import { getUserQuests } from "@/lib/services/get-user-quests";
+import { getUserQuests } from "@/lib/services/quests/get-user-quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 import { calcActiveDays } from "@/lib/utils";
 

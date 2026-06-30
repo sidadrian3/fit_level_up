@@ -2,7 +2,7 @@ import { getMondayDateString, getLastWeekBoundaries } from "@/lib/utils/dates";
 import { countWorkoutsInRange } from "@/lib/data/workout-db";
 import { getTotalDistanceInRange } from "@/lib/data/runs-db";
 import { countUserAchievements } from "@/lib/data/achievements-db";
-import { getUser } from "@/lib/services/get-user";
+import { getUser } from "@/lib/services/users/get-user";
 import { calcLifetimeXp } from "@/lib/domain/user-rules";
 import type { DashboardStats } from "@/lib/types";
 

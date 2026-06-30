@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteRunFromDb } from "@/lib/data/runs-db";
-import { updateRun } from "@/lib/services/update-run";
+import { updateRun } from "@/lib/services/runs/update-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function PUT(

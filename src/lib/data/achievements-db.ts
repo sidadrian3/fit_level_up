@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Achievement } from "@/lib/types";
-import { getUser } from "@/lib/services/get-user";
+import { getUser } from "@/lib/services/users/get-user";
 import { getDbConfig } from "@/lib/data/db-config";
 import { ClientSession } from "mongodb";
 

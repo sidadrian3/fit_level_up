@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
-import { logWorkout } from "@/lib/services/log-workout";
+import { logWorkout } from "@/lib/services/workouts/log-workout";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {

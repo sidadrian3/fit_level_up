@@ -1,5 +1,5 @@
 import type { QuestActivity } from "@/lib/types";
-import { syncUserQuests } from "@/lib/services/sync-user-quests";
+import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { getQuestProgressUpdates, getPeriodForCategory, calcNextProgress } from "@/lib/domain/quest-rules";
 import { getQuestTemplatesByMetricFromDb, findUserQuestFromDb, updateUserQuestProgressInDb } from "@/lib/data/quests-db";
 import { ClientSession } from "mongodb";

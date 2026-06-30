@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAllRunsFromDb } from "@/lib/data/runs-db";
-import { logRun } from "@/lib/services/log-run";
+import { logRun } from "@/lib/services/runs/log-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 export async function GET() {
