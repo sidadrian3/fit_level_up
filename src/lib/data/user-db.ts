@@ -57,7 +57,6 @@ export async function getUserFromDb(userId: string): Promise<User> {
   if (!userDoc) {
     throw new Error("User not found");
   }
-
   return toUser(userDoc);
 }
 

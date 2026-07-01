@@ -3,33 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Flame, Zap } from "lucide-react";
-import { getUser } from "@/lib/data/repositories";
-import type { User } from "@/lib/types";
-import { useEffect, useState } from "react";
 import { navLinks } from "@/lib/constants/navigation";
 import { authClient } from "@/lib/auth-client";
+import { useUser } from "@/lib/context/UserContext";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    async function loadUser() {
-      try {
-        const data = await getUser();
-        setUser(data);
-      } catch (err) {
-        console.error("Failed to load user in sidebar", err);
-      }
-    }
-
-    loadUser();
-
-    // Listen for level up or user update events
-    const handleUserUpdate = () => loadUser();
-    window.addEventListener("user-updated", handleUserUpdate);
-    return () => window.removeEventListener("user-updated", handleUserUpdate);
-  }, []);
+  const { user, loading, refresh } = useUser();
 
   if (!user) {
     return (
@@ -98,10 +78,9 @@ export function Sidebar() {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                     transition-default
-                    ${
-                      isActive
-                        ? "bg-accent-green/10 text-accent-green"
-                        : "text-muted hover:text-foreground hover:bg-card-hover"
+                    ${isActive
+                      ? "bg-accent-green/10 text-accent-green"
+                      : "text-muted hover:text-foreground hover:bg-card-hover"
                     }
                   `}
                 >
@@ -125,7 +104,7 @@ export function Sidebar() {
             <p className="text-xs text-muted">Keep it going!</p>
           </div>
         </div>
-        
+
         <button
           onClick={async () => {
             await authClient.signOut();

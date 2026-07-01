@@ -2,11 +2,10 @@ import { getMondayDateString, getLastWeekBoundaries } from "@/lib/utils/dates";
 import { countWorkoutsInRange } from "@/lib/data/workout-db";
 import { getTotalDistanceInRange } from "@/lib/data/runs-db";
 import { countUserAchievements } from "@/lib/data/achievements-db";
-import { getUser } from "@/lib/services/users/get-user";
 import { calcLifetimeXp } from "@/lib/domain/user-rules";
-import type { DashboardStats } from "@/lib/types";
+import type { DashboardStats, User } from "@/lib/types";
 
-export async function getDashboardStats(userId: string): Promise<DashboardStats> {
+export async function getDashboardStats(userId: string, user: User): Promise<DashboardStats> {
     const weekStart = getMondayDateString();
     const { lastMonday, lastSunday } = getLastWeekBoundaries();
 
@@ -16,13 +15,11 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
         lastWeekWorkouts,
         weeklyDistance,
         totalAchievements,
-        user
     ] = await Promise.all([
         countWorkoutsInRange(userId, weekStart),
         countWorkoutsInRange(userId, lastMonday, lastSunday),
         getTotalDistanceInRange(userId, weekStart),
         countUserAchievements(userId),
-        getUser(userId)
     ]);
 
     const lifetimeXP = calcLifetimeXp(user.level, user.xp);

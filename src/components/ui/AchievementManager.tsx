@@ -4,12 +4,15 @@ import { useEffect, useState, useRef } from "react";
 import { getAchievements } from "@/lib/data/repositories";
 import { AchievementToast } from "./AchievementToast";
 import type { Achievement } from "@/lib/types";
+import { useUser } from "@/lib/context/UserContext";
 
 export function AchievementManager() {
+    const { user } = useUser();
     const [newUnlock, setNewUnlock] = useState<Achievement | null>(null);
     const prevUnlockedIdsRef = useRef<Set<string> | null>(null);
 
     useEffect(() => {
+        if (!user) return;
         async function checkAchievements() {
             try {
                 const achievements = await getAchievements();
@@ -36,11 +39,8 @@ export function AchievementManager() {
         checkAchievements();
 
         // Check when user data is updated
-        const handleUserUpdate = () => checkAchievements();
-        window.addEventListener("user-updated", handleUserUpdate);
 
-        return () => window.removeEventListener("user-updated", handleUserUpdate);
-    }, []);
+    }, [user]);
 
     if (!newUnlock) return null;
 

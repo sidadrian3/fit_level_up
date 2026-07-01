@@ -19,13 +19,13 @@ export default async function DashboardPage() {
 
     const userId = await getAuthUserId();
 
-    const [user, stats, allWorkouts, allQuests] = await
+    const [user, allWorkouts, allQuests] = await
         Promise.all([
             getUser(userId),
-            getDashboardStats(userId),
             getAllWorkoutsFromDb(userId),
             getUserQuests(userId)
-        ])
+        ]);
+    const stats = await getDashboardStats(userId, user);
 
     const recentWorkouts = allWorkouts.slice(0, 3);
     const dates = allWorkouts.map(w => w.date);

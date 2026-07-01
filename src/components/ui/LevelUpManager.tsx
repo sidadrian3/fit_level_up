@@ -1,44 +1,27 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getUser } from "@/lib/data/repositories";
 import { LevelUpToast } from "./LevelUpToast";
+import { useUser } from "@/lib/context/UserContext";
 
 export function LevelUpManager() {
+    const { user } = useUser();
     const [levelUpData, setLevelUpData] = useState<{ level: number } | null>(null);
     const prevLevelRef = useRef<number | null>(null);
 
     useEffect(() => {
-        async function checkLevel() {
-            try {
-                const user = await getUser();
-                
-                if (prevLevelRef.current !== null && user.level > prevLevelRef.current) {
-                    setLevelUpData({ level: user.level });
-                }
-                
-                prevLevelRef.current = user.level;
-            } catch (err) {
-                console.error("Failed to check user level", err);
-            }
+        if (!user) return;
+        if (prevLevelRef.current !== null && user.level > prevLevelRef.current) {
+            setLevelUpData({ level: user.level });
         }
-
-        // Check on mount
-        checkLevel();
-
-        // Check when user data is updated
-        const handleUserUpdate = () => checkLevel();
-        window.addEventListener("user-updated", handleUserUpdate);
-        
-        return () => window.removeEventListener("user-updated", handleUserUpdate);
-    }, []);
-
+        prevLevelRef.current = user.level;
+    }, [user]);
     if (!levelUpData) return null;
 
     return (
-        <LevelUpToast 
-            level={levelUpData.level} 
-            onClose={() => setLevelUpData(null)} 
+        <LevelUpToast
+            level={levelUpData.level}
+            onClose={() => setLevelUpData(null)}
         />
     );
 }

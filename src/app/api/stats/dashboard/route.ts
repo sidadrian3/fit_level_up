@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { getUser } from "@/lib/services/users/get-user";
 
 export async function GET() {
     try {
         const userId = await getAuthUserId();
-        const stats = await getDashboardStats(userId);
+        const user = await getUser(userId)
+        const stats = await getDashboardStats(userId, user);
         return NextResponse.json(stats);
     } catch (error) {
         console.error("Failed to fetch dashboard stats:", error);
