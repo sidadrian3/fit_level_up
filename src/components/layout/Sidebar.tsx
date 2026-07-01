@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Flame, Zap } from "lucide-react";
 import { navLinks } from "@/lib/constants/navigation";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth/client";
 import { useUser } from "@/lib/context/UserContext";
 
 export function Sidebar() {
