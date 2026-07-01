@@ -53,6 +53,24 @@ export function toQuestView(
   };
 }
 
+export async function bulkInsertUserQuestsToDb(
+  docs: Omit<UserQuestMongoDoc, "_id">[],
+  session?: ClientSession
+): Promise<void> {
+  if (docs.length === 0) return;
+  const { dbName, userQuestsCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<UserQuestMongoDoc>(userQuestsCollection);
+  await collection.insertMany(docs, { session });
+}
+
+export async function getQuestTemplatesByMetricsFromDb(metrics: QuestMetric[]): Promise<QuestTemplateMongoDoc[]> {
+  const { dbName, questTemplatesCollection } = getDbConfig();
+  const client = await clientPromise;
+  const collection = client.db(dbName).collection<QuestTemplateMongoDoc>(questTemplatesCollection);
+  return collection.find({ isActive: true, metric: { $in: metrics } }).toArray();
+}
+
 export async function getActiveQuestTemplatesFromDb(): Promise<QuestTemplateMongoDoc[]> {
   const { dbName, questTemplatesCollection } = getDbConfig();
   const client = await clientPromise;

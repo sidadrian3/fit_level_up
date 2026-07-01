@@ -1,5 +1,5 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
-
+import { ensureIndexes } from "./data/ensure-indexes";
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {
@@ -41,3 +41,6 @@ if (process.env.NODE_ENV === "development") {
 
 export { client };
 export default clientPromise;
+
+clientPromise.then(() =>
+    ensureIndexes()).catch(console.error);

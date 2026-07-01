@@ -1,7 +1,10 @@
 import type { QuestActivity } from "@/lib/types";
 import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { getQuestProgressUpdates, getPeriodForCategory, calcNextProgress } from "@/lib/domain/quest-rules";
-import { getQuestTemplatesByMetricFromDb, findUserQuestFromDb, updateUserQuestProgressInDb } from "@/lib/data/quests-db";
+import {
+  getQuestTemplatesByMetricFromDb, findUserQuestFromDb, updateUserQuestProgressInDb,
+  getUserQuestsForUserFromDb, getQuestTemplatesByMetricsFromDb
+} from "@/lib/data/quests-db";
 import { ClientSession } from "mongodb";
 
 export async function updateQuestProgress(
@@ -12,6 +15,13 @@ export async function updateQuestProgress(
   await syncUserQuests(userId);
 
   const updates = getQuestProgressUpdates(activity);
+  const metrics = updates.map(u => u.metric);
+
+  // BATCH: Get all templates matching ANY of the metrics
+  const matchingTemplates = await getQuestTemplatesByMetricsFromDb(metrics);
+  // BATCH: Get all user quests for this user
+  const userQuests = await getUserQuestsForUserFromDb(userId);
+
 
   for (const update of updates) {
     const matchingTemplates = await getQuestTemplatesByMetricFromDb(update.metric);
@@ -43,7 +53,7 @@ export async function updateQuestProgress(
       const isCompleted = nextProgress >= userQuest.target;
 
       if (userQuest._id) {
-         await updateUserQuestProgressInDb(userQuest._id.toString(), nextProgress, isCompleted, session);
+        await updateUserQuestProgressInDb(userQuest._id.toString(), nextProgress, isCompleted, session);
       }
     }
   }
