@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
-import { getWorkouts, deleteWorkout, updateWorkout } from "@/lib/data/repositories";
+import { getWorkouts, deleteWorkout, updateWorkout } from "@/lib/data/api-client";
 import type { Workout } from "@/lib/types";
 
 export default function WorkoutsPage() {

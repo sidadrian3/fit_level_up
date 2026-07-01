@@ -1,7 +1,7 @@
 "use client";
 import {useEffect, useState} from "react";
 import {Quest} from "@/lib/types";
-import {getQuests, claimQuest} from "@/lib/data/repositories";
+import {getQuests, claimQuest} from "@/lib/data/api-client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { QuestSection } from "@/components/quests/QuestSection";
 import { Calendar, Sun, Target } from "lucide-react";

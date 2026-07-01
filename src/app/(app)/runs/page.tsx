@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { RunCard } from "@/components/runs/RunCard";
 import { RunForm } from "@/components/runs/RunForm";
-import { getRuns, deleteRun, updateRun } from "@/lib/data/repositories";
+import { getRuns, deleteRun, updateRun } from "@/lib/data/api-client";
 import { calcRunStats, formatPace } from "@/lib/utils";
 import { MapPin, Activity, Timer } from "lucide-react";
 import type { Run } from "@/lib/types";

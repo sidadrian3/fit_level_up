@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import type { User } from "@/lib/types";
-import { apiFetch } from "@/lib/data/repositories/api-fetch";
+import { apiFetch } from "@/lib/data/api-client/api-fetch";
 
 type UserContextType = {
     user: User | null;

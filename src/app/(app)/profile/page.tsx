@@ -14,11 +14,12 @@ import type { Achievement, DashboardStats, User } from "@/lib/types";
 export default async function ProfilePage() {
     const userId = await getAuthUserId();
 
-    const [user, stats, achievements] = await Promise.all([
+    const [user, achievements] = await Promise.all([
         getUser(userId),
-        getDashboardStats(userId),
         getAllAchievementsForUser(userId)
     ]);
+
+    const stats = await getDashboardStats(userId, user);
 
     return (
         <div className="space-y-6 pb-12">

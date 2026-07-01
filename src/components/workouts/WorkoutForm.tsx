@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { workoutTypeConfig } from "@/lib/constants/workout-icons";
-import { createWorkout, updateWorkout } from "@/lib/data/repositories";
+import { createWorkout, updateWorkout } from "@/lib/data/api-client";
 import type { Workout, Exercise } from "@/lib/types";
 import { Plus, Trash2, X } from "lucide-react";
 

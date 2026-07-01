@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getAchievements } from "@/lib/data/repositories";
+import { getAchievements } from "@/lib/data/api-client";
 import { AchievementToast } from "./AchievementToast";
 import type { Achievement } from "@/lib/types";
 import { useUser } from "@/lib/context/UserContext";

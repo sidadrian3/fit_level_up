@@ -1,6 +1,6 @@
 /**
- * Re-exports every domain so existing imports like
- *   import { getWorkouts, getUser } from "@/lib/data/repositories"
+ * Client-side API functions. Re-exports so imports like
+ *   import { getWorkouts, getUser } from "@/lib/data/api-client"
  * keep working unchanged.
  */
 

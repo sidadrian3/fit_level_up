@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { createRun, updateRun } from "@/lib/data/repositories";
+import { createRun, updateRun } from "@/lib/data/api-client";
 import type { Run } from "@/lib/types";
 import { X } from "lucide-react";
 
