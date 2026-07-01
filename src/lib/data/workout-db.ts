@@ -97,7 +97,7 @@ export async function updateWorkoutInDb(
     };
 
     const result = await collection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(id), userId },
         { $set: updatedDoc },
         { returnDocument: "after" }
     );

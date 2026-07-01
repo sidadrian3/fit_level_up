@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAllRunsFromDb } from "@/lib/data/runs-db";
 import { logRun } from "@/lib/services/runs/log-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { CreateRunSchema } from "@/lib/validations/schemas";
+import { z } from "zod";
 
 export async function GET() {
     try {
@@ -18,9 +20,16 @@ export async function POST(request: Request) {
     try {
         const userId = await getAuthUserId();
         const body = await request.json();
-        const run = await logRun(body, userId);
+        const parsed = CreateRunSchema.parse(body);
+        const run = await logRun(parsed, userId);
         return NextResponse.json(run, { status: 201 });
     } catch (err) {
+        if (err instanceof z.ZodError) {
+            return NextResponse.json(
+                { error: err.issues[0]?.message ?? "Invalid input" },
+                { status: 400 }
+            );
+        }
         const message = err instanceof Error ? err.message : "Invalid request";
         return NextResponse.json({ error: message }, { status: 400 });
     }

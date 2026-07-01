@@ -1,14 +1,9 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type { Achievement } from "@/lib/types";
-import { getUser } from "@/lib/services/users/get-user";
 import { getDbConfig } from "@/lib/data/db-config";
 import { ClientSession } from "mongodb";
-
-export type AchievementCondition = {
-    metric: "total_workouts" | "total_distance" | "level" | "streak";
-    target: number;
-};
+import type { AchievementCondition } from "@/lib/domain/achievement-rules";
 
 export type AchievementDefinitionDoc = {
     _id?: ObjectId;
@@ -75,39 +70,65 @@ const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
     }
 ];
 
-export async function ensureAchievementDefinitions() {
+// Process-level flag: seed only once per server lifecycle, not on every read.
+let achievementsSeeded = false;
+
+async function ensureAchievementDefinitions() {
+    if (achievementsSeeded) return;
+
     const { dbName, achievementsCollection: definitionsCollection } = getDbConfig();
     const client = await clientPromise;
     const collection = client.db(dbName).collection<AchievementDefinitionDoc>(definitionsCollection);
 
     // If we already have definitions, don't seed again.
     const count = await collection.countDocuments();
-    if (count > 0) return;
+    if (count > 0) {
+        achievementsSeeded = true;
+        return;
+    }
 
     await collection.insertMany(INITIAL_ACHIEVEMENTS);
+    achievementsSeeded = true;
     console.log("Seeded initial achievement definitions.");
 }
 
 // ----------------------------------------------------------------------------
-// FETCH LOGIC
+// DATA ACCESS FUNCTIONS — dumb persistence layer, no business logic
 // ----------------------------------------------------------------------------
-export async function getAllAchievementsForUser(userId: string): Promise<Achievement[]> {
-    await ensureAchievementDefinitions(); // Make sure templates exist
 
-    const { dbName, achievementsCollection: definitionsCollection, userAchievementsCollection } = getDbConfig();
+/** Fetch all achievement definitions (ensures they're seeded first) */
+export async function getAchievementDefinitions(): Promise<AchievementDefinitionDoc[]> {
+    await ensureAchievementDefinitions();
+    const { dbName, achievementsCollection: definitionsCollection } = getDbConfig();
     const client = await clientPromise;
-    const db = client.db(dbName);
+    return client.db(dbName).collection<AchievementDefinitionDoc>(definitionsCollection).find({}).toArray();
+}
 
-    // 1. Fetch all definitions
-    const definitions = await db.collection<AchievementDefinitionDoc>(definitionsCollection).find({}).toArray();
+/** Fetch all achievement unlock records for a user */
+export async function getUserUnlocks(userId: string): Promise<UserAchievementDoc[]> {
+    const { dbName, userAchievementsCollection } = getDbConfig();
+    const client = await clientPromise;
+    return client.db(dbName).collection<UserAchievementDoc>(userAchievementsCollection).find({ userId }).toArray();
+}
 
-    // 2. Fetch all user unlocks
-    const unlocks = await db.collection<UserAchievementDoc>(userAchievementsCollection).find({ userId }).toArray();
+/** Batch insert newly unlocked achievements */
+export async function insertUserAchievements(docs: UserAchievementDoc[], session?: ClientSession): Promise<void> {
+    const { dbName, userAchievementsCollection } = getDbConfig();
+    const client = await clientPromise;
+    await client.db(dbName).collection<UserAchievementDoc>(userAchievementsCollection).insertMany(docs, { session });
+}
+
+/** Fetch all achievements combined with user unlock status — for display */
+export async function getAllAchievementsForUser(userId: string): Promise<Achievement[]> {
+    const [definitions, unlocks] = await Promise.all([
+        getAchievementDefinitions(),
+        getUserUnlocks(userId),
+    ]);
 
     // Create a map for fast lookup: achievementId -> UserAchievementDoc
     const unlockedMap = new Map(unlocks.map(u => [u.achievementId, u]));
 
-    // 3. Combine them into the `Achievement` format our UI expects
+    // Combine them into the `Achievement` format our UI expects
     return definitions.map(def => {
         const unlockRecord = unlockedMap.get(def.id);
         return {
@@ -122,82 +143,8 @@ export async function getAllAchievementsForUser(userId: string): Promise<Achieve
     });
 }
 
-
-export async function evaluateAchievements(userId: string, session?: ClientSession): Promise<Achievement[]> {
-    await ensureAchievementDefinitions();
-
-    const { dbName, achievementsCollection: definitionsCollection, userAchievementsCollection } = getDbConfig();
-    const client = await clientPromise;
-    const db = client.db(dbName);
-
-    //Fetch user to check their stats
-    const user = await getUser(userId);
-
-    //Fetch all achievement definitions
-    const definitions = await db.collection<AchievementDefinitionDoc>(definitionsCollection).find({}).toArray();
-
-    //Fetch what the user has already unlocked
-    const unlocked = await db.collection<UserAchievementDoc>(userAchievementsCollection).find({ userId }).toArray();
-    const unlockedIds = new Set(unlocked.map(u => u.achievementId));
-
-    //Filter down to the ones they HAVEN'T unlocked yet
-    const lockedDefinitions = definitions.filter(def => !unlockedIds.has(def.id));
-
-    //Evaluate conditions
-    const newlyUnlockedDocs: UserAchievementDoc[] = [];
-    const newlyUnlockedAchievements: Achievement[] = [];
-
-    const now = new Date().toISOString();
-
-    for (const def of lockedDefinitions) {
-        let conditionMet = false;
-
-        switch (def.condition.metric) {
-            case "total_workouts":
-                conditionMet = user.totalWorkouts >= def.condition.target;
-                break;
-            case "total_distance":
-                conditionMet = user.totalDistance >= def.condition.target;
-                break;
-            case "level":
-                conditionMet = user.level >= def.condition.target;
-                break;
-            case "streak":
-                conditionMet = user.streak >= def.condition.target;
-                break;
-        }
-
-        if (conditionMet) {
-            newlyUnlockedDocs.push({
-                userId,
-                achievementId: def.id,
-                unlockedDate: now
-            });
-
-            newlyUnlockedAchievements.push({
-                id: def.id,
-                title: def.title,
-                description: def.description,
-                icon: def.icon,
-                rarity: def.rarity,
-                unlocked: true,
-                unlockedDate: now
-            });
-        }
-    }
-
-    // 6. If we found new unlocks, save them to the database
-    if (newlyUnlockedDocs.length > 0) {
-        await db.collection<UserAchievementDoc>(userAchievementsCollection).insertMany(newlyUnlockedDocs, { session });
-        console.log(`User ${userId} unlocked ${newlyUnlockedDocs.length} new achievements!`);
-    }
-
-    return newlyUnlockedAchievements;
-}
-
 export async function countUserAchievements(userId: string): Promise<number> {
     const { dbName, userAchievementsCollection } = getDbConfig();
     const client = await clientPromise;
     return client.db(dbName).collection(userAchievementsCollection).countDocuments({ userId });
 }
-

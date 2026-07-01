@@ -43,6 +43,7 @@ next-env.d.ts
 # personal dev guides
 DEV_GUIDE.md
 DEV_GUIDE_API.md
+architecture_audit.md
 
 # AI agent configurations
 AGENTS.md

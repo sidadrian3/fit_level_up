@@ -1,8 +1,8 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { updateUserStatsInDb } from "@/lib/data/user-db";
+import { updateUserStatsInDb, updateUserStreakOnActivity } from "@/lib/data/user-db";
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
-import { evaluateAchievements } from "@/lib/data/achievements-db";
+import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun } from "@/lib/data/runs-db";
 import clientPromise from "@/lib/mongodb";
 import {
@@ -48,6 +48,7 @@ export async function logRun(
             
             await grantUserXP(userId, run.xpEarned, session);
             await updateUserStatsInDb(userId, { incrementDistance: run.distance }, session);
+            await updateUserStreakOnActivity(userId, run.date, session);
             await evaluateAchievements(userId, session);
 
             return run;

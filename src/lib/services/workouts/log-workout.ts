@@ -9,9 +9,9 @@ import {
 } from "@/lib/domain/workout-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { updateUserStatsInDb } from "@/lib/data/user-db";
+import { updateUserStatsInDb, updateUserStreakOnActivity } from "@/lib/data/user-db";
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
-import { evaluateAchievements } from "@/lib/data/achievements-db";
+import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import clientPromise from "@/lib/mongodb";
 
 export async function logWorkout(
@@ -50,6 +50,7 @@ export async function logWorkout(
 
 
             await updateUserStatsInDb(userId, { incrementWorkouts: 1 }, session);
+            await updateUserStreakOnActivity(userId, workout.date, session);
             await evaluateAchievements(userId, session);
 
             return workout;

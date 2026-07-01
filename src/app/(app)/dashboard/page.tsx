@@ -1,4 +1,4 @@
-// "use client";
+export const dynamic = "force-dynamic";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { XPCard } from "@/components/dashboard/XPCard";
