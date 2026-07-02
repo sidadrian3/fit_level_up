@@ -1,8 +1,8 @@
 import type { Run, CreateRunInput } from "@/lib/types";
 import { apiFetch, apiFetchAndNotify } from "./api-fetch";
 
-export async function getRuns(): Promise<readonly Run[]> {
-  return apiFetch<readonly Run[]>("/api/runs");
+export async function getRuns(page = 1, limit = 5): Promise<readonly Run[]> {
+  return apiFetch<readonly Run[]>(`/api/runs?page=${page}&limit=${limit}`);
 }
 
 export async function createRun(input: CreateRunInput): Promise<Run> {

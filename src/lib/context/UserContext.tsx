@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import type { User } from "@/lib/types";
 import { apiFetch } from "@/lib/data/api-client/api-fetch";
+import { authClient } from "@/lib/auth/client";
 
 type UserContextType = {
     user: User | null;
@@ -22,6 +23,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(data);
         } catch (err) {
             console.error("Failed to refresh user:", err);
+            if (err instanceof Error && (err.message === "User not found" || err.message === "Unauthorized")) {
+                await authClient.signOut();
+                window.location.href = "/login";
+            }
         } finally {
             setLoading(false);
         }

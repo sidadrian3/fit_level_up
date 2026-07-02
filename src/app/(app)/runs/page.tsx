@@ -12,23 +12,37 @@ import type { Run } from "@/lib/types";
 
 export default function RunsPage() {
     const [runs, setRuns] = useState<Run[]>([]);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const editingRun = runs.find(r => r.id === editingId);
     const stats = calcRunStats(runs);
 
-    async function loadRuns() {
+    async function loadRuns(pageNum = 1) {
         try {
             setError(null);
-            setIsLoading(true);
-            const data = await getRuns();
-            setRuns([...data]);
+            if (pageNum === 1) setIsLoading(true);
+            else setIsLoadingMore(true);
+
+            const data = await getRuns(pageNum, 5);
+            
+            if (pageNum === 1) {
+                setRuns([...data]);
+            } else {
+                setRuns(prev => [...prev, ...data]);
+            }
+            
+            setHasMore(data.length === 5);
+            setPage(pageNum);
         } catch {
             setError("Could not load runs");
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
         }
     }
 
@@ -129,6 +143,15 @@ export default function RunsPage() {
                                 onUpdate={handleUpdate}
                             />
                         ))}
+                    {!isLoading && !error && hasMore && runs.length > 0 && (
+                        <button 
+                            onClick={() => loadRuns(page + 1)}
+                            disabled={isLoadingMore}
+                            className="w-full py-3 mt-2 rounded-lg border border-border text-sm font-medium text-muted hover:text-foreground hover:bg-card-hover transition-default disabled:opacity-50"
+                        >
+                            {isLoadingMore ? "Loading..." : "Load More"}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

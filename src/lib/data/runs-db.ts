@@ -31,10 +31,14 @@ function toRun(doc: RunDoc): Run {
     };
 }
 
-export async function getAllRunsFromDb(userId: string): Promise<Run[]> {
+export async function getAllRunsFromDb(userId: string, limit?: number, skip?: number): Promise<Run[]> {
     const collection = await getCollection<RunDoc>("runsCollection");
 
-    const docs = await collection.find({ userId }).sort({ _id: -1 }).toArray();
+    let cursor = collection.find({ userId }).sort({ _id: -1 });
+    if (skip !== undefined) cursor = cursor.skip(skip);
+    if (limit !== undefined) cursor = cursor.limit(limit);
+
+    const docs = await cursor.toArray();
     return docs.map(toRun);
 }
 

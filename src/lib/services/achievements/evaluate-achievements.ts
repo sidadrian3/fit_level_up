@@ -16,7 +16,7 @@ export async function evaluateAchievements(
   session?: ClientSession
 ): Promise<Achievement[]> {
   // Get user data directly from DB (NOT through getUser service — avoids circular dep)
-  const user = await getUserFromDb(userId);
+  const user = await getUserFromDb(userId, session);
 
   // Fetch all definitions and user's existing unlocks
   const [definitions, unlocked] = await Promise.all([

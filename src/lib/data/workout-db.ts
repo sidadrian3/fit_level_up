@@ -32,10 +32,14 @@ function toWorkout(doc: WorkoutDoc): Workout {
 }
 
 
-export async function getAllWorkoutsFromDb(userId: string): Promise<Workout[]> {
+export async function getAllWorkoutsFromDb(userId: string, limit?: number, skip?: number): Promise<Workout[]> {
     const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
-    const docs = await collection.find({ userId }).sort({ _id: -1 }).toArray();
+    let cursor = collection.find({ userId }).sort({ _id: -1 });
+    if (skip !== undefined) cursor = cursor.skip(skip);
+    if (limit !== undefined) cursor = cursor.limit(limit);
+
+    const docs = await cursor.toArray();
     return docs.map(toWorkout);
 }
 

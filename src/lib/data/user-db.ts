@@ -46,10 +46,10 @@ export function toUser(doc: UserMongoDoc): User {
   };
 }
 
-export async function getUserFromDb(userId: string): Promise<User> {
+export async function getUserFromDb(userId: string, session?: ClientSession): Promise<User> {
   const collection = await getCollection<UserMongoDoc>("usersCollection");
 
-  const userDoc = await collection.findOne({ _id: new ObjectId(userId) });
+  const userDoc = await collection.findOne({ _id: new ObjectId(userId) }, { session });
   if (!userDoc) {
     throw new Error("User not found");
   }

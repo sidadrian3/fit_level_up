@@ -1,14 +1,7 @@
 import React from "react";
 import type { Achievement } from "@/lib/types";
-import { Footprints, Zap, Shield, Flame, Crown, Trophy } from "lucide-react";
-
-const IconMap: Record<string, React.ReactNode> = {
-    footprints: <Footprints className="w-8 h-8" />,
-    zap: <Zap className="w-8 h-8" />,
-    shield: <Shield className="w-8 h-8" />,
-    flame: <Flame className="w-8 h-8" />,
-    crown: <Crown className="w-8 h-8" />,
-};
+import { Trophy } from "lucide-react";
+import { AchievementIconMap } from "@/lib/constants/achievement-icons";
 
 export interface BadgeProps {
     achievement: Achievement;
@@ -37,7 +30,10 @@ export function Badge({ achievement, className = "" }: BadgeProps) {
             aria-label={`${title} achievement, ${unlocked ? 'Unlocked' : 'Locked'}`}
         >
             <div className="mb-3 flex justify-center text-foreground">
-                {typeof icon === "string" && IconMap[icon] ? IconMap[icon] : <Trophy className="w-8 h-8" />}
+                {(() => {
+                    const Icon = AchievementIconMap[icon] || Trophy;
+                    return <Icon className="w-8 h-8" />;
+                })()}
             </div>
             <h4 className="font-semibold text-foreground text-sm mb-1">{title}</h4>
             <p className="text-xs text-muted mb-3 flex-1">{description}</p>

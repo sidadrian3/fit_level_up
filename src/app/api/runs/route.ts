@@ -5,10 +5,15 @@ import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { CreateRunSchema } from "@/lib/validations/schemas";
 import { z } from "zod";
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
         const userId = await getAuthUserId();
-        const runs = await getAllRunsFromDb(userId);
+        const { searchParams } = new URL(request.url);
+        const limit = searchParams.has("limit") ? parseInt(searchParams.get("limit")!) : undefined;
+        const page = searchParams.has("page") ? parseInt(searchParams.get("page")!) : 1;
+        const skip = limit ? (page - 1) * limit : undefined;
+
+        const runs = await getAllRunsFromDb(userId, limit, skip);
         return NextResponse.json(runs);
     } catch (err) {
         console.error("GET /api/runs error:", err);

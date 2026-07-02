@@ -10,6 +10,7 @@ export async function GET() {
     } catch (err) {
         console.error("GET /api/user error:", err);
         const errorMessage = err instanceof Error ? err.message : "Failed to fetch user";
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+        const status = errorMessage === "User not found" || errorMessage === "Unauthorized" ? 401 : 500;
+        return NextResponse.json({ error: errorMessage }, { status });
     }
 }
