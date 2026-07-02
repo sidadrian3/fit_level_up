@@ -1,7 +1,6 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
 import type { Run } from "@/lib/types";
-import { getDbConfig } from "@/lib/data/db-config";
+import { getCollection } from "@/lib/data/get-collection";
 import { ClientSession } from "mongodb";
 
 type RunDoc = {
@@ -33,9 +32,7 @@ function toRun(doc: RunDoc): Run {
 }
 
 export async function getAllRunsFromDb(userId: string): Promise<Run[]> {
-    const { dbName, runsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<RunDoc>(collectionName);
+    const collection = await getCollection<RunDoc>("runsCollection");
 
     const docs = await collection.find({ userId }).sort({ _id: -1 }).toArray();
     return docs.map(toRun);
@@ -45,9 +42,7 @@ export async function insertRun(
     doc: Omit<RunDoc, "_id">,
     session?: ClientSession
 ): Promise<Run> {
-    const { dbName, runsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<RunDoc>(collectionName);
+    const collection = await getCollection<RunDoc>("runsCollection");
 
     const result = await collection.insertOne(doc, { session });
 
@@ -61,9 +56,7 @@ export async function deleteRunFromDb(id: string, userId: string): Promise<boole
     if (!ObjectId.isValid(id)) {
         return false;
     }
-    const { dbName, runsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<RunDoc>(collectionName);
+    const collection = await getCollection<RunDoc>("runsCollection");
 
     const result = await collection.deleteOne({ _id: new ObjectId(id), userId });
     return result.deletedCount === 1;
@@ -78,9 +71,7 @@ export async function updateRunInDb(
         return null;
     }
 
-    const { dbName, runsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<RunDoc>(collectionName);
+    const collection = await getCollection<RunDoc>("runsCollection");
 
     const existing = await collection.findOne({ _id: new ObjectId(id), userId });
     if (!existing) {
@@ -106,9 +97,7 @@ export async function updateRunInDb(
 }
 
 export async function getTotalDistanceInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
-    const { dbName, runsCollection } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<RunDoc>(runsCollection);
+    const collection = await getCollection<RunDoc>("runsCollection");
 
     const dateFilter: any = { $gte: startDate };
     if (endDate) {

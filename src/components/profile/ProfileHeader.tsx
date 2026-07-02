@@ -4,6 +4,7 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { calcXPPercent, formatDate } from "@/lib/utils";
 import type { User, DashboardStats } from "@/lib/types";
 import { Dumbbell, MapPin, Zap, Flame } from "lucide-react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export interface ProfileHeaderProps {
     user: User;
@@ -21,13 +22,7 @@ export function ProfileHeader({ user, stats, className = "" }: ProfileHeaderProp
         <Card className={`p-8 ${className}`}>
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 {/* Avatar */}
-                <div className="w-24 h-24 rounded-2xl bg-accent-purple/10 border-2 border-accent-purple/20 flex items-center justify-center text-4xl shrink-0 overflow-hidden">
-                    {user.avatar?.startsWith('http') ? (
-                        <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                        user.avatar
-                    )}
-                </div>
+                <UserAvatar avatar={user.avatar} size="lg" />
 
                 {/* Info & XP */}
                 <div className="flex-1 w-full text-center md:text-left">

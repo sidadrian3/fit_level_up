@@ -1,7 +1,6 @@
 import { ObjectId, ClientSession } from "mongodb";
-import clientPromise from "@/lib/mongodb";
 import type { User } from "@/lib/types";
-import { getDbConfig } from "@/lib/data/db-config";
+import { getCollection } from "@/lib/data/get-collection";
 import { calcNewStreak } from "@/lib/domain/user-rules";
 
 export type UserMongoDoc = {
@@ -48,10 +47,7 @@ export function toUser(doc: UserMongoDoc): User {
 }
 
 export async function getUserFromDb(userId: string): Promise<User> {
-  const { dbName, usersCollection } = getDbConfig();
-  const client = await clientPromise;
-  const db = client.db(dbName);
-  const collection = db.collection<UserMongoDoc>(usersCollection);
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
 
   const userDoc = await collection.findOne({ _id: new ObjectId(userId) });
   if (!userDoc) {
@@ -61,9 +57,7 @@ export async function getUserFromDb(userId: string): Promise<User> {
 }
 
 export async function updateUserStreakInDb(userId: string, currentStreak: number): Promise<void> {
-  const { dbName, usersCollection } = getDbConfig();
-  const client = await clientPromise;
-  const collection = client.db(dbName).collection<UserMongoDoc>(usersCollection);
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
 
   await collection.updateOne(
     { _id: new ObjectId(userId) },
@@ -78,9 +72,7 @@ export async function updateUserXPInDb(
   newXpToNextLevel: number,
   session?: ClientSession
 ): Promise<User> {
-  const { dbName, usersCollection } = getDbConfig();
-  const client = await clientPromise;
-  const collection = client.db(dbName).collection<UserMongoDoc>(usersCollection);
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
 
   const result = await collection.findOneAndUpdate(
     { _id: new ObjectId(userId) },
@@ -106,9 +98,7 @@ export async function updateUserStatsInDb(
   stats: { incrementWorkouts?: number; incrementDistance?: number },
   session?: ClientSession
 ): Promise<void> {
-  const { dbName, usersCollection } = getDbConfig();
-  const client = await clientPromise;
-  const collection = client.db(dbName).collection<UserMongoDoc>(usersCollection);
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
 
   const incParams: Record<string, number> = {};
   if (stats.incrementWorkouts) {
@@ -130,9 +120,7 @@ export async function updateUserStreakOnActivity(
   activityDate: string,
   session?: ClientSession
 ): Promise<void> {
-  const { dbName, usersCollection } = getDbConfig();
-  const client = await clientPromise;
-  const collection = client.db(dbName).collection<UserMongoDoc>(usersCollection);
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
 
   const user = await collection.findOne({ _id: new ObjectId(userId) }, { session });
   if (!user) return;

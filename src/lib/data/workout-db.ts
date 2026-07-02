@@ -1,9 +1,7 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
 import type { Exercise, Workout } from "@/lib/types";
-import { getDbConfig } from "@/lib/data/db-config";
 import { ClientSession } from "mongodb";
-
+import { getCollection } from "@/lib/data/get-collection";
 type WorkoutDoc = {
     _id?: ObjectId;
     userId: string;
@@ -35,9 +33,7 @@ function toWorkout(doc: WorkoutDoc): Workout {
 
 
 export async function getAllWorkoutsFromDb(userId: string): Promise<Workout[]> {
-    const { dbName, workoutsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
     const docs = await collection.find({ userId }).sort({ _id: -1 }).toArray();
     return docs.map(toWorkout);
@@ -47,9 +43,7 @@ export async function insertWorkout(
     doc: Omit<WorkoutDoc, "_id">,
     session?: ClientSession
 ): Promise<Workout> {
-    const { dbName, workoutsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
     const result = await collection.insertOne(doc, { session });
 
@@ -64,9 +58,7 @@ export async function deleteWorkoutFromDb(id: string, userId: string): Promise<b
         return false;
     }
 
-    const { dbName, workoutsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
     const result = await collection.deleteOne({ _id: new ObjectId(id), userId });
     return result.deletedCount === 1;
@@ -81,9 +73,7 @@ export async function updateWorkoutInDb(
         return null;
     }
 
-    const { dbName, workoutsCollection: collectionName } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
     // Fetch original to preserve date
     const existing = await collection.findOne({ _id: new ObjectId(id), userId });
@@ -110,9 +100,7 @@ export async function updateWorkoutInDb(
 }
 
 export async function countWorkoutsInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
-    const { dbName, workoutsCollection } = getDbConfig();
-    const client = await clientPromise;
-    const collection = client.db(dbName).collection<WorkoutDoc>(workoutsCollection);
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
     const dateFilter: any = { $gte: startDate };
     if (endDate) {

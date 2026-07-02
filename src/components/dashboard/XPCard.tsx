@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { calcXPPercent } from "@/lib/utils";
 import type { User } from "@/lib/types";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export interface XPCardProps {
     user: User;
@@ -14,13 +15,7 @@ export function XPCard({ user }: XPCardProps) {
     return (
         <Card className="flex flex-col justify-center h-full">
             <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-accent-green/20 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
-                    {user.avatar?.startsWith('http') ? (
-                        <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                        user.avatar
-                    )}
-                </div>
+                <UserAvatar avatar={user.avatar} size="md" />
                 <div>
                     <h3 className="text-xl font-semibold tracking-tight text-foreground">Level {user.level}</h3>
                     <p className="text-sm text-muted">Keep grinding! You're doing great.</p>

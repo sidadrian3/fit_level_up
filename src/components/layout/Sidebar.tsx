@@ -6,6 +6,7 @@ import { Flame, Zap } from "lucide-react";
 import { navLinks } from "@/lib/constants/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useUser } from "@/lib/context/UserContext";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -35,15 +36,7 @@ export function Sidebar() {
       {/* ===== USER MINI PROFILE ===== */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center text-lg overflow-hidden shrink-0">
-            {user.avatar?.startsWith('http') ? (
-              <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-            ) : user.avatar === 'zap' ? (
-              <Zap className="w-5 h-5 text-accent-purple" />
-            ) : (
-              user.avatar
-            )}
-          </div>
+          <UserAvatar avatar={user.avatar} size="sm" />
           <div>
             <p className="font-semibold text-sm text-foreground">
               {user.name}
