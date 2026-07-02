@@ -10,7 +10,7 @@ type WorkoutDoc = {
     exercises: Exercise[];
     duration: number;
     xpEarned: number;
-    date: string;
+    date: Date | string;
 };
 
 
@@ -27,7 +27,8 @@ function toWorkout(doc: WorkoutDoc): Workout {
         exercises: doc.exercises,
         duration: doc.duration,
         xpEarned: doc.xpEarned,
-        date: doc.date,
+        date: doc.date instanceof Date ?
+            doc.date.toISOString().slice(0, 10) : String(doc.date).slice(0, 10),
     };
 }
 

@@ -8,7 +8,9 @@ export async function GET() {
         const userId = await getAuthUserId();
         const user = await getUser(userId)
         const stats = await getDashboardStats(userId, user);
-        return NextResponse.json(stats);
+        return NextResponse.json(stats, {
+            headers: { 'Cache-control': 'private, max-age=60, stale-while-revalidate=300' }
+        });
     } catch (error) {
         console.error("Failed to fetch dashboard stats:", error);
         return NextResponse.json(

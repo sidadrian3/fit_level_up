@@ -23,71 +23,55 @@ export type UserAchievementDoc = {
 
 
 
-// ----------------------------------------------------------------------------
-// SEEDING LOGIC: We define the rules of the game here.
-// ----------------------------------------------------------------------------
-const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
-    {
-        id: "first_workout",
-        title: "First Steps",
-        description: "Complete your first workout",
-        icon: "footprints",
-        rarity: "common",
-        condition: { metric: "total_workouts", target: 1 }
-    },
-    {
-        id: "speed_demon",
-        title: "Speed Demon",
-        description: "Run a total of 5 km",
-        icon: "zap",
-        rarity: "rare",
-        condition: { metric: "total_distance", target: 5 }
-    },
-    {
-        id: "iron_will",
-        title: "Iron Will",
-        description: "Complete 50 workouts",
-        icon: "shield",
-        rarity: "epic",
-        condition: { metric: "total_workouts", target: 50 }
-    },
-    {
-        id: "unstoppable",
-        title: "Unstoppable",
-        description: "Reach a 30-day streak",
-        icon: "flame",
-        rarity: "epic",
-        condition: { metric: "streak", target: 30 }
-    },
-    {
-        id: "legendary_warrior",
-        title: "Legendary Warrior",
-        description: "Reach level 25",
-        icon: "crown",
-        rarity: "legendary",
-        condition: { metric: "level", target: 25 }
-    }
-];
+// // ----------------------------------------------------------------------------
+// // SEEDING LOGIC: We define the rules of the game here.
+// // ----------------------------------------------------------------------------
+// const INITIAL_ACHIEVEMENTS: AchievementDefinitionDoc[] = [
+//     {
+//         id: "first_workout",
+//         title: "First Steps",
+//         description: "Complete your first workout",
+//         icon: "footprints",
+//         rarity: "common",
+//         condition: { metric: "total_workouts", target: 1 }
+//     },
+//     {
+//         id: "speed_demon",
+//         title: "Speed Demon",
+//         description: "Run a total of 5 km",
+//         icon: "zap",
+//         rarity: "rare",
+//         condition: { metric: "total_distance", target: 5 }
+//     },
+//     {
+//         id: "iron_will",
+//         title: "Iron Will",
+//         description: "Complete 50 workouts",
+//         icon: "shield",
+//         rarity: "epic",
+//         condition: { metric: "total_workouts", target: 50 }
+//     },
+//     {
+//         id: "unstoppable",
+//         title: "Unstoppable",
+//         description: "Reach a 30-day streak",
+//         icon: "flame",
+//         rarity: "epic",
+//         condition: { metric: "streak", target: 30 }
+//     },
+//     {
+//         id: "legendary_warrior",
+//         title: "Legendary Warrior",
+//         description: "Reach level 25",
+//         icon: "crown",
+//         rarity: "legendary",
+//         condition: { metric: "level", target: 25 }
+//     }
+// ];
 
 // Process-level flag: seed only once per server lifecycle, not on every read.
-let achievementsSeeded = false;
 
-async function ensureAchievementDefinitions() {
-    if (achievementsSeeded) return;
 
-    const collection = await getCollection<AchievementDefinitionDoc>("achievementsCollection");
-
-    // If we already have definitions, don't seed again.
-    const count = await collection.countDocuments();
-    if (count > 0) {
-        achievementsSeeded = true;
-        return;
-    }
-
-    await collection.insertMany(INITIAL_ACHIEVEMENTS);
-    achievementsSeeded = true;
-    console.log("Seeded initial achievement definitions.");
-}
 
 // ----------------------------------------------------------------------------
 // DATA ACCESS FUNCTIONS — dumb persistence layer, no business logic
@@ -95,7 +79,6 @@ async function ensureAchievementDefinitions() {
 
 /** Fetch all achievement definitions (ensures they're seeded first) */
 export async function getAchievementDefinitions(): Promise<AchievementDefinitionDoc[]> {
-    await ensureAchievementDefinitions();
     const collection = await getCollection<AchievementDefinitionDoc>("achievementsCollection");
     return collection.find({}).toArray();
 }

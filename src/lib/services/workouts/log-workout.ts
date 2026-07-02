@@ -38,7 +38,7 @@ export async function logWorkout(
                 exercises,
                 duration: input.duration,
                 xpEarned,
-                date: new Date().toISOString().slice(0, 10),
+                date: new Date(),
             }, session);
 
             // 4. Side-effects (explicitly orchestrated, easy to extend or skip)

@@ -14,19 +14,23 @@ export type UserMongoDoc = {
   xp?: number;
   xpToNextLevel?: number;
   streak?: number;
-  lastActivityDate?: string; // YYYY-MM-DD
+  lastActivityDate?: Date | string; // YYYY-MM-DD
   totalWorkouts?: number;
   totalDistance?: number;
   createdAt?: Date;
 };
 
+
+
 export function toUser(doc: UserMongoDoc): User {
+  const lastActivityStr = doc.lastActivityDate instanceof Date ? doc.lastActivityDate.toISOString().slice(0, 10) : doc.lastActivityDate;
+
   // Compute display streak: if last activity wasn't today or yesterday, streak is broken
   let displayStreak = doc.streak || 0;
-  if (displayStreak > 0 && doc.lastActivityDate) {
+  if (displayStreak > 0 && lastActivityStr) {
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    if (doc.lastActivityDate !== today && doc.lastActivityDate !== yesterday) {
+    if (lastActivityStr !== today && lastActivityStr !== yesterday) {
       displayStreak = 0;
     }
   }
@@ -129,7 +133,7 @@ export async function updateUserStreakOnActivity(
 
   await collection.updateOne(
     { _id: new ObjectId(userId) },
-    { $set: { streak: newStreak, lastActivityDate: activityDate } },
+    { $set: { streak: newStreak, lastActivityDate: new Date(activityDate) } },
     { session }
   );
 }

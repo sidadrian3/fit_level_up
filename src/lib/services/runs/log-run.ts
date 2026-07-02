@@ -36,7 +36,7 @@ export async function logRun(
                 pace,
                 difficulty: input.difficulty,
                 xpEarned,
-                date: new Date().toISOString().slice(0, 10),
+                date: new Date(),
             }, session);
 
             // 4. Side-effects
@@ -45,7 +45,7 @@ export async function logRun(
                 distance: run.distance,
                 xpEarned: run.xpEarned,
             }, session);
-            
+
             await grantUserXP(userId, run.xpEarned, session);
             await updateUserStatsInDb(userId, { incrementDistance: run.distance }, session);
             await updateUserStreakOnActivity(userId, run.date, session);

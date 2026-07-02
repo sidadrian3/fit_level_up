@@ -11,7 +11,7 @@ type RunDoc = {
     pace: number;
     difficulty: Run["difficulty"];
     xpEarned: number;
-    date: string;
+    date: Date | string;
 }
 
 
@@ -27,7 +27,8 @@ function toRun(doc: RunDoc): Run {
         pace: doc.pace,
         difficulty: doc.difficulty,
         xpEarned: doc.xpEarned,
-        date: doc.date
+        date: doc.date instanceof Date ?
+            doc.date.toISOString().slice(0, 10) : String(doc.date).slice(0, 10),
     };
 }
 
