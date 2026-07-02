@@ -1,7 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileTabs } from "@/components/layout/MobileTabs";
-import { LevelUpManager } from "@/components/ui/LevelUpManager";
-import { AchievementManager } from "@/components/ui/AchievementManager";
+import { LevelUpManager } from "@/components/notifications/LevelUpManager";
+import { AchievementManager } from "@/components/notifications/AchievementManager";
 import { UserProvider } from "@/lib/context/UserContext";
 
 export default function AppLayout({
