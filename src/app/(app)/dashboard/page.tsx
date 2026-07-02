@@ -12,7 +12,7 @@ import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
 import { getUserQuests } from "@/lib/services/quests/get-user-quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
-import { calcActiveDays } from "@/lib/utils";
+import { calcActiveDays } from "@/lib/domain/user-rules";
 
 
 export default async function DashboardPage() {

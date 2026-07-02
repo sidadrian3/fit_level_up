@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { createRun, updateRun } from "@/lib/data/api-client";
 import type { Run } from "@/lib/types";
 import { X } from "lucide-react";
+import { useEntityForm } from "@/lib/hooks/useEntityForm";
+import { CreateRunSchema } from "@/lib/validations/schemas";
 
 const difficulties: Run["difficulty"][] = [
     "easy",
@@ -52,79 +54,39 @@ export function RunForm({
     initialRun?: Run;
     onCancel?: () => void;
 }) {
-    const isEditMode = !!initialRun;
-    const [distance, setDistance] = useState<number>(5.0);
-    const [duration, setDuration] = useState<number>(30);
-    const [selectedDifficulty, setSelectedDifficulty] =
-        useState<Run["difficulty"]>("moderate");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        fields,
+        setFields,
+        isEditMode,
+        isSubmitting,
+        error,
+        setError,
+        handleSubmit,
+        handleCancel,
+    } = useEntityForm({
+        defaults: { distance: 5.0, duration: 30, difficulty: "moderate" as Run["difficulty"] },
+        initialEntity: initialRun,
+        entityToInput: (run) => ({
+            distance: run.distance,
+            duration: run.duration,
+            difficulty: run.difficulty,
+        }),
+        onCreate: (input) => createRun(input),
+        onUpdate: (id, input) => updateRun(id, input),
+        getId: (run) => run.id,
+        onSuccess: onRunLogged,
+    });
 
-    // Populate form when editing
-    useEffect(() => {
-        if (initialRun) {
-            setDistance(initialRun.distance);
-            setDuration(initialRun.duration);
-            setSelectedDifficulty(initialRun.difficulty);
-            setError(null);
-        }
-    }, [initialRun]);
-
-    function resetForm() {
-        setDistance(0);
-        setDuration(0);
-        setSelectedDifficulty("moderate");
-        setError(null);
-    }
-
-    function handleCancel() {
-        resetForm();
-        onCancel?.();
-    }
-
-    async function handleSubmit(e: React.FormEvent) {
+    async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
-        setError(null);
-
-        if (distance <= 0) {
-            setError("Distance must be greater than 0");
-            return;
-        }
-        if (duration <= 0) {
-            setError("Duration must be greater than 0");
+        
+        const result = CreateRunSchema.safeParse(fields);
+        if (!result.success) {
+            setError(result.error.issues[0].message);
             return;
         }
 
-        try {
-            setIsSubmitting(true);
-            if (isEditMode && initialRun) {
-                await updateRun(initialRun.id, {
-                    distance,
-                    duration,
-                    difficulty: selectedDifficulty,
-                });
-            } else {
-                await createRun({
-                    distance,
-                    duration,
-                    difficulty: selectedDifficulty,
-                });
-            }
-            if (!isEditMode) {
-                resetForm();
-            }
-            onRunLogged?.();
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : isEditMode
-                    ? "Failed to update run"
-                    : "Failed to log run"
-            );
-        } finally {
-            setIsSubmitting(false);
-        }
+        await handleSubmit();
     }
 
     const inputBase =
@@ -148,7 +110,7 @@ export function RunForm({
                 )}
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <form onSubmit={onSubmit} className="flex flex-col gap-6">
 
             {/* Distance input */}
             <div>
@@ -160,9 +122,9 @@ export function RunForm({
                         type="number"
                         min={0.1}
                         step={0.1}
-                        value={distance}
+                        value={fields.distance}
                         onChange={(e) =>
-                            setDistance(parseFloat(e.target.value) || 0)
+                            setFields(prev => ({ ...prev, distance: parseFloat(e.target.value) || 0 }))
                         }
                         className={inputBase}
                     />
@@ -181,9 +143,9 @@ export function RunForm({
                     <input
                         type="number"
                         min={1}
-                        value={duration}
+                        value={fields.duration}
                         onChange={(e) =>
-                            setDuration(parseInt(e.target.value) || 1)
+                            setFields(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))
                         }
                         className={inputBase}
                     />
@@ -201,13 +163,13 @@ export function RunForm({
                 <div className="grid grid-cols-2 gap-2">
                     {difficulties.map((diff) => {
                         const config = difficultyChipColors[diff];
-                        const isActive = selectedDifficulty === diff;
+                        const isActive = fields.difficulty === diff;
 
                         return (
                             <button
                                 key={diff}
                                 type="button"
-                                onClick={() => setSelectedDifficulty(diff)}
+                                onClick={() => setFields(prev => ({ ...prev, difficulty: diff }))}
                                 className={`
                                     px-4 py-2.5 rounded-lg text-sm font-semibold
                                     transition-all duration-200 border text-center

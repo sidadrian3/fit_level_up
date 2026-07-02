@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { workoutTypeConfig } from "@/lib/constants/workout-icons";
 import { createWorkout, updateWorkout } from "@/lib/data/api-client";
 import type { Workout, Exercise } from "@/lib/types";
 import { Plus, Trash2, X } from "lucide-react";
+import { useEntityForm } from "@/lib/hooks/useEntityForm";
+import { CreateWorkoutSchema } from "@/lib/validations/schemas";
 
 const workoutTypes: Workout["type"][] = [
     "strength",
@@ -37,34 +39,50 @@ export function WorkoutForm({
     initialWorkout?: Workout;
     onCancel?: () => void;
 }) {
-    const isEditMode = !!initialWorkout;
-    const [title, setTitle] = useState("");
-    const [selectedType, setSelectedType] =
-        useState<Workout["type"]>("strength");
-    const [exercises, setExercises] = useState<Exercise[]>([
-        { ...emptyExercise },
-    ]);
-    const [duration, setDuration] = useState<number>(45);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // Populate form when editing
-    useEffect(() => {
-        if (initialWorkout) {
-            setTitle(initialWorkout.title);
-            setSelectedType(initialWorkout.type);
-            setExercises(initialWorkout.exercises);
-            setDuration(initialWorkout.duration);
-            setError(null);
-        }
-    }, [initialWorkout]);
+    const {
+        fields,
+        setFields,
+        isEditMode,
+        isSubmitting,
+        error,
+        setError,
+        handleSubmit,
+        handleCancel,
+    } = useEntityForm({
+        defaults: {
+            title: "",
+            type: "strength" as Workout["type"],
+            duration: 45,
+            exercises: [{ ...emptyExercise }],
+        },
+        initialEntity: initialWorkout,
+        entityToInput: (workout) => ({
+            title: workout.title,
+            type: workout.type,
+            duration: workout.duration,
+            exercises: workout.exercises,
+        }),
+        onCreate: (input) => {
+            const namedExercises = input.exercises.filter((ex) => ex.name.trim());
+            return createWorkout({ ...input, title: input.title.trim(), exercises: namedExercises });
+        },
+        onUpdate: (id, input) => {
+            const namedExercises = input.exercises.filter((ex) => ex.name.trim());
+            return updateWorkout(id, { ...input, title: input.title.trim(), exercises: namedExercises });
+        },
+        getId: (w) => w.id,
+        onSuccess: onWorkoutLogged,
+    });
 
     const addExercise = () => {
-        setExercises((prev) => [...prev, { ...emptyExercise }]);
+        setFields((prev) => ({ ...prev, exercises: [...prev.exercises, { ...emptyExercise }] }));
     };
 
     const removeExercise = (index: number) => {
-        setExercises((prev) => prev.filter((_, i) => i !== index));
+        setFields((prev) => ({
+            ...prev,
+            exercises: prev.exercises.filter((_, i) => i !== index),
+        }));
     };
 
     const updateExercise = (
@@ -72,66 +90,30 @@ export function WorkoutForm({
         field: keyof Exercise,
         value: string | number | null
     ) => {
-        setExercises((prev) =>
-            prev.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex))
-        );
+        setFields((prev) => ({
+            ...prev,
+            exercises: prev.exercises.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex)),
+        }));
     };
 
-    function resetForm() {
-        setTitle("");
-        setSelectedType("strength");
-        setExercises([{ ...emptyExercise }]);
-        setDuration(45);
-        setError(null);
-    }
-
-    function handleCancel() {
-        resetForm();
-        onCancel?.();
-    }
-
-    async function handleSubmit(e: React.FormEvent) {
+    async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
-        setError(null);
+        
+        const namedExercises = fields.exercises.filter((ex) => ex.name.trim());
+        const dataToValidate = {
+            ...fields,
+            title: fields.title.trim(),
+            exercises: namedExercises
+        };
 
-        const namedExercises = exercises.filter((ex) => ex.name.trim());
-        if (!title.trim()) {
-            setError("Enter a workout title");
+        const result = CreateWorkoutSchema.safeParse(dataToValidate);
+        
+        if (!result.success) {
+            setError(result.error.issues[0].message);
             return;
         }
-        if (namedExercises.length === 0) {
-            setError("Add at least one exercise with a name");
-            return;
-        }
 
-        try {
-            setIsSubmitting(true);
-            if (isEditMode && initialWorkout) {
-                await updateWorkout(initialWorkout.id, {
-                    type: selectedType,
-                    title: title.trim(),
-                    exercises: namedExercises,
-                    duration,
-                });
-            } else {
-                await createWorkout({
-                    type: selectedType,
-                    title: title.trim(),
-                    exercises: namedExercises,
-                    duration,
-                });
-            }
-            if (!isEditMode) {
-                resetForm();
-            }
-            onWorkoutLogged?.();
-        } catch (err) {
-            setError(
-                err instanceof Error ? err.message : isEditMode ? "Failed to update workout" : "Failed to log workout"
-            );
-        } finally {
-            setIsSubmitting(false);
-        }
+        await handleSubmit();
     }
 
     const inputBase =
@@ -155,7 +137,7 @@ export function WorkoutForm({
                 )}
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <form onSubmit={onSubmit} className="flex flex-col gap-6">
                 <div>
                     <label className="block text-sm text-muted mb-2">
                         Workout Title
@@ -163,8 +145,8 @@ export function WorkoutForm({
                     <input
                         type="text"
                         placeholder="e.g. Upper Body Power"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        value={fields.title}
+                        onChange={(e) => setFields((prev) => ({ ...prev, title: e.target.value }))}
                         className={inputBase}
                     />
                 </div>
@@ -176,14 +158,14 @@ export function WorkoutForm({
                     <div className="flex flex-wrap gap-2">
                         {workoutTypes.map((type) => {
                             const config = workoutTypeConfig[type];
-                            const isActive = selectedType === type;
+                            const isActive = fields.type === type;
                             const Icon = config.icon;
 
                             return (
                                 <button
                                     key={type}
                                     type="button"
-                                    onClick={() => setSelectedType(type)}
+                                    onClick={() => setFields((prev) => ({ ...prev, type }))}
                                     className={`
                                     inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
                                     transition-all duration-200 border
@@ -207,7 +189,7 @@ export function WorkoutForm({
                         Exercises
                     </label>
                     <div className="space-y-3">
-                        {exercises.map((exercise, index) => (
+                        {fields.exercises.map((exercise, index) => (
                             <div
                                 key={index}
                                 className="flex items-start gap-2 p-3 rounded-lg border border-border bg-background"
@@ -297,7 +279,7 @@ export function WorkoutForm({
                                     </div>
                                 </div>
 
-                                {exercises.length > 1 && (
+                                {fields.exercises.length > 1 && (
                                     <button
                                         type="button"
                                         onClick={() =>
@@ -330,9 +312,9 @@ export function WorkoutForm({
                     <input
                         type="number"
                         min={1}
-                        value={duration}
+                        value={fields.duration}
                         onChange={(e) =>
-                            setDuration(parseInt(e.target.value) || 1)
+                            setFields((prev) => ({ ...prev, duration: parseInt(e.target.value) || 1 }))
                         }
                         className={inputBase}
                     />
