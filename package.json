@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx --env-file=.env.local src/scripts/seed-achievements.ts"
+    "seed": "tsx --env-file=.env.local src/scripts/seed-achievements.ts",
+    "test": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.11",
@@ -20,15 +22,19 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^4.1.9",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "mongodb-memory-server": "^11.2.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }
