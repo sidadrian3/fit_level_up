@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx src/scripts/seed-achievements.ts"
+    "seed": "tsx --env-file=.env.local src/scripts/seed-achievements.ts"
   },
   "dependencies": {
+    "@t3-oss/env-nextjs": "^0.13.11",
     "better-auth": "^1.6.15",
     "lucide-react": "^1.16.0",
     "mongodb": "^7.2.0",

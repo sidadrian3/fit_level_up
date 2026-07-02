@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
+import { env } from "../env";
 
 // Load environment variables from .env.local
 dotenv.config({ path: ".env.local" });
@@ -48,7 +49,7 @@ const INITIAL_ACHIEVEMENTS = [
 ];
 
 async function seed() {
-    const uri = process.env.MONGODB_URI;
+    const uri = env.MONGODB_URI;
     if (!uri) throw new Error("MONGODB_URI is not defined");
 
     console.log("Connecting to MongoDB...");

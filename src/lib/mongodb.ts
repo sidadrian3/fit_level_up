@@ -1,10 +1,10 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
 import { ensureIndexes } from "./data/ensure-indexes";
-const uri = process.env.MONGODB_URI;
+import { env } from "../env";
 
-if (!uri) {
-    throw new Error("Missing MONGODB_URI in .env.local");
-}
+const uri = env.MONGODB_URI;
+
+
 
 const options = {
     serverApi: {
