@@ -15,7 +15,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         const pages = [];
         const maxVisible = 5;
         let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        const end = Math.min(totalPages, start + maxVisible - 1);
+        let end = Math.min(totalPages, start + maxVisible - 1);
 
         if (end - start + 1 < maxVisible) {
             start = Math.max(1, end - maxVisible + 1);
@@ -27,9 +27,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                     key={i}
                     variant={currentPage === i ? "primary" : "outline"}
                     onClick={() => onPageChange(i)}
-                    className={`w-10 h-10 p-0 flex items-center justify-center ${
-                        currentPage === i ? "pointer-events-none" : ""
-                    }`}
+                    className={`w-10 h-10 p-0 flex items-center justify-center ${currentPage === i ? "pointer-events-none" : ""
+                        }`}
                 >
                     {i}
                 </Button>
