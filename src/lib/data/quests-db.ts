@@ -122,13 +122,14 @@ export async function updateUserQuestProgressInDb(id: string, progress: number, 
   );
 }
 
-export async function markUserQuestClaimedInDb(id: string, session?: ClientSession): Promise<void> {
+export async function markUserQuestClaimedInDb(id: string, session?: ClientSession,): Promise<number> {
   const collection = await getCollection<UserQuestMongoDoc>("userQuestsCollection");
-  await collection.updateOne(
-    { _id: new ObjectId(id) },
+  const result = await collection.updateOne(
+    { _id: new ObjectId(id), claimed: false },
     {
-      $set: { claimed: true },
+      $set: { claimed: true }
     },
     { session }
   );
+  return result.modifiedCount;
 }

@@ -11,6 +11,7 @@ type WorkoutDoc = {
     duration: number;
     xpEarned: number;
     date: Date | string;
+    idempotencyKey?: string;
 };
 
 
@@ -54,6 +55,7 @@ export async function insertWorkout(
 
     return toWorkout({
         _id: result.insertedId,
+        idempotencyKey: doc.idempotencyKey,
         ...doc,
     });
 }

@@ -64,7 +64,7 @@ export function WorkoutForm({
         }),
         onCreate: (input) => {
             const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-            return createWorkout({ ...input, title: input.title.trim(), exercises: namedExercises });
+            return createWorkout({ ...input, title: input.title.trim(), exercises: namedExercises, idempotencyKey: crypto.randomUUID() });
         },
         onUpdate: (id, input) => {
             const namedExercises = input.exercises.filter((ex) => ex.name.trim());
@@ -98,7 +98,7 @@ export function WorkoutForm({
 
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
-        
+
         const namedExercises = fields.exercises.filter((ex) => ex.name.trim());
         const dataToValidate = {
             ...fields,
@@ -107,7 +107,7 @@ export function WorkoutForm({
         };
 
         const result = CreateWorkoutSchema.safeParse(dataToValidate);
-        
+
         if (!result.success) {
             setError(result.error.issues[0].message);
             return;
@@ -169,11 +169,10 @@ export function WorkoutForm({
                                     className={`
                                     inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
                                     transition-all duration-200 border
-                                    ${
-                                        isActive
+                                    ${isActive
                                             ? `${config.bg} ${config.color} border-transparent`
                                             : "border-border text-muted hover:bg-card-hover hover:text-foreground"
-                                    }
+                                        }
                                 `}
                                 >
                                     <Icon size={16} />
@@ -269,8 +268,8 @@ export function WorkoutForm({
                                                         e.target.value === ""
                                                             ? null
                                                             : parseFloat(
-                                                                  e.target.value
-                                                              )
+                                                                e.target.value
+                                                            )
                                                     )
                                                 }
                                                 className={inputBase}
@@ -331,8 +330,8 @@ export function WorkoutForm({
                                 ? "Updating..."
                                 : "Logging..."
                             : isEditMode
-                            ? "Update Workout"
-                            : "Log Workout"}
+                                ? "Update Workout"
+                                : "Log Workout"}
                     </Button>
                     {isEditMode && onCancel && (
                         <Button

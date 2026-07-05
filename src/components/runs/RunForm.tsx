@@ -71,7 +71,7 @@ export function RunForm({
             duration: run.duration,
             difficulty: run.difficulty,
         }),
-        onCreate: (input) => createRun(input),
+        onCreate: (input) => createRun({ ...input, idempotencyKey: crypto.randomUUID() }),
         onUpdate: (id, input) => updateRun(id, input),
         getId: (run) => run.id,
         onSuccess: onRunLogged,

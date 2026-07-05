@@ -37,6 +37,7 @@ export async function logRun(
                 difficulty: input.difficulty,
                 xpEarned,
                 date: new Date(),
+                idempotencyKey: input.idempotencyKey,
             }, session);
 
             // 4. Side-effects
@@ -53,6 +54,12 @@ export async function logRun(
 
             return run;
         });
+    } catch (error: any) {
+        if (error.code === 11000 && error.keyPattern?.idempotencyKey) {
+            console.log("Duplicate run request ignored safely.");
+            throw new Error("This run was already logged.");
+        }
+        throw error;
     } finally {
         await session.endSession();
     }

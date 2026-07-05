@@ -8,7 +8,7 @@ export async function claimQuestReward(userId: string, questId: string): Promise
   await syncUserQuests(userId);
 
   const quest = await getUserQuestByIdFromDb(questId, userId);
-  
+
   if (!quest) {
     throw new Error("Quest not found");
   }
@@ -23,7 +23,11 @@ export async function claimQuestReward(userId: string, questId: string): Promise
     try {
       return await session.withTransaction(async () => {
         // Update in DB
-        await markUserQuestClaimedInDb(quest._id!.toString(), session);
+        const modifiedCount = await markUserQuestClaimedInDb(quest._id!.toString(), session);
+
+        if (modifiedCount === 0) {
+          throw new Error("Quest already claimed");
+        }
 
         // Apply side effects
         const template = await getQuestTemplateByIdFromDb(quest.questTemplateId);

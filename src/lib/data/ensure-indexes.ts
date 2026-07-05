@@ -46,6 +46,27 @@ export async function ensureIndexes(): Promise<void> {
             { userId: 1 },
             { name: "idx_userAchievements_userId" }
         ),
+
+        // Workouts: covers { idempotencyKey } queries
+        db.collection(config.workoutsCollection).createIndex(
+
+            { userId: 1, idempotencyKey: 1 },
+            {
+                name: "idx_workouts_idempotencyKey",
+                unique: true,
+                sparse: true,
+            }
+        ),
+
+        // Runs: covers { idempotencyKey } queries
+        db.collection(config.runsCollection).createIndex(
+            { userId: 1, idempotencyKey: 1 },
+            {
+                name: "idx_runs_idempotencyKey",
+                unique: true,
+                sparse: true,
+            }
+        ),
     ]);
 
     indexesEnsured = true;
