@@ -39,6 +39,7 @@ export async function logWorkout(
                 duration: input.duration,
                 xpEarned,
                 date: new Date(),
+                idempotencyKey: input.idempotencyKey,
             }, session);
 
             // 4. Side-effects (explicitly orchestrated, easy to extend or skip)
@@ -55,6 +56,12 @@ export async function logWorkout(
 
             return workout;
         });
+    } catch (error: any) {
+        if (error.code === 11000 && error.keyPattern?.idempotencyKey) {
+            console.log("Duplicate workout request ignored safely.");
+            throw new Error("This workout was already logged.");
+        }
+        throw error;
     } finally {
         await session.endSession();
     }

@@ -12,6 +12,7 @@ type RunDoc = {
     difficulty: Run["difficulty"];
     xpEarned: number;
     date: Date | string;
+    idempotencyKey?: string;
 }
 
 
@@ -53,6 +54,7 @@ export async function insertRun(
 
     return toRun({
         _id: result.insertedId,
+        idempotencyKey: doc.idempotencyKey,
         ...doc,
     });
 }

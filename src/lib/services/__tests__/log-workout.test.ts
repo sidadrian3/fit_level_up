@@ -3,6 +3,8 @@ import { logWorkout } from '../workouts/log-workout';
 import { getCollection } from '../../data/get-collection';
 import { UserMongoDoc } from '../../data/user-db';
 import { ObjectId } from 'mongodb';
+import { ensureIndexes } from '../../data/ensure-indexes';
+import crypto from 'crypto';
 
 describe('logWorkout Integration Test', () => {
   let userId: string;
@@ -22,6 +24,9 @@ describe('logWorkout Integration Test', () => {
       createdAt: new Date(),
     });
     userId = result.insertedId.toString();
+
+    // Ensure MongoDB indexes are created in the test DB (especially the idempotency index)
+    await ensureIndexes();
   });
 
   afterEach(async () => {
@@ -57,5 +62,38 @@ describe('logWorkout Integration Test', () => {
     expect(user!.totalWorkouts).toBe(1); // incremented
     expect(user!.xp).toBe(workout.xpEarned); // XP granted
     expect(user!.streak).toBe(1); // Streak started
+  });
+
+  it('should enforce idempotency and reject duplicate requests', async () => {
+    const idempotencyKey = crypto.randomUUID();
+    const workoutInput = {
+      type: "cardio" as const,
+      title: "Evening Run",
+      duration: 30,
+      difficulty: "easy" as const,
+      exercises: [{ name: "Jogging", sets: 1, reps: 1, weight: null }],
+      idempotencyKey
+    };
+
+    // 1. First request should succeed
+    const firstWorkout = await logWorkout(workoutInput, userId);
+    expect(firstWorkout.id).toBeDefined();
+
+    // 2. Capture user stats after first request
+    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const userAfterFirst = await usersCol.findOne({ _id: new ObjectId(userId) });
+    const xpAfterFirst = userAfterFirst!.xp;
+
+    // 3. Second request with same idempotencyKey should throw our specific error
+    await expect(logWorkout(workoutInput, userId)).rejects.toThrow("This workout was already logged.");
+
+    // 4. Verify user stats did NOT increment a second time
+    const userAfterSecond = await usersCol.findOne({ _id: new ObjectId(userId) });
+    expect(userAfterSecond!.xp).toBe(xpAfterFirst);
+
+    // 5. Verify only ONE workout exists in the DB with this key
+    const workoutsCol = await getCollection("workoutsCollection");
+    const duplicateCount = await workoutsCol.countDocuments({ userId, idempotencyKey });
+    expect(duplicateCount).toBe(1);
   });
 });
