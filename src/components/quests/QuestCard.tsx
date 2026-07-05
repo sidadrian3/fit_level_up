@@ -17,6 +17,7 @@ export interface QuestCardProps {
 export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
 
     const [isClaiming, setIsClaiming] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const isCompleted = quest.completed;
 
     return (
@@ -54,17 +55,28 @@ export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
                             <span>Claimed ✓</span>
                         </div>
                     ) : (
-                        <button
-                            onClick={async () => {
-                                setIsClaiming(true);
-                                await onClaim?.(quest.id);
-                                setIsClaiming(false);
-                            }}
-                            disabled={isClaiming}
-                            className="rounded-md bg-accent-green px-3 py-2 text-sm font-semibold text-black hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {isClaiming ? "Claiming..." : `Claim ${quest.xpReward} XP`}
-                        </button>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={async () => {
+                                    setError(null);
+                                    setIsClaiming(true);
+                                    try {
+                                        await onClaim?.(quest.id);
+                                    } catch (err) {
+                                        setError(err instanceof Error ? err.message : "Failed to claim quest");
+                                    } finally {
+                                        setIsClaiming(false);
+                                    }
+                                }}
+                                disabled={isClaiming}
+                                className={`rounded-md px-3 py-2 text-sm font-semibold text-black hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                    error ? "bg-accent-red" : "bg-accent-green"
+                                }`}
+                            >
+                                {isClaiming ? "Claiming..." : error ? "Error" : `Claim ${quest.xpReward} XP`}
+                            </button>
+                            {error && <span className="text-xs text-accent-red text-center">{error}</span>}
+                        </div>
                     )
                 ) : (
                     <div className="space-y-1.5">
