@@ -43,16 +43,18 @@ type QuestProgressUpdate = {
   amount: number;
 };
 
-type QuestActivityHandler = (activity: any) => QuestProgressUpdate[];
+type QuestActivityHandler<T extends QuestActivity> = (activity: T) => QuestProgressUpdate[];
 
-const QUEST_ACTIVITY_UPDATES: Record<QuestActivity["type"], QuestActivityHandler> = {
-  workout_created: (activity: Extract<QuestActivity, { type: "workout_created" }>) => [
+const QUEST_ACTIVITY_UPDATES: {
+  [K in QuestActivity["type"]]: QuestActivityHandler<Extract<QuestActivity, { type: K }>>
+} = {
+  workout_created: (_activity) => [
     {
       metric: "workout_count",
       amount: 1,
     },
   ],
-  run_created: (activity: Extract<QuestActivity, { type: "run_created" }>) => [
+  run_created: (activity) => [
     {
       metric: "run_count",
       amount: 1,
@@ -65,7 +67,7 @@ const QUEST_ACTIVITY_UPDATES: Record<QuestActivity["type"], QuestActivityHandler
 };
 
 export function getQuestProgressUpdates(activity: QuestActivity): QuestProgressUpdate[] {
-  const handler = QUEST_ACTIVITY_UPDATES[activity.type];
+  const handler = QUEST_ACTIVITY_UPDATES[activity.type] as QuestActivityHandler<QuestActivity>;
   if (!handler) {
     return [];
   }

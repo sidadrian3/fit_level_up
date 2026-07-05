@@ -20,7 +20,7 @@ export function ActivityTracker({
         <Card className={`flex flex-col gap-4 ${className}`}>
             <div>
                 <h3 className="text-lg font-semibold text-foreground">Weekly Activity</h3>
-                <p className="text-sm text-muted">You've been active {activeCount} days this week!</p>
+                <p className="text-sm text-muted">You&apos;ve been active {activeCount} days this week!</p>
             </div>
 
             {/* The tracker grid */}

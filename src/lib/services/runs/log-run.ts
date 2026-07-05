@@ -54,8 +54,9 @@ export async function logRun(
 
             return run;
         });
-    } catch (error: any) {
-        if (error.code === 11000 && error.keyPattern?.idempotencyKey) {
+    } catch (error: unknown) {
+        const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
+        if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
             console.log("Duplicate run request ignored safely.");
             throw new Error("This run was already logged.");
         }

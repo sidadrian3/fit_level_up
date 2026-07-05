@@ -36,6 +36,7 @@ export function useEntityForm<TInput, TEntity>({
   // Populate fields when editing an existing entity
   useEffect(() => {
     if (initialEntity) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFields(entityToInput(initialEntity));
       setError(null);
     }

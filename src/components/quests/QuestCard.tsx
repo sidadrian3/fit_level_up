@@ -1,9 +1,8 @@
-import React from "react";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { Quest } from "@/lib/types";
 import { CheckCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, } from "react";
 
 export interface QuestCardProps {
     quest: Quest;
@@ -69,9 +68,8 @@ export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
                                     }
                                 }}
                                 disabled={isClaiming}
-                                className={`rounded-md px-3 py-2 text-sm font-semibold text-black hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    error ? "bg-accent-red" : "bg-accent-green"
-                                }`}
+                                className={`rounded-md px-3 py-2 text-sm font-semibold text-black hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${error ? "bg-accent-red" : "bg-accent-green"
+                                    }`}
                             >
                                 {isClaiming ? "Claiming..." : error ? "Error" : `Claim ${quest.xpReward} XP`}
                             </button>

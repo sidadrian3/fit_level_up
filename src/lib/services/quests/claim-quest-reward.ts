@@ -3,8 +3,9 @@ import { validateQuestClaim } from "@/lib/domain/quest-rules";
 import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdFromDb } from "@/lib/data/quests-db";
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import clientPromise from "@/lib/mongodb";
+import type { User } from "@/lib/types";
 
-export async function claimQuestReward(userId: string, questId: string): Promise<any> {
+export async function claimQuestReward(userId: string, questId: string): Promise<{ user: User; levelUp: boolean } | undefined> {
   await syncUserQuests(userId);
 
   const quest = await getUserQuestByIdFromDb(questId, userId);

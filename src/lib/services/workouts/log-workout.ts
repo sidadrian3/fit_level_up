@@ -56,8 +56,9 @@ export async function logWorkout(
 
             return workout;
         });
-    } catch (error: any) {
-        if (error.code === 11000 && error.keyPattern?.idempotencyKey) {
+    } catch (error: unknown) {
+        const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
+        if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
             console.log("Duplicate workout request ignored safely.");
             throw new Error("This workout was already logged.");
         }

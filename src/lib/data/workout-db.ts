@@ -109,7 +109,7 @@ export async function updateWorkoutInDb(
 export async function countWorkoutsInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
     const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
-    const dateFilter: any = { $gte: startDate };
+    const dateFilter: Record<string, string> = { $gte: startDate };
     if (endDate) {
         dateFilter.$lte = endDate;
     }

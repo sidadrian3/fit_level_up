@@ -34,7 +34,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         // Run once on mount
-        refresh();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void refresh();
 
         // Listen for updates from api-fetch
         const handleUpdate = () => refresh();

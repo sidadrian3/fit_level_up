@@ -26,7 +26,7 @@ export default function AppError({
 
                 <h2 className="text-xl font-bold text-foreground mb-2">Something went wrong!</h2>
                 <p className="text-muted text-sm mb-8">
-                    We hit a snag trying to load this page. Don't worry, your data is safe.
+                    We hit a snag trying to load this page. Don&apos;t worry, your data is safe.
                 </p>
 
                 <div className="flex gap-4 w-full">

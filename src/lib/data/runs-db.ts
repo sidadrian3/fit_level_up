@@ -106,7 +106,7 @@ export async function updateRunInDb(
 export async function getTotalDistanceInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
     const collection = await getCollection<RunDoc>("runsCollection");
 
-    const dateFilter: any = { $gte: startDate };
+    const dateFilter: Record<string, string> = { $gte: startDate };
     if (endDate) {
         dateFilter.$lte = endDate;
     }
