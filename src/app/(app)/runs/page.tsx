@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { RunCard } from "@/components/runs/RunCard";
@@ -9,65 +9,56 @@ import { getRuns, deleteRun, updateRun } from "@/lib/data/api-client";
 import { calcRunStats, formatPace } from "@/lib/utils";
 import { MapPin, Activity, Timer } from "lucide-react";
 import type { Run } from "@/lib/types";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 
 export default function RunsPage() {
-    const [runs, setRuns] = useState<Run[]>([]);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
+
+    // 1. Infinite Query for Pagination
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        isError,
+    } = useInfiniteQuery({
+        queryKey: ["runs"],
+        queryFn: ({ pageParam = 1 }) => getRuns(pageParam, 5),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage, allPages) => {
+            // If the last page returned 5 items, there MIGHT be more.
+            return lastPage.length === 5 ? allPages.length + 1 : undefined;
+        },
+    });
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const editingRun = runs.find(r => r.id === editingId);
+    // Flatten the pages array into a single list of runs
+    const runs = data?.pages.flat() || [];
+    const editingRun = runs.find((r) => r.id === editingId);
+
     const stats = calcRunStats(runs);
 
-    async function loadRuns(pageNum = 1) {
-        try {
-            setError(null);
-            if (pageNum === 1) setIsLoading(true);
-            else setIsLoadingMore(true);
+    const deleteMutation = useMutation({
+        mutationFn: deleteRun,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["runs"] });
+            queryClient.invalidateQueries({ queryKey: ["quests"] });
+        },
+    });
 
-            const data = await getRuns(pageNum, 5);
-            
-            if (pageNum === 1) {
-                setRuns([...data]);
-            } else {
-                setRuns(prev => [...prev, ...data]);
-            }
-            
-            setHasMore(data.length === 5);
-            setPage(pageNum);
-        } catch {
-            setError("Could not load runs");
-        } finally {
-            setIsLoading(false);
-            setIsLoadingMore(false);
-        }
-    }
+    const handleEditComplete = () => {
+        setEditingId(null);
+        queryClient.invalidateQueries({ queryKey: ["runs"] });
+        queryClient.invalidateQueries({ queryKey: ["quests"] });
 
-    const handleDelete = async (id: string) => {
-        try {
-            await deleteRun(id);
-            await loadRuns();
-        } catch (err) {
-            console.error("Delete failed:", err);
-            setError("Failed to delete run");
-        }
     };
 
     const handleUpdate = async (id: string) => {
         setEditingId(id);
     };
 
-    const handleEditComplete = async () => {
-        setEditingId(null);
-        await loadRuns();
-    };
-
-    useEffect(() => {
-        loadRuns();
-    }, []);
 
     return (
         <div className="space-y-6 pb-12">
@@ -115,8 +106,8 @@ export default function RunsPage() {
             {/* Bottom: Form + Run History */}
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                 {/* Form — compact on the left */}
-                <RunForm 
-                    className="xl:col-span-2" 
+                <RunForm
+                    className="xl:col-span-2"
                     initialRun={editingRun}
                     onRunLogged={handleEditComplete}
                     onCancel={() => setEditingId(null)}
@@ -130,26 +121,26 @@ export default function RunsPage() {
                     {isLoading && (
                         <p className="text-sm text-muted">Loading...</p>
                     )}
-                    {error && (
-                        <p className="text-sm text-accent-red">{error}</p>
+                    {isError && (
+                        <p className="text-sm text-accent-red">Could not load runs</p>
                     )}
                     {!isLoading &&
-                        !error &&
+                        !isError &&
                         runs.map((run) => (
-                            <RunCard 
-                                key={run.id} 
+                            <RunCard
+                                key={run.id}
                                 run={run}
-                                onDelete={handleDelete}
+                                onDelete={(id) => deleteMutation.mutate(id)}
                                 onUpdate={handleUpdate}
                             />
                         ))}
-                    {!isLoading && !error && hasMore && runs.length > 0 && (
-                        <button 
-                            onClick={() => loadRuns(page + 1)}
-                            disabled={isLoadingMore}
+                    {!isLoading && !isError && hasNextPage && runs.length > 0 && (
+                        <button
+                            onClick={() => fetchNextPage()}
+                            disabled={isFetchingNextPage}
                             className="w-full py-3 mt-2 rounded-lg border border-border text-sm font-medium text-muted hover:text-foreground hover:bg-card-hover transition-default disabled:opacity-50"
                         >
-                            {isLoadingMore ? "Loading..." : "Load More"}
+                            {isFetchingNextPage ? "Loading..." : "Load More"}
                         </button>
                     )}
                 </div>

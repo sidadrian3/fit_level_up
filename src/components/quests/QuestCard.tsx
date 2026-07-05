@@ -61,7 +61,7 @@ export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
                                 setIsClaiming(false);
                             }}
                             disabled={isClaiming}
-                            className="rounded-md bg-accent-green px-3 py-2 text-sm font-semibold text-black hover:opacity-90"
+                            className="rounded-md bg-accent-green px-3 py-2 text-sm font-semibold text-black hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {isClaiming ? "Claiming..." : `Claim ${quest.xpReward} XP`}
                         </button>
