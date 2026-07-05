@@ -8,8 +8,8 @@ import type { Workout } from "@/lib/types";
 export interface WorkoutCardProps {
     workout: Workout;
     className?: string;
-    onDelete?: (id: string) => Promise<void>;
-    onUpdate?: (id: string) => Promise<void>;
+    onDelete?: (id: string) => void;
+    onUpdate?: (id: string) => void;
 }
 
 /**

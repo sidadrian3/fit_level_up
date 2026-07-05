@@ -1,76 +1,55 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
-import { getWorkouts, deleteWorkout, updateWorkout } from "@/lib/data/api-client";
-import type { Workout } from "@/lib/types";
+import { getWorkouts, deleteWorkout } from "@/lib/data/api-client";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function WorkoutsPage() {
-    const [workouts, setWorkouts] = useState<Workout[]>([]);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const editingWorkout = workouts.find(w => w.id === editingId);
+    // 1. Infinite Query for Pagination
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        isError,
+    } = useInfiniteQuery({
+        queryKey: ["workouts"],
+        queryFn: ({ pageParam = 1 }) => getWorkouts(pageParam, 5),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage, allPages) => {
+            // If the last page returned 5 items, there MIGHT be more.
+            return lastPage.length === 5 ? allPages.length + 1 : undefined;
+        },
+    });
 
-    async function loadWorkouts(pageNum = 1) {
-        try {
-            setError(null);
-            if (pageNum === 1) setIsLoading(true);
-            else setIsLoadingMore(true);
+    // Flatten the pages array into a single list of workouts
+    const workouts = data?.pages.flat() || [];
+    const editingWorkout = workouts.find((w) => w.id === editingId);
 
-            const data = await getWorkouts(pageNum, 5);
-            
-            if (pageNum === 1) {
-                setWorkouts([...data]);
-            } else {
-                setWorkouts(prev => [...prev, ...data]);
-            }
-            
-            setHasMore(data.length === 5);
-            setPage(pageNum);
-        } catch {
-            setError("Could not load workouts");
-        } finally {
-            setIsLoading(false);
-            setIsLoadingMore(false);
-        }
-    }
+    const deleteMutation = useMutation({
+        mutationFn: deleteWorkout,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["workouts"] });
+            queryClient.invalidateQueries({ queryKey: ["quests"] });
+        },
+    });
 
-    const handleDelete = async (id: string) => {
-        try {
-            await deleteWorkout(id);
-            await loadWorkouts();
-        } catch (err) {
-            console.error("Delete failed:", err);
-            setError("Failed to delete workout");
-        }
-    };
-
-    const handleUpdate = async (id: string) => {
-        setEditingId(id);
-    };
-
-    const handleEditComplete = async () => {
+    const handleEditComplete = () => {
         setEditingId(null);
-        await loadWorkouts();
-    };
+        queryClient.invalidateQueries({ queryKey: ["workouts"] });
+        queryClient.invalidateQueries({ queryKey: ["quests"] });
 
-    useEffect(() => {
-        loadWorkouts();
-    }, []);
+    };
 
     return (
         <div className="space-y-6 pb-12">
-            <PageHeader
-                title="Workouts"
-                subtitle="Track your training sessions"
-            />
+            <PageHeader title="Workouts" subtitle="Track your training sessions" />
 
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                 <WorkoutForm
@@ -81,32 +60,27 @@ export default function WorkoutsPage() {
                 />
 
                 <div className="xl:col-span-2 space-y-4">
-                    <h2 className="text-lg font-semibold text-foreground">
-                        Workout History
-                    </h2>
-                    {isLoading && (
-                        <p className="text-sm text-muted">Loading...</p>
-                    )}
-                    {error && (
-                        <p className="text-sm text-accent-red">{error}</p>
-                    )}
-                    {!isLoading &&
-                        !error &&
-                        workouts.map((workout) => (
-                            <WorkoutCard
-                                key={workout.id}
-                                workout={workout}
-                                onDelete={handleDelete}
-                                onUpdate={handleUpdate}
-                            />
-                        ))}
-                    {!isLoading && !error && hasMore && workouts.length > 0 && (
-                        <button 
-                            onClick={() => loadWorkouts(page + 1)}
-                            disabled={isLoadingMore}
+                    <h2 className="text-lg font-semibold text-foreground">Workout History</h2>
+
+                    {isLoading && <p className="text-sm text-muted">Loading...</p>}
+                    {isError && <p className="text-sm text-accent-red">Could not load workouts</p>}
+
+                    {!isLoading && !isError && workouts.map((workout) => (
+                        <WorkoutCard
+                            key={workout.id}
+                            workout={workout}
+                            onDelete={(id) => deleteMutation.mutate(id)}
+                            onUpdate={(id) => setEditingId(id)}
+                        />
+                    ))}
+
+                    {hasNextPage && (
+                        <button
+                            onClick={() => fetchNextPage()}
+                            disabled={isFetchingNextPage}
                             className="w-full py-3 mt-2 rounded-lg border border-border text-sm font-medium text-muted hover:text-foreground hover:bg-card-hover transition-default disabled:opacity-50"
                         >
-                            {isLoadingMore ? "Loading..." : "Load More"}
+                            {isFetchingNextPage ? "Loading..." : "Load More"}
                         </button>
                     )}
                 </div>
