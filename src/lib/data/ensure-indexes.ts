@@ -54,7 +54,7 @@ export async function ensureIndexes(): Promise<void> {
             {
                 name: "idx_workouts_idempotencyKey",
                 unique: true,
-                sparse: true,
+                partialFilterExpression: { idempotencyKey: { $exists: true } },
             }
         ),
 
@@ -64,7 +64,7 @@ export async function ensureIndexes(): Promise<void> {
             {
                 name: "idx_runs_idempotencyKey",
                 unique: true,
-                sparse: true,
+                partialFilterExpression: { idempotencyKey: { $exists: true } },
             }
         ),
     ]);

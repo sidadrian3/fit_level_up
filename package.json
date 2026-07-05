@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx src/scripts/migrate-db.ts && next build",
+    "build": "tsx --env-file-if-exists=.env.local src/scripts/migrate-db.ts && next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx --env-file=.env.local src/scripts/seed-achievements.ts",
