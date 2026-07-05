@@ -5,53 +5,56 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { RunCard } from "@/components/runs/RunCard";
 import { RunForm } from "@/components/runs/RunForm";
-import { getRuns, deleteRun, updateRun } from "@/lib/data/api-client";
-import { calcRunStats, formatPace } from "@/lib/utils";
+import { getRuns, deleteRun, updateRun, getRunStats } from "@/lib/data/api-client";
+import { formatPace } from "@/lib/utils";
 import { MapPin, Activity, Timer } from "lucide-react";
-import type { Run } from "@/lib/types";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pagination } from "@/components/ui/Pagination";
 
 
 export default function RunsPage() {
     const queryClient = useQueryClient();
 
-    // 1. Infinite Query for Pagination
+    const [page, setPage] = useState(1);
+
+    // 1. Pagination Query
     const {
         data,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
         isLoading,
         isError,
-    } = useInfiniteQuery({
-        queryKey: ["runs"],
-        queryFn: ({ pageParam = 1 }) => getRuns(pageParam, 5),
-        initialPageParam: 1,
-        getNextPageParam: (lastPage, allPages) => {
-            // If the last page returned 5 items, there MIGHT be more.
-            return lastPage.length === 5 ? allPages.length + 1 : undefined;
-        },
+    } = useQuery({
+        queryKey: ["runs", page],
+        queryFn: () => getRuns(page, 4),
     });
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    // Flatten the pages array into a single list of runs
-    const runs = data?.pages.flat() || [];
+    // Get runs from paginated response
+    const runs = data?.data || [];
     const editingRun = runs.find((r) => r.id === editingId);
 
-    const stats = calcRunStats(runs);
+    const { data: statsData } = useQuery({
+        queryKey: ["runs-stats"],
+        queryFn: getRunStats,
+    });
+
+    const stats = statsData || { totalKm: 0, totalRuns: 0, avgPace: 0 };
 
     const deleteMutation = useMutation({
         mutationFn: deleteRun,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["runs"] });
+            queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
             queryClient.invalidateQueries({ queryKey: ["quests"] });
+            queryClient.invalidateQueries({ queryKey: ["personal-records"] });
         },
     });
 
     const handleEditComplete = () => {
         setEditingId(null);
         queryClient.invalidateQueries({ queryKey: ["runs"] });
+        queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
         queryClient.invalidateQueries({ queryKey: ["quests"] });
+        queryClient.invalidateQueries({ queryKey: ["personal-records"] });
 
     };
 
@@ -134,14 +137,12 @@ export default function RunsPage() {
                                 onUpdate={handleUpdate}
                             />
                         ))}
-                    {!isLoading && !isError && hasNextPage && runs.length > 0 && (
-                        <button
-                            onClick={() => fetchNextPage()}
-                            disabled={isFetchingNextPage}
-                            className="w-full py-3 mt-2 rounded-lg border border-border text-sm font-medium text-muted hover:text-foreground hover:bg-card-hover transition-default disabled:opacity-50"
-                        >
-                            {isFetchingNextPage ? "Loading..." : "Load More"}
-                        </button>
+                    {!isLoading && !isError && data && (
+                        <Pagination
+                            currentPage={page}
+                            totalPages={data.totalPages}
+                            onPageChange={setPage}
+                        />
                     )}
                 </div>
             </div>

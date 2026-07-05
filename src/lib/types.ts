@@ -109,3 +109,10 @@ export interface DashboardStats {
     totalAchievements: number;
     lifetimeXP: number;
 }
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+}

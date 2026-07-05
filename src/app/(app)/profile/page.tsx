@@ -9,8 +9,6 @@ import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllAchievementsForUser } from "@/lib/data/achievements-db";
 
-import type { Achievement, DashboardStats, User } from "@/lib/types";
-
 export default async function ProfilePage() {
     const userId = await getAuthUserId();
 
@@ -24,7 +22,7 @@ export default async function ProfilePage() {
     return (
         <div className="space-y-6 pb-12">
             <PageHeader
-                title="Profile 👤"
+                title="Profile"
                 subtitle="View your stats and achievements."
             />
 

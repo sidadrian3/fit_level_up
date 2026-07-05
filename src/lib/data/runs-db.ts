@@ -44,6 +44,20 @@ export async function getAllRunsFromDb(userId: string, limit?: number, skip?: nu
     return docs.map(toRun);
 }
 
+export async function getPaginatedRunsFromDb(userId: string, limit: number, skip: number) {
+    const collection = await getCollection<RunDoc>("runsCollection");
+
+    const [docs, totalCount] = await Promise.all([
+        collection.find({ userId }).sort({ _id: -1 }).skip(skip).limit(limit).toArray(),
+        collection.countDocuments({ userId })
+    ]);
+
+    return {
+        data: docs.map(toRun),
+        totalCount
+    };
+}
+
 export async function insertRun(
     doc: Omit<RunDoc, "_id">,
     session?: ClientSession

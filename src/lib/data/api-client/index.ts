@@ -6,7 +6,7 @@
 
 export { getUser } from "./user";
 export { getWorkouts, createWorkout, deleteWorkout, updateWorkout } from "./workouts";
-export { getRuns, createRun, deleteRun, updateRun } from "./runs";
+export { getRuns, createRun, deleteRun, updateRun, getRunStats } from "./runs";
 export { getQuests, claimQuest } from "./quests";
 export { getAchievements } from "./achievements";
-export { getDashboardStats } from "./stats";
+export { getDashboardStats, getPersonalRecords } from "./stats";

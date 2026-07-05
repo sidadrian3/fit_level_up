@@ -45,6 +45,20 @@ export async function getAllWorkoutsFromDb(userId: string, limit?: number, skip?
     return docs.map(toWorkout);
 }
 
+export async function getPaginatedWorkoutsFromDb(userId: string, limit: number, skip: number) {
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+
+    const [docs, totalCount] = await Promise.all([
+        collection.find({ userId }).sort({ _id: -1 }).skip(skip).limit(limit).toArray(),
+        collection.countDocuments({ userId })
+    ]);
+
+    return {
+        data: docs.map(toWorkout),
+        totalCount
+    };
+}
+
 export async function insertWorkout(
     doc: Omit<WorkoutDoc, "_id">,
     session?: ClientSession

@@ -4,32 +4,26 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
 import { getWorkouts, deleteWorkout } from "@/lib/data/api-client";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pagination } from "@/components/ui/Pagination";
 
 export default function WorkoutsPage() {
     const queryClient = useQueryClient();
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
 
-    // 1. Infinite Query for Pagination
+    // 1. Pagination Query
     const {
         data,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
         isLoading,
         isError,
-    } = useInfiniteQuery({
-        queryKey: ["workouts"],
-        queryFn: ({ pageParam = 1 }) => getWorkouts(pageParam, 5),
-        initialPageParam: 1,
-        getNextPageParam: (lastPage, allPages) => {
-            // If the last page returned 5 items, there MIGHT be more.
-            return lastPage.length === 5 ? allPages.length + 1 : undefined;
-        },
+    } = useQuery({
+        queryKey: ["workouts", page],
+        queryFn: () => getWorkouts(page, 4),
     });
 
-    // Flatten the pages array into a single list of workouts
-    const workouts = data?.pages.flat() || [];
+    // Get workouts from paginated response
+    const workouts = data?.data || [];
     const editingWorkout = workouts.find((w) => w.id === editingId);
 
     const deleteMutation = useMutation({
@@ -37,6 +31,7 @@ export default function WorkoutsPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["workouts"] });
             queryClient.invalidateQueries({ queryKey: ["quests"] });
+            queryClient.invalidateQueries({ queryKey: ["personal-records"] });
         },
     });
 
@@ -44,7 +39,7 @@ export default function WorkoutsPage() {
         setEditingId(null);
         queryClient.invalidateQueries({ queryKey: ["workouts"] });
         queryClient.invalidateQueries({ queryKey: ["quests"] });
-
+        queryClient.invalidateQueries({ queryKey: ["personal-records"] });
     };
 
     return (
@@ -74,14 +69,12 @@ export default function WorkoutsPage() {
                         />
                     ))}
 
-                    {hasNextPage && (
-                        <button
-                            onClick={() => fetchNextPage()}
-                            disabled={isFetchingNextPage}
-                            className="w-full py-3 mt-2 rounded-lg border border-border text-sm font-medium text-muted hover:text-foreground hover:bg-card-hover transition-default disabled:opacity-50"
-                        >
-                            {isFetchingNextPage ? "Loading..." : "Load More"}
-                        </button>
+                    {!isLoading && !isError && data && (
+                        <Pagination
+                            currentPage={page}
+                            totalPages={data.totalPages}
+                            onPageChange={setPage}
+                        />
                     )}
                 </div>
             </div>

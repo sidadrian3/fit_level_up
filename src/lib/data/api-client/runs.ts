@@ -1,8 +1,8 @@
-import type { Run, CreateRunInput } from "@/lib/types";
+import type { Run, CreateRunInput, PaginatedResponse } from "@/lib/types";
 import { apiFetch, apiFetchAndNotify } from "./api-fetch";
 
-export async function getRuns(page = 1, limit = 5): Promise<readonly Run[]> {
-  return apiFetch<readonly Run[]>(`/api/runs?page=${page}&limit=${limit}`);
+export async function getRuns(page = 1, limit = 4): Promise<PaginatedResponse<Run>> {
+  return apiFetch<PaginatedResponse<Run>>(`/api/runs?page=${page}&limit=${limit}`);
 }
 
 export async function createRun(input: CreateRunInput): Promise<Run> {
@@ -27,4 +27,8 @@ export async function updateRun(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
+}
+
+export async function getRunStats() {
+  return apiFetch<{ totalKm: number; totalRuns: number; avgPace: number }>("/api/runs/stats");
 }

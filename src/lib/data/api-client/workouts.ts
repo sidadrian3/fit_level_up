@@ -1,8 +1,8 @@
-import type { Workout, CreateWorkoutInput } from "@/lib/types";
+import type { Workout, CreateWorkoutInput, PaginatedResponse } from "@/lib/types";
 import { apiFetch, apiFetchAndNotify } from "./api-fetch";
 
-export async function getWorkouts(page = 1, limit = 5): Promise<readonly Workout[]> {
-  return apiFetch<readonly Workout[]>(`/api/workouts?page=${page}&limit=${limit}`);
+export async function getWorkouts(page = 1, limit = 4): Promise<PaginatedResponse<Workout>> {
+  return apiFetch<PaginatedResponse<Workout>>(`/api/workouts?page=${page}&limit=${limit}`);
 }
 
 export async function createWorkout(

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
+import { getPaginatedWorkoutsFromDb } from "@/lib/data/workout-db";
 import { logWorkout } from "@/lib/services/workouts/log-workout";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { CreateWorkoutSchema } from "@/lib/validations/schemas";
@@ -9,12 +9,19 @@ export async function GET(request: Request) {
     try {
         const userId = await getAuthUserId();
         const { searchParams } = new URL(request.url);
-        const limit = searchParams.has("limit") ? parseInt(searchParams.get("limit")!) : undefined;
+        const limit = searchParams.has("limit") ? parseInt(searchParams.get("limit")!) : 5;
         const page = searchParams.has("page") ? parseInt(searchParams.get("page")!) : 1;
-        const skip = limit ? (page - 1) * limit : undefined;
+        const skip = (page - 1) * limit;
         
-        const workouts = await getAllWorkoutsFromDb(userId, limit, skip);
-        return NextResponse.json(workouts);
+        const { data, totalCount } = await getPaginatedWorkoutsFromDb(userId, limit, skip);
+        const totalPages = Math.ceil(totalCount / limit);
+        
+        return NextResponse.json({
+            data,
+            totalCount,
+            totalPages,
+            currentPage: page
+        });
     } catch (err) {
         console.error("GET /api/workouts error:", err);
         return NextResponse.json({ error: "Failed to fetch workouts" }, { status: 500 });
