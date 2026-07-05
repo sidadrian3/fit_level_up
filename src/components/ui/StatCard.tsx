@@ -25,17 +25,17 @@ export function StatCard({
     return (
         <Card className={`flex flex-col gap-4 ${className}`}>
             <div className="flex items-center justify-between">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBgColor}`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBgColor}`}>
                     {icon}
                 </div>
                 {trend && (
-                    <div className={`text-xs font-medium flex items-center gap-1 ${trend.isPositive ? 'text-accent-green' : 'text-accent-red'}`}>
+                    <div className={`text-sm font-medium flex items-center gap-1 px-2 py-1 rounded-full bg-card-hover ${trend.isPositive ? 'text-accent-green' : 'text-accent-red'}`}>
                         {trend.isPositive ? '↑' : '↓'} {trend.value}%
                     </div>
                 )}
             </div>
             <div>
-                <div className="text-2xl font-semibold tracking-tight text-foreground">{value}</div>
+                <div className="text-4xl font-bold tracking-tight text-foreground mt-2">{value}</div>
                 <div className="text-sm text-muted mt-1">{label}</div>
             </div>
         </Card>

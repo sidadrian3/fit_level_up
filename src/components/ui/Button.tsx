@@ -20,7 +20,7 @@ export function Button({
     ...props
 }: ButtonProps) {
     // Base styles all buttons share, plus focus/disabled states
-    const baseStyles = "px-5 py-2.5 font-medium rounded-lg transition-default text-sm inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent-green/50 disabled:opacity-50 disabled:cursor-not-allowed";
+    const baseStyles = "px-6 py-3 font-medium rounded-xl transition-default text-base inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent-green/50 disabled:opacity-50 disabled:cursor-not-allowed hover-lift";
     
     return (
         <button

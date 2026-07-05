@@ -14,7 +14,7 @@ export function Card({
 }: CardProps) {
     return (
         <Component
-            className={`bg-card border border-border rounded-xl p-6 shadow-sm hover:scale-[1.02] hover:shadow-lg hover:shadow-accent-green/5 transition-all duration-300 ${className}`}
+            className={`glass-panel rounded-2xl p-8 transition-all duration-300 hover-lift ${className}`}
             {...props}
         >
             {children}
