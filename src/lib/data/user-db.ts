@@ -18,6 +18,8 @@ export type UserMongoDoc = {
   totalWorkouts?: number;
   totalDistance?: number;
   createdAt?: Date;
+  stamina?: number;
+  lastStaminaUpdate?: Date | string;
 };
 
 
@@ -47,6 +49,8 @@ export function toUser(doc: UserMongoDoc): User {
     totalWorkouts: doc.totalWorkouts || 0,
     totalDistance: doc.totalDistance || 0,
     joinDate: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    stamina: doc.stamina !== undefined ? doc.stamina : 100,
+    lastStaminaUpdate: doc.lastStaminaUpdate ? new Date(doc.lastStaminaUpdate).toISOString() : new Date().toISOString(),
   };
 }
 
@@ -137,3 +141,18 @@ export async function updateUserStreakOnActivity(
     { session }
   );
 }
+
+export async function updateUserStaminaInDb(
+  userId: string,
+  newStamina: number,
+  lastStaminaUpdate: string,
+  session?: ClientSession
+): Promise<void> {
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  await collection.updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { stamina: newStamina, lastStaminaUpdate: new Date(lastStaminaUpdate) } },
+    { session }
+  )
+}
+

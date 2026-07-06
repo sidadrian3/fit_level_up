@@ -1,6 +1,7 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { updateUserStatsInDb, updateUserStreakOnActivity } from "@/lib/data/user-db";
+import { getUserFromDb, updateUserStatsInDb, updateUserStreakOnActivity, updateUserStaminaInDb } from "@/lib/data/user-db";
+import { calcStaminaCost, calcRecoveredStamina, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun } from "@/lib/data/runs-db";
@@ -25,9 +26,16 @@ export async function logRun(
 
     const client = await clientPromise;
     const session = client.startSession();
+    const staminaCost = calcStaminaCost(input.duration);
 
     try {
         return await session.withTransaction(async () => {
+            const user = await getUserFromDb(userId, session);
+            const recoveredStamina = calcRecoveredStamina(user.stamina, user.lastStaminaUpdate, new Date());
+            
+            const finalXpEarned = calcExhaustionDebuff(xpEarned, recoveredStamina, staminaCost);
+            const finalStamina = Math.max(0, recoveredStamina - staminaCost);
+
             // 3. Persistence
             const run = await insertRun({
                 userId,
@@ -35,7 +43,7 @@ export async function logRun(
                 duration: input.duration,
                 pace,
                 difficulty: input.difficulty,
-                xpEarned,
+                xpEarned: finalXpEarned,
                 date: new Date(),
                 idempotencyKey: input.idempotencyKey,
             }, session);
@@ -51,6 +59,7 @@ export async function logRun(
             await updateUserStatsInDb(userId, { incrementDistance: run.distance }, session);
             await updateUserStreakOnActivity(userId, run.date, session);
             await evaluateAchievements(userId, session);
+            await updateUserStaminaInDb(userId, finalStamina, new Date().toISOString(), session);
 
             return run;
         });

@@ -96,4 +96,75 @@ describe('logWorkout Integration Test', () => {
     const duplicateCount = await workoutsCol.countDocuments({ userId, idempotencyKey });
     expect(duplicateCount).toBe(1);
   });
+
+  describe('Stamina System Integration', () => {
+    it('should correctly deduct stamina for a normal workout', async () => {
+      // 1. Arrange: Update the dummy user to have 100 stamina
+      const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 100, lastStaminaUpdate: new Date().toISOString() } });
+
+      const workoutInput = {
+        type: "strength" as const,
+        title: "Normal Workout",
+        duration: 60, // 60 min -> 15 + 30 = 45 cost
+        difficulty: "moderate" as const,
+        exercises: [{ name: "Squats", sets: 3, reps: 10, weight: 225 }]
+      };
+
+      // 2. Act
+      await logWorkout(workoutInput, userId);
+
+      // 3. Assert
+      const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
+      expect(userAfter!.stamina).toBe(55); // 100 - 45 = 55
+    });
+
+    it('should apply exhaustion debuff if stamina is 0', async () => {
+      // 1. Arrange: Update the dummy user to have 0 stamina
+      const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 0, lastStaminaUpdate: new Date().toISOString() } });
+
+      const workoutInput = {
+        type: "cardio" as const,
+        title: "Exhausted Workout",
+        duration: 60, // Base XP: 60*2 + 1*15 = 135
+        difficulty: "hard" as const,
+        exercises: [{ name: "Running", sets: 1, reps: 1, weight: null }]
+      };
+
+      // 2. Act
+      const workout = await logWorkout(workoutInput, userId);
+
+      // 3. Assert
+      const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
+      expect(userAfter!.stamina).toBe(0); // Can't go below 0
+      expect(workout.xpEarned).toBe(Math.round(135 * 0.5)); // 68
+    });
+
+    it('should process lazy recovery before applying cost', async () => {
+      // 1. Arrange: Update the dummy user to have 10 stamina, updated 2 days ago
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
+
+      const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 10, lastStaminaUpdate: twoDaysAgo.toISOString() } });
+
+      const workoutInput = {
+        type: "strength" as const,
+        title: "Recovered Workout",
+        duration: 60, // 45 cost
+        difficulty: "moderate" as const,
+        exercises: [{ name: "Squats", sets: 3, reps: 10, weight: 225 }]
+      };
+
+      // 2. Act
+      await logWorkout(workoutInput, userId);
+
+      // 3. Assert
+      // Recovery: 10 + (2*50) = 110 -> 100
+      // Cost: 100 - 45 = 55
+      const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
+      expect(userAfter!.stamina).toBe(55);
+    });
+  });
 });

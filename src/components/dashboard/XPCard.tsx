@@ -22,18 +22,25 @@ export function XPCard({ user }: XPCardProps) {
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <div className="flex justify-between text-sm font-medium">
-                    <span className="text-foreground">{user.xp.toLocaleString()} XP</span>
-                    <span className="text-muted">{user.xpToNextLevel.toLocaleString()} XP</span>
+            <div className="space-y-5">
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm font-medium">
+                        <span className="text-foreground">{user.xp.toLocaleString()} XP</span>
+                        <span className="text-muted">{user.xpToNextLevel.toLocaleString()} XP</span>
+                    </div>
+                    <ProgressBar value={user.xp} max={user.xpToNextLevel} />
+                    <p className="text-xs text-muted text-right mt-1">
+                        {(user.xpToNextLevel - user.xp).toLocaleString()} XP to Level {user.level + 1}
+                    </p>
                 </div>
 
-                {/* Reusing our accessible, animated Progress Bar */}
-                <ProgressBar value={user.xp} max={user.xpToNextLevel} />
-
-                <p className="text-xs text-muted text-right mt-1">
-                    {(user.xpToNextLevel - user.xp).toLocaleString()} XP to Level {user.level + 1}
-                </p>
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm font-medium">
+                        <span className="text-foreground">{user.stamina} Stamina</span>
+                        <span className="text-muted">100 Max</span>
+                    </div>
+                    <ProgressBar value={user.stamina} max={100} colorClass="bg-accent-blue" />
+                </div>
             </div>
         </Card>
     );

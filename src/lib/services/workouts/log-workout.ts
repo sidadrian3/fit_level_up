@@ -7,9 +7,10 @@ import {
 
     calcWorkoutXP,
 } from "@/lib/domain/workout-rules";
+import { calcStaminaCost, calcRecoveredStamina, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { updateUserStatsInDb, updateUserStreakOnActivity } from "@/lib/data/user-db";
+import { updateUserStatsInDb, updateUserStreakOnActivity, updateUserStaminaInDb, getUserFromDb } from "@/lib/data/user-db";
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import clientPromise from "@/lib/mongodb";
@@ -27,9 +28,16 @@ export async function logWorkout(
 
     const client = await clientPromise;
     const session = client.startSession();
+    const staminaCost = calcStaminaCost(input.duration);
 
     try {
         return await session.withTransaction(async () => {
+            const user = await getUserFromDb(userId, session);
+            const recoveredStamina = calcRecoveredStamina(user.stamina, user.lastStaminaUpdate, new Date());
+            
+            const finalXpEarned = calcExhaustionDebuff(xpEarned, recoveredStamina, staminaCost);
+            const finalStamina = Math.max(0, recoveredStamina - staminaCost);
+
             // 3. Persistence
             const workout = await insertWorkout({
                 userId,
@@ -37,7 +45,7 @@ export async function logWorkout(
                 title: input.title.trim(),
                 exercises,
                 duration: input.duration,
-                xpEarned,
+                xpEarned: finalXpEarned,
                 date: new Date(),
                 idempotencyKey: input.idempotencyKey,
             }, session);
@@ -49,10 +57,10 @@ export async function logWorkout(
             }, session);
             await grantUserXP(userId, workout.xpEarned, session);
 
-
             await updateUserStatsInDb(userId, { incrementWorkouts: 1 }, session);
             await updateUserStreakOnActivity(userId, workout.date, session);
             await evaluateAchievements(userId, session);
+            await updateUserStaminaInDb(userId, finalStamina, new Date().toISOString(), session);
 
             return workout;
         });
