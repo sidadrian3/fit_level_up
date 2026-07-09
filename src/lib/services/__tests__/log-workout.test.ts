@@ -4,6 +4,7 @@ import { getCollection } from '../../data/get-collection';
 import { UserMongoDoc } from '../../data/user-db';
 import { ObjectId } from 'mongodb';
 import { ensureIndexes } from '../../data/ensure-indexes';
+import { TargetMuscle } from '../../types';
 import crypto from 'crypto';
 
 describe('logWorkout Integration Test', () => {
@@ -37,13 +38,11 @@ describe('logWorkout Integration Test', () => {
 
   it('should successfully log a workout, calculate XP, and update user stats', async () => {
     const workoutInput = {
-      type: "strength" as const,
       title: "Morning Lift",
       duration: 60,
-      difficulty: "moderate" as const,
       exercises: [
-        { name: "Bench Press", sets: 3, reps: 10, weight: 135 },
-        { name: "Squats", sets: 3, reps: 10, weight: 225 }
+        { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 3, reps: 10, weight: 135 },
+        { name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }
       ]
     };
 
@@ -67,11 +66,9 @@ describe('logWorkout Integration Test', () => {
   it('should enforce idempotency and reject duplicate requests', async () => {
     const idempotencyKey = crypto.randomUUID();
     const workoutInput = {
-      type: "cardio" as const,
       title: "Evening Run",
       duration: 30,
-      difficulty: "easy" as const,
-      exercises: [{ name: "Jogging", sets: 1, reps: 1, weight: null }],
+      exercises: [{ name: "Jogging", targetMuscle: TargetMuscle.Cardio, sets: 1, reps: 1, weight: null }],
       idempotencyKey
     };
 
@@ -104,11 +101,9 @@ describe('logWorkout Integration Test', () => {
       await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 100, lastStaminaUpdate: new Date().toISOString() } });
 
       const workoutInput = {
-        type: "strength" as const,
         title: "Normal Workout",
         duration: 60, // 60 min -> 15 + 30 = 45 cost
-        difficulty: "moderate" as const,
-        exercises: [{ name: "Squats", sets: 3, reps: 10, weight: 225 }]
+        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }]
       };
 
       // 2. Act
@@ -125,11 +120,9 @@ describe('logWorkout Integration Test', () => {
       await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 0, lastStaminaUpdate: new Date().toISOString() } });
 
       const workoutInput = {
-        type: "cardio" as const,
         title: "Exhausted Workout",
         duration: 60, // Base XP: 60*2 + 1*15 = 135
-        difficulty: "hard" as const,
-        exercises: [{ name: "Running", sets: 1, reps: 1, weight: null }]
+        exercises: [{ name: "Running", targetMuscle: TargetMuscle.Cardio, sets: 1, reps: 1, weight: null }]
       };
 
       // 2. Act
@@ -150,11 +143,9 @@ describe('logWorkout Integration Test', () => {
       await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 10, lastStaminaUpdate: twoDaysAgo.toISOString() } });
 
       const workoutInput = {
-        type: "strength" as const,
         title: "Recovered Workout",
         duration: 60, // 45 cost
-        difficulty: "moderate" as const,
-        exercises: [{ name: "Squats", sets: 3, reps: 10, weight: 225 }]
+        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }]
       };
 
       // 2. Act

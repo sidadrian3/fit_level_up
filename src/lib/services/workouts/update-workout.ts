@@ -20,7 +20,6 @@ export async function updateWorkout(
 
     // 3. Persistence — pass pre-built fields, DB just writes
     return updateWorkoutInDb(id, {
-        type: input.type,
         title: input.title.trim(),
         exercises,
         duration: input.duration,

@@ -5,7 +5,6 @@ import { getCollection } from "@/lib/data/get-collection";
 type WorkoutDoc = {
     _id?: ObjectId;
     userId: string;
-    type: Workout["type"];
     title: string;
     exercises: Exercise[];
     duration: number;
@@ -23,7 +22,6 @@ function toWorkout(doc: WorkoutDoc): Workout {
 
     return {
         id: doc._id.toString(),
-        type: doc.type,
         title: doc.title,
         exercises: doc.exercises,
         duration: doc.duration,
@@ -87,7 +85,7 @@ export async function deleteWorkoutFromDb(id: string, userId: string): Promise<b
 
 export async function updateWorkoutInDb(
     id: string,
-    fields: { type: Workout["type"]; title: string; exercises: Exercise[]; duration: number; xpEarned: number },
+    fields: { title: string; exercises: Exercise[]; duration: number; xpEarned: number },
     userId: string
 ): Promise<Workout | null> {
     if (!ObjectId.isValid(id)) {

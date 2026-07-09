@@ -1,9 +1,10 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
-import { env } from "../env";
 
-// Load environment variables from .env.local
+// Load environment variables from .env.local before importing env
 dotenv.config({ path: ".env.local" });
+
+import { env } from "../env";
 
 const INITIAL_ACHIEVEMENTS = [
     {
@@ -56,8 +57,8 @@ async function seed() {
     const client = new MongoClient(uri);
     await client.connect();
 
-    // We assume the DB name is "fit_level_up" as defined in your db-config
-    const db = client.db("fit_level_up");
+    // Use the default database specified in MONGODB_URI
+    const db = client.db();
     const collection = db.collection("achievements");
 
     console.log("Checking for existing achievements...");

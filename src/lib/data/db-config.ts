@@ -16,5 +16,6 @@ export function getDbConfig() {
     userQuestsCollection: env.MONGODB_USER_QUESTS_COLLECTION || "user_quests",
     achievementsCollection: env.MONGODB_ACHIEVEMENTS_COLLECTION || "achievements",
     userAchievementsCollection: env.MONGODB_USER_ACHIEVEMENTS_COLLECTION || "user_achievements",
+    customExercisesCollection: env.MONGODB_CUSTOM_EXERCISES_COLLECTION || "custom_exercises",
   };
 }

@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { TargetMuscle } from "@/lib/types";
 
 // ─── Exercise ───
 export const ExerciseSchema = z.object({
   name: z.string(),
+  targetMuscle: z.nativeEnum(TargetMuscle),
   sets: z.number().int().positive(),
   reps: z.number().int().positive(),
   weight: z.number().nonnegative().nullable(),
@@ -10,7 +12,6 @@ export const ExerciseSchema = z.object({
 
 // ─── Workout ───
 export const CreateWorkoutSchema = z.object({
-  type: z.enum(["strength", "cardio", "hiit", "flexibility"]),
   title: z.string().min(1, "Title is required").max(200),
   exercises: z.array(ExerciseSchema).min(1, "At least one exercise is required"),
   duration: z.number().positive("Duration must be greater than 0").max(1440),

@@ -41,7 +41,6 @@ export async function logWorkout(
             // 3. Persistence
             const workout = await insertWorkout({
                 userId,
-                type: input.type,
                 title: input.title.trim(),
                 exercises,
                 duration: input.duration,

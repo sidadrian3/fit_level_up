@@ -17,16 +17,33 @@ export interface User {
     lastStaminaUpdate: DateString;
 }
 
+export enum TargetMuscle {
+    Chest = "Chest",
+    Back = "Back",
+    Legs = "Legs",
+    Arms = "Arms",
+    Core = "Core",
+    Cardio = "Cardio",
+    FullBody = "Full Body"
+}
+
 export interface Exercise {
     name: string;
+    targetMuscle: TargetMuscle;
     sets: number;
     reps: number;
     weight: number | null; // null for bodyweight exercises
 }
 
+export interface CustomExercise {
+    id: string;
+    userId: string;
+    name: string;
+    targetMuscle: TargetMuscle;
+}
+
 export interface Workout {
     id: string;
-    type: "strength" | "cardio" | "hiit" | "flexibility";
     title: string;
     exercises: Exercise[];
     duration: number;       // minutes
@@ -35,7 +52,6 @@ export interface Workout {
 }
 
 export type CreateWorkoutInput = {
-    type: Workout["type"];
     title: string;
     exercises: Exercise[];
     duration: number;

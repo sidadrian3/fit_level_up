@@ -11,6 +11,7 @@ export const env = createEnv({
         MONGODB_USER_QUESTS_COLLECTION: z.string().min(1).default("user_quests"),
         MONGODB_ACHIEVEMENTS_COLLECTION: z.string().min(1).default("achievements"),
         MONGODB_USER_ACHIEVEMENTS_COLLECTION: z.string().min(1).default("user_achievements"),
+        MONGODB_CUSTOM_EXERCISES_COLLECTION: z.string().min(1).default("customExercises"),
     },
     client: {
         NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url(),
