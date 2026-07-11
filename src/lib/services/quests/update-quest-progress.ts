@@ -2,7 +2,7 @@ import type { QuestActivity } from "@/lib/types";
 import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { getQuestProgressUpdates, getPeriodForCategory, calcNextProgress } from "@/lib/domain/quest-rules";
 import {
-  getQuestTemplatesByMetricFromDb, findUserQuestFromDb, updateUserQuestProgressInDb,
+  updateUserQuestProgressInDb,
   getUserQuestsForUserFromDb, getQuestTemplatesByMetricsFromDb
 } from "@/lib/data/quests-db";
 import { ClientSession } from "mongodb";
@@ -24,9 +24,9 @@ export async function updateQuestProgress(
 
 
   for (const update of updates) {
-    const matchingTemplates = await getQuestTemplatesByMetricFromDb(update.metric);
+    const templatesForUpdate = matchingTemplates.filter(t => t.metric === update.metric);
 
-    for (const template of matchingTemplates) {
+    for (const template of templatesForUpdate) {
       if (!template._id) {
         continue;
       }
@@ -34,11 +34,10 @@ export async function updateQuestProgress(
       const { periodStart, periodEnd } = getPeriodForCategory(template.category);
       const questTemplateId = template._id.toString();
 
-      const userQuest = await findUserQuestFromDb(
-        userId,
-        questTemplateId,
-        periodStart,
-        periodEnd
+      const userQuest = userQuests.find(uq =>
+        uq.questTemplateId === questTemplateId &&
+        uq.periodStart === periodStart &&
+        uq.periodEnd === periodEnd
       );
 
       if (!userQuest) {
