@@ -1,5 +1,4 @@
 import type { QuestActivity } from "@/lib/types";
-import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { getQuestProgressUpdates, getPeriodForCategory, calcNextProgress } from "@/lib/domain/quest-rules";
 import {
   updateUserQuestProgressInDb,
@@ -12,7 +11,6 @@ export async function updateQuestProgress(
   activity: QuestActivity,
   session?: ClientSession
 ): Promise<void> {
-  await syncUserQuests(userId);
 
   const updates = getQuestProgressUpdates(activity);
   const metrics = updates.map(u => u.metric);

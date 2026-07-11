@@ -8,8 +8,11 @@ export async function GET() {
         const userId = await getAuthUserId();
         const quests = await getUserQuests(userId);
         return NextResponse.json(quests);
-    } catch (error) {
-        console.error("Error fetching user quests:", error);
-        return NextResponse.json({ error: "Failed to fetch user quests" }, { status: 500 });
+    } catch (err) {
+        if(err instanceof Error && err.message === "Unauthorized"){
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const message = err instanceof Error ? err.message : "Failed to fetch user quests";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

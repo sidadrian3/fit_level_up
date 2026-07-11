@@ -23,8 +23,11 @@ export async function GET(request: Request) {
             currentPage: page
         });
     } catch (err) {
-        console.error("GET /api/runs error:", err);
-        return NextResponse.json({ error: "Failed to fetch runs" }, { status: 500 });
+        if(err instanceof Error && err.message === "Unauthorized"){
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        } 
+        const message = err instanceof Error ? err.message : "Failed to fetch runs";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 
@@ -36,6 +39,9 @@ export async function POST(request: Request) {
         const run = await logRun(parsed, userId);
         return NextResponse.json(run, { status: 201 });
     } catch (err) {
+        if(err instanceof Error && err.message === "Unauthorized"){
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
         if (err instanceof z.ZodError) {
             return NextResponse.json(
                 { error: err.issues[0]?.message ?? "Invalid input" },

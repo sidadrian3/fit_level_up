@@ -4,7 +4,7 @@ import { calcLevelUp } from "@/lib/domain/user-rules";
 import { ClientSession } from "mongodb";
 
 export async function grantUserXP(userId: string, amount: number, session?: ClientSession): Promise<{ user: User; levelUp: boolean }> {
-  const user = await getUserFromDb(userId);
+  const user = await getUserFromDb(userId, session);
   
   const { newXp, newLevel, newXpToNextLevel, levelUp } = calcLevelUp(
     user.xp,
