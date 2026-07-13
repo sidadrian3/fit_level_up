@@ -96,7 +96,7 @@ export function WorkoutForm({
         },
         onUpdate: (id, input) => {
             const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-            return updateWorkout(id, { ...input, title: input.title.trim(), exercises: namedExercises });
+            return updateWorkout(id, { ...input, title: input.title.trim(), exercises: namedExercises, idempotencyKey: crypto.randomUUID() });
         },
         getId: (w) => w.id,
         onSuccess: onWorkoutLogged,
@@ -134,7 +134,7 @@ export function WorkoutForm({
             exercises: namedExercises
         };
 
-        const result = CreateWorkoutSchema.safeParse(dataToValidate);
+        const result = CreateWorkoutSchema.omit({ idempotencyKey: true }).safeParse(dataToValidate);
 
         if (!result.success) {
             setError(result.error.issues[0].message);

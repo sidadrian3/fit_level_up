@@ -2,6 +2,7 @@ import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
 import { calcNewStreak } from "@/lib/domain/user-rules";
+import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
@@ -20,6 +21,7 @@ export type UserMongoDoc = {
   createdAt: Date;
   stamina: number;
   lastStaminaUpdate: Date;
+  __v?: number;
 };
 
 
@@ -37,6 +39,9 @@ export function toUser(doc: UserMongoDoc): User {
     }
   }
 
+  const rawStamina = doc.stamina ?? 100;
+  const recoveredStamina = calcRecoveredStamina(rawStamina, doc.lastStaminaUpdate, new Date());
+
   return {
     id: doc._id?.toString() || doc.id || "",
     email: doc.email || "",
@@ -49,8 +54,9 @@ export function toUser(doc: UserMongoDoc): User {
     totalWorkouts: doc.totalWorkouts ?? 0,
     totalDistance: doc.totalDistance ?? 0,
     joinDate: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-    stamina: doc.stamina ?? 100,
+    stamina: recoveredStamina,
     lastStaminaUpdate: doc.lastStaminaUpdate ? new Date(doc.lastStaminaUpdate).toISOString() : new Date().toISOString(),
+    __v: doc.__v ?? 0,
   };
 }
 
@@ -78,24 +84,30 @@ export async function updateUserXPInDb(
   newXp: number,
   newLevel: number,
   newXpToNextLevel: number,
+  currentVersion: number,
   session?: ClientSession
 ): Promise<User> {
   const collection = await getCollection<UserMongoDoc>("usersCollection");
 
+  const query = currentVersion === 0 
+    ? { _id: new ObjectId(userId), $or: [{ __v: 0 }, { __v: { $exists: false } }] }
+    : { _id: new ObjectId(userId), __v: currentVersion };
+
   const result = await collection.findOneAndUpdate(
-    { _id: new ObjectId(userId) },
+    query,
     {
       $set: {
         xp: newXp,
         level: newLevel,
         xpToNextLevel: newXpToNextLevel,
       },
+      $inc: { __v: 1 } as any
     },
     { session, returnDocument: "after" }
   );
 
   if (!result) {
-    throw new Error("Failed to update user XP");
+    throw new Error("OptimisticLockError");
   }
 
   return toUser(result);

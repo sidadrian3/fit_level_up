@@ -27,9 +27,10 @@ export async function logRun(
     const client = await clientPromise;
     const session = client.startSession();
     const staminaCost = calcStaminaCost(input.duration);
+    let runObj: Run;
 
     try {
-        return await session.withTransaction(async () => {
+        runObj = await session.withTransaction(async () => {
             const user = await getUserFromDb(userId, session);
             const recoveredStamina = calcRecoveredStamina(user.stamina, user.lastStaminaUpdate, new Date());
             
@@ -58,7 +59,6 @@ export async function logRun(
             await grantUserXP(userId, run.xpEarned, session);
             await updateUserStatsInDb(userId, { incrementDistance: run.distance }, session);
             await updateUserStreakOnActivity(userId, run.date, session);
-            await evaluateAchievements(userId, session);
             await updateUserStaminaInDb(userId, finalStamina, new Date().toISOString(), session);
 
             return run;
@@ -73,4 +73,11 @@ export async function logRun(
     } finally {
         await session.endSession();
     }
+
+    // 5. Event-Driven Side Effects (Decoupled from transaction)
+    evaluateAchievements(userId).catch(err => {
+        console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
+    });
+
+    return runObj;
 }

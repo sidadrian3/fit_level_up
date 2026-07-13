@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { betterFetch } from '@better-fetch/fetch'
+import type { Session } from 'better-auth/types'
 
 const protectedRoutes = ['/dashboard', '/workouts', '/runs', '/quests', '/profile']
 const publicAuthRoutes = ['/login', '/signup']
@@ -9,13 +11,26 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
   const isPublicAuthRoute = publicAuthRoutes.includes(path)
 
-  const sessionToken = request.cookies.get('better-auth.session_token')
+  let session = null;
+  
+  if (isProtectedRoute || isPublicAuthRoute) {
+    const { data } = await betterFetch<Session>(
+      "/api/auth/get-session",
+      {
+        baseURL: request.nextUrl.origin,
+        headers: {
+          cookie: request.headers.get("cookie") || "",
+        },
+      }
+    );
+    session = data || null;
+  }
 
-  if (isProtectedRoute && !sessionToken) {
+  if (isProtectedRoute && !session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (isPublicAuthRoute && sessionToken) {
+  if (isPublicAuthRoute && session) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
