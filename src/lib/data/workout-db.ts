@@ -9,7 +9,7 @@ type WorkoutDoc = {
     exercises: Exercise[];
     duration: number;
     xpEarned: number;
-    date: Date | string;
+    date: Date;
     idempotencyKey?: string;
 };
 
@@ -26,8 +26,7 @@ function toWorkout(doc: WorkoutDoc): Workout {
         exercises: doc.exercises,
         duration: doc.duration,
         xpEarned: doc.xpEarned,
-        date: doc.date instanceof Date ?
-            doc.date.toISOString().slice(0, 10) : String(doc.date).slice(0, 10),
+        date: new Date(doc.date).toISOString().slice(0, 10),
     };
 }
 
@@ -121,9 +120,9 @@ export async function updateWorkoutInDb(
 export async function countWorkoutsInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
     const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
-    const dateFilter: Record<string, string> = { $gte: startDate };
+    const dateFilter: Record<string, Date> = { $gte: new Date(startDate) };
     if (endDate) {
-        dateFilter.$lte = endDate;
+        dateFilter.$lte = new Date(endDate);
     }
 
     return collection.countDocuments({

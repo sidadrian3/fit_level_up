@@ -10,25 +10,25 @@ export type UserMongoDoc = {
   name: string;
   image?: string;
   avatar?: string;
-  level?: number;
-  xp?: number;
-  xpToNextLevel?: number;
-  streak?: number;
-  lastActivityDate?: Date | string; // YYYY-MM-DD
-  totalWorkouts?: number;
-  totalDistance?: number;
-  createdAt?: Date;
-  stamina?: number;
-  lastStaminaUpdate?: Date | string;
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
+  streak: number;
+  lastActivityDate?: Date; // YYYY-MM-DD
+  totalWorkouts: number;
+  totalDistance: number;
+  createdAt: Date;
+  stamina: number;
+  lastStaminaUpdate: Date;
 };
 
 
 
 export function toUser(doc: UserMongoDoc): User {
-  const lastActivityStr = doc.lastActivityDate instanceof Date ? doc.lastActivityDate.toISOString().slice(0, 10) : doc.lastActivityDate;
+  const lastActivityStr = doc.lastActivityDate ? doc.lastActivityDate.toISOString().slice(0, 10) : undefined;
 
   // Compute display streak: if last activity wasn't today or yesterday, streak is broken
-  let displayStreak = doc.streak || 0;
+  let displayStreak = doc.streak;
   if (displayStreak > 0 && lastActivityStr) {
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
@@ -42,14 +42,14 @@ export function toUser(doc: UserMongoDoc): User {
     email: doc.email || "",
     name: doc.name || "",
     avatar: doc.avatar || doc.image || "zap",
-    level: doc.level || 1,
-    xp: doc.xp || 0,
-    xpToNextLevel: doc.xpToNextLevel || 500,
-    streak: displayStreak,
-    totalWorkouts: doc.totalWorkouts || 0,
-    totalDistance: doc.totalDistance || 0,
+    level: doc.level ?? 1,
+    xp: doc.xp ?? 0,
+    xpToNextLevel: doc.xpToNextLevel ?? 500,
+    streak: displayStreak ?? 0,
+    totalWorkouts: doc.totalWorkouts ?? 0,
+    totalDistance: doc.totalDistance ?? 0,
     joinDate: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-    stamina: doc.stamina !== undefined ? doc.stamina : 100,
+    stamina: doc.stamina ?? 100,
     lastStaminaUpdate: doc.lastStaminaUpdate ? new Date(doc.lastStaminaUpdate).toISOString() : new Date().toISOString(),
   };
 }

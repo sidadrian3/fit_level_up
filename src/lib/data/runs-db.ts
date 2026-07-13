@@ -11,7 +11,7 @@ type RunDoc = {
     pace: number;
     difficulty: Run["difficulty"];
     xpEarned: number;
-    date: Date | string;
+    date: Date;
     idempotencyKey?: string;
 }
 
@@ -28,8 +28,7 @@ function toRun(doc: RunDoc): Run {
         pace: doc.pace,
         difficulty: doc.difficulty,
         xpEarned: doc.xpEarned,
-        date: doc.date instanceof Date ?
-            doc.date.toISOString().slice(0, 10) : String(doc.date).slice(0, 10),
+        date: new Date(doc.date).toISOString().slice(0, 10),
     };
 }
 
@@ -120,9 +119,9 @@ export async function updateRunInDb(
 export async function getTotalDistanceInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
     const collection = await getCollection<RunDoc>("runsCollection");
 
-    const dateFilter: Record<string, string> = { $gte: startDate };
+    const dateFilter: Record<string, Date> = { $gte: new Date(startDate) };
     if (endDate) {
-        dateFilter.$lte = endDate;
+        dateFilter.$lte = new Date(endDate);
     }
 
     const distanceResult = await collection

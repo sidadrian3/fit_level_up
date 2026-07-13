@@ -1,12 +1,12 @@
 import type { Run, CreateRunInput, PaginatedResponse } from "@/lib/types";
-import { apiFetch, apiFetchAndNotify } from "./api-fetch";
+import { apiFetch } from "./api-fetch";
 
 export async function getRuns(page = 1, limit = 4): Promise<PaginatedResponse<Run>> {
   return apiFetch<PaginatedResponse<Run>>(`/api/runs?page=${page}&limit=${limit}`);
 }
 
 export async function createRun(input: CreateRunInput): Promise<Run> {
-  return apiFetchAndNotify<Run>("/api/runs", {
+  return apiFetch<Run>("/api/runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -22,7 +22,7 @@ export async function updateRun(
   id: string,
   input: CreateRunInput,
 ): Promise<Run> {
-  return apiFetchAndNotify<Run>(`/api/runs/${id}`, {
+  return apiFetch<Run>(`/api/runs/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

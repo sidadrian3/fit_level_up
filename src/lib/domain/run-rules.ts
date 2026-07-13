@@ -1,4 +1,6 @@
 import type { CreateRunInput, Run } from "@/lib/types";
+import { GAME_CONFIG } from "@/lib/config/game-config";
+
 
 export function validateRunInput(input: CreateRunInput): void {
     if (input.distance <= 0) {
@@ -12,13 +14,11 @@ export function validateRunInput(input: CreateRunInput): void {
 }
 
 export function calcRunXP(distance: number, duration: number, difficulty: Run["difficulty"]): number {
-    const baseXp = Math.round(distance * 10 + duration * 2);
-    const difficultyMultiplier = {
-        easy: 1,
-        moderate: 1.2,
-        hard: 1.5,
-        intense: 2
-    }[difficulty] || 1;
+    const baseXp = Math.round(
+        (distance * GAME_CONFIG.xp.run.distanceMultiplier) +
+        (duration * GAME_CONFIG.xp.run.durationMultiplier)
+    );
+    const difficultyMultiplier = GAME_CONFIG.runDifficultyMultipliers[difficulty];
     return Math.round(baseXp * difficultyMultiplier);
 }
 

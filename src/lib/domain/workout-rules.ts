@@ -1,6 +1,7 @@
 // PURE FUNCTIONS — no imports from infrastructure, no database, no process.env
 
 import type { CreateWorkoutInput, Exercise } from "@/lib/types";
+import { GAME_CONFIG } from "@/lib/config/game-config";
 
 export function validateWorkoutInput(input: CreateWorkoutInput): void {
     if (!input.title.trim()) {
@@ -19,6 +20,8 @@ export function filterNamedExercises(exercises: Exercise[]): Exercise[] {
     return exercises.filter((ex) => ex.name.trim());
 }
 
-export function calcWorkoutXP(duration: number, exerciseCount: number): number {
-    return Math.round(duration * 2 + exerciseCount * 15);
+export function calcWorkoutXP(durationMinutes: number, exerciseCount: number): number {
+    return (durationMinutes * GAME_CONFIG.xp.workout.durationMultiplier) +
+        (exerciseCount * GAME_CONFIG.xp.workout.exerciseMultiplier);
 }
+
