@@ -101,7 +101,7 @@ export async function updateUserXPInDb(
         level: newLevel,
         xpToNextLevel: newXpToNextLevel,
       },
-      $inc: { __v: 1 } as any
+      $inc: { __v: 1 } as Record<string, number>
     },
     { session, returnDocument: "after" }
   );

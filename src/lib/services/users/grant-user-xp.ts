@@ -30,7 +30,7 @@ export async function grantUserXP(userId: string, amount: number, session?: Clie
       if (error instanceof Error && error.message === "OptimisticLockError") {
         if (session) {
           // If in a transaction, let the MongoDB driver natively retry the whole transaction
-          (error as any).errorLabels = ["TransientTransactionError"];
+          (error as Error & { errorLabels?: string[] }).errorLabels = ["TransientTransactionError"];
           throw error;
         }
         retries--;

@@ -79,7 +79,7 @@ async function seed() {
         console.log(`Found ${count} quest templates. Skipping seed.`);
     } else {
         console.log("Seeding quest templates...");
-        await collection.insertMany(INITIAL_QUEST_TEMPLATES as any);
+        await collection.insertMany(INITIAL_QUEST_TEMPLATES as import("mongodb").OptionalId<import("mongodb").Document>[]);
         console.log("Successfully seeded quest templates!");
     }
 

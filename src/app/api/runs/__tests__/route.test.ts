@@ -21,7 +21,7 @@ describe("POST /api/runs - Rate Limiting", () => {
 
   it("should return 429 Too Many Requests if rate limit is exceeded", async () => {
     // 1. Simulate the limit being hit
-    vi.mocked(RateLimit.limit).mockResolvedValue({ success: false } as any);
+    vi.mocked(RateLimit.limit).mockResolvedValue({ success: false } as never);
 
     // 2. Create a fake request to the RUNS endpoint
     const request = new Request("http://localhost:3000/api/runs", {
@@ -41,7 +41,7 @@ describe("POST /api/runs - Rate Limiting", () => {
 
   it("should proceed past rate limiter if limit is not exceeded", async () => {
     // 1. Simulate the request being allowed
-    vi.mocked(RateLimit.limit).mockResolvedValue({ success: true } as any);
+    vi.mocked(RateLimit.limit).mockResolvedValue({ success: true } as never);
 
     // 2. Create a fake request to the RUNS endpoint
     const request = new Request("http://localhost:3000/api/runs", {
