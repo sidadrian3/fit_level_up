@@ -4,10 +4,16 @@ import { getUserQuestsForUserFromDb, getQuestTemplatesByIdsFromDb, toQuestView }
 
 export async function getUserQuests(userId: string): Promise<Quest[]> {
   // First ensure quests are synced
-  await syncUserQuests(userId);
+  const syncCooldowns = new Map<string, number>();
+  const now = Date.now();
+  const lastSync = syncCooldowns.get(userId) || 0;
+  if (now - lastSync > 60_000) {
+    syncCooldowns.set(userId, now);
+    await syncUserQuests(userId);
+  }
 
   const userQuests = await getUserQuestsForUserFromDb(userId);
-  
+
   if (userQuests.length === 0) {
     return [];
   }

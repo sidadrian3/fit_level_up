@@ -16,11 +16,3 @@ export async function apiFetch<T>(
   return res.json();
 }
 
-export async function apiFetchAndNotify<T>(
-  url: string,
-  options?: RequestInit,
-): Promise<T> {
-  const result = await apiFetch<T>(url, options);
-  window.dispatchEvent(new Event("user-updated"));
-  return result;
-}

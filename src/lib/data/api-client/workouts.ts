@@ -1,5 +1,5 @@
 import type { Workout, CreateWorkoutInput, PaginatedResponse } from "@/lib/types";
-import { apiFetch, apiFetchAndNotify } from "./api-fetch";
+import { apiFetch } from "./api-fetch";
 
 export async function getWorkouts(page = 1, limit = 4): Promise<PaginatedResponse<Workout>> {
   return apiFetch<PaginatedResponse<Workout>>(`/api/workouts?page=${page}&limit=${limit}`);
@@ -8,7 +8,7 @@ export async function getWorkouts(page = 1, limit = 4): Promise<PaginatedRespons
 export async function createWorkout(
   input: CreateWorkoutInput,
 ): Promise<Workout> {
-  return apiFetchAndNotify<Workout>("/api/workouts", {
+  return apiFetch<Workout>("/api/workouts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -24,7 +24,7 @@ export async function updateWorkout(
   id: string,
   input: CreateWorkoutInput,
 ): Promise<Workout> {
-  return apiFetchAndNotify<Workout>(`/api/workouts/${id}`, {
+  return apiFetch<Workout>(`/api/workouts/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

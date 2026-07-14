@@ -67,6 +67,13 @@ export async function ensureIndexes(): Promise<void> {
                 partialFilterExpression: { idempotencyKey: { $exists: true } },
             }
         ),
+
+        // Custom Exercises: covers { userId } queries
+        db.collection(config.customExercisesCollection).createIndex(
+            { userId: 1 },
+            { name: "idx_customExercises_userId" }
+        ),
+
     ]);
 
     indexesEnsured = true;

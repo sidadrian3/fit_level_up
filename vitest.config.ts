@@ -4,6 +4,9 @@ import path from 'path';
 export default defineConfig({
   test: {
     environment: 'node',
+    env: {
+      BETTER_AUTH_SECRET: 'test-secret-for-vitest',
+    },
     alias: {
       '@': path.resolve(__dirname, './src'),
     },

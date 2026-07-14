@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const env = createEnv({
     server: {
-        MONGODB_URI: z.url(),
+        MONGODB_URI: z.string().startsWith("mongodb"),
         MONGODB_DB: z.string().min(1),
         MONGODB_WORKOUTS_COLLECTION: z.string().min(1).default("workouts"),
         MONGODB_RUNS_COLLECTION: z.string().min(1).default("runs"),
@@ -12,6 +12,7 @@ export const env = createEnv({
         MONGODB_ACHIEVEMENTS_COLLECTION: z.string().min(1).default("achievements"),
         MONGODB_USER_ACHIEVEMENTS_COLLECTION: z.string().min(1).default("user_achievements"),
         MONGODB_CUSTOM_EXERCISES_COLLECTION: z.string().min(1).default("customExercises"),
+        BETTER_AUTH_SECRET: z.string().min(10),
     },
     client: {
         NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url(),

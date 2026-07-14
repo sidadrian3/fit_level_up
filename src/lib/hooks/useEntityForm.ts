@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 type UseEntityFormOptions<TInput, TEntity> = {
   /** Default values for a blank form */
@@ -28,6 +29,7 @@ export function useEntityForm<TInput, TEntity>({
   getId,
   onSuccess,
 }: UseEntityFormOptions<TInput, TEntity>) {
+  const queryClient = useQueryClient();
   const isEditMode = !!initialEntity;
   const [fields, setFields] = useState<TInput>(defaults);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,6 +63,10 @@ export function useEntityForm<TInput, TEntity>({
         await onCreate(fields);
         resetForm();
       }
+      
+      // Invalidate the user cache to trigger a global refresh of XP/Stamina
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      
       onSuccess?.();
     } catch (err) {
       setError(

@@ -19,9 +19,12 @@ export default function QuestsPage() {
 
     const claimMutation = useMutation({
         mutationFn: claimQuest,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["quests"] });
-        }
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["quests"] }),
+                queryClient.invalidateQueries({ queryKey: ["user"] })
+            ]);
+        },
     });
 
 

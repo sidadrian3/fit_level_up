@@ -15,6 +15,7 @@ export interface User {
     joinDate: DateString;
     stamina: number;
     lastStaminaUpdate: DateString;
+    __v?: number;
 }
 
 export enum TargetMuscle {
@@ -55,7 +56,7 @@ export type CreateWorkoutInput = {
     title: string;
     exercises: Exercise[];
     duration: number;
-    idempotencyKey?: string;
+    idempotencyKey: string;
 }
 
 
@@ -73,7 +74,7 @@ export type CreateRunInput = {
     distance: number;
     duration: number;
     difficulty: Run["difficulty"];
-    idempotencyKey?: string;
+    idempotencyKey: string;
 }
 
 

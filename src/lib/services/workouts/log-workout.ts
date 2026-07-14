@@ -29,9 +29,9 @@ export async function logWorkout(
     const client = await clientPromise;
     const session = client.startSession();
     const staminaCost = calcStaminaCost(input.duration);
-
+    let workoutObj: Workout;
     try {
-        return await session.withTransaction(async () => {
+        workoutObj = await session.withTransaction(async () => {
             const user = await getUserFromDb(userId, session);
             const recoveredStamina = calcRecoveredStamina(user.stamina, user.lastStaminaUpdate, new Date());
             
@@ -58,7 +58,6 @@ export async function logWorkout(
 
             await updateUserStatsInDb(userId, { incrementWorkouts: 1 }, session);
             await updateUserStreakOnActivity(userId, workout.date, session);
-            await evaluateAchievements(userId, session);
             await updateUserStaminaInDb(userId, finalStamina, new Date().toISOString(), session);
 
             return workout;
@@ -73,4 +72,12 @@ export async function logWorkout(
     } finally {
         await session.endSession();
     }
+
+    // 5. Event-Driven Side Effects (Decoupled from transaction)
+    // Run achievements evaluation asynchronously so we don't block the API response
+    evaluateAchievements(userId).catch(err => {
+        console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
+    });
+
+    return workoutObj;
 }

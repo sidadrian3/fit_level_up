@@ -103,7 +103,14 @@ export async function insertUserQuestToDb(doc: Omit<UserQuestMongoDoc, "_id">, s
 
 export async function getUserQuestsForUserFromDb(userId: string): Promise<UserQuestMongoDoc[]> {
   const collection = await getCollection<UserQuestMongoDoc>("userQuestsCollection");
-  return collection.find({ userId }).toArray();
+  const today = new Date().toISOString().slice(0, 10);
+ return collection.find({ 
+    userId,
+    $or: [
+      { periodEnd: { $gte: today } },
+      { periodEnd: "all-time" }
+    ]
+  }).toArray();
 }
 
 export async function getQuestTemplatesByIdsFromDb(ids: string[]): Promise<QuestTemplateMongoDoc[]> {

@@ -1,5 +1,7 @@
+import { GAME_CONFIG } from "@/lib/config/game-config";
+
 export function calcStaminaCost(duration: number): number {
-  return 15 + (duration * 0.5);
+  return GAME_CONFIG.stamina.baseWorkoutCost + (duration * GAME_CONFIG.stamina.workoutDurationMultiplier);
 }
 
 export function calcRecoveredStamina(currentStamina: number, lastUpdateDate: Date | string | undefined, currentDate: Date): number {
@@ -16,7 +18,7 @@ export function calcRecoveredStamina(currentStamina: number, lastUpdateDate: Dat
 
   if (diffDays <= 0) return currentStamina;
 
-  const newStamina = currentStamina + (diffDays * 50);
+  const newStamina = currentStamina + (diffDays * GAME_CONFIG.stamina.dailyRecovery);
   return Math.min(100, newStamina);
 }
 
@@ -24,5 +26,5 @@ export function calcExhaustionDebuff(baseXp: number, currentStamina: number, sta
   if (currentStamina >= staminaCost) {
     return baseXp;
   }
-  return Math.round(baseXp * 0.5);
+  return Math.round(baseXp * GAME_CONFIG.xp.exhaustionDebuffMultiplier);
 }

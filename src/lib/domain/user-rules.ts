@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from "@/lib/config/game-config";
+
 export type LevelUpResult = {
   newXp: number;
   newLevel: number;
@@ -19,7 +21,7 @@ export function calcLevelUp(
   while (newXp >= newXpToNextLevel) {
     newXp -= newXpToNextLevel;
     newLevel += 1;
-    newXpToNextLevel = newLevel * 500;
+    newXpToNextLevel = newLevel * GAME_CONFIG.leveling.xpPerLevelMultiplier;
     levelUp = true;
   }
 
@@ -34,7 +36,7 @@ export function calcLevelUp(
 export function calcLifetimeXp(level: number, currentXp: number): number {
   let lifetimeXP = 0;
   for (let i = 1; i < level; i++) {
-    lifetimeXP += i * 500;
+    lifetimeXP += i * GAME_CONFIG.leveling.xpPerLevelMultiplier;
   }
   lifetimeXP += currentXp;
   return lifetimeXP;

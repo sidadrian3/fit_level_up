@@ -2,6 +2,7 @@ import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
 import { calcNewStreak } from "@/lib/domain/user-rules";
+import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
@@ -10,25 +11,26 @@ export type UserMongoDoc = {
   name: string;
   image?: string;
   avatar?: string;
-  level?: number;
-  xp?: number;
-  xpToNextLevel?: number;
-  streak?: number;
-  lastActivityDate?: Date | string; // YYYY-MM-DD
-  totalWorkouts?: number;
-  totalDistance?: number;
-  createdAt?: Date;
-  stamina?: number;
-  lastStaminaUpdate?: Date | string;
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
+  streak: number;
+  lastActivityDate?: Date; // YYYY-MM-DD
+  totalWorkouts: number;
+  totalDistance: number;
+  createdAt: Date;
+  stamina: number;
+  lastStaminaUpdate: Date;
+  __v?: number;
 };
 
 
 
 export function toUser(doc: UserMongoDoc): User {
-  const lastActivityStr = doc.lastActivityDate instanceof Date ? doc.lastActivityDate.toISOString().slice(0, 10) : doc.lastActivityDate;
+  const lastActivityStr = doc.lastActivityDate ? doc.lastActivityDate.toISOString().slice(0, 10) : undefined;
 
   // Compute display streak: if last activity wasn't today or yesterday, streak is broken
-  let displayStreak = doc.streak || 0;
+  let displayStreak = doc.streak;
   if (displayStreak > 0 && lastActivityStr) {
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
@@ -37,20 +39,24 @@ export function toUser(doc: UserMongoDoc): User {
     }
   }
 
+  const rawStamina = doc.stamina ?? 100;
+  const recoveredStamina = calcRecoveredStamina(rawStamina, doc.lastStaminaUpdate, new Date());
+
   return {
     id: doc._id?.toString() || doc.id || "",
     email: doc.email || "",
     name: doc.name || "",
     avatar: doc.avatar || doc.image || "zap",
-    level: doc.level || 1,
-    xp: doc.xp || 0,
-    xpToNextLevel: doc.xpToNextLevel || 500,
-    streak: displayStreak,
-    totalWorkouts: doc.totalWorkouts || 0,
-    totalDistance: doc.totalDistance || 0,
+    level: doc.level ?? 1,
+    xp: doc.xp ?? 0,
+    xpToNextLevel: doc.xpToNextLevel ?? 500,
+    streak: displayStreak ?? 0,
+    totalWorkouts: doc.totalWorkouts ?? 0,
+    totalDistance: doc.totalDistance ?? 0,
     joinDate: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-    stamina: doc.stamina !== undefined ? doc.stamina : 100,
+    stamina: recoveredStamina,
     lastStaminaUpdate: doc.lastStaminaUpdate ? new Date(doc.lastStaminaUpdate).toISOString() : new Date().toISOString(),
+    __v: doc.__v ?? 0,
   };
 }
 
@@ -78,24 +84,30 @@ export async function updateUserXPInDb(
   newXp: number,
   newLevel: number,
   newXpToNextLevel: number,
+  currentVersion: number,
   session?: ClientSession
 ): Promise<User> {
   const collection = await getCollection<UserMongoDoc>("usersCollection");
 
+  const query = currentVersion === 0 
+    ? { _id: new ObjectId(userId), $or: [{ __v: 0 }, { __v: { $exists: false } }] }
+    : { _id: new ObjectId(userId), __v: currentVersion };
+
   const result = await collection.findOneAndUpdate(
-    { _id: new ObjectId(userId) },
+    query,
     {
       $set: {
         xp: newXp,
         level: newLevel,
         xpToNextLevel: newXpToNextLevel,
       },
+      $inc: { __v: 1 } as Record<string, number>
     },
     { session, returnDocument: "after" }
   );
 
   if (!result) {
-    throw new Error("Failed to update user XP");
+    throw new Error("OptimisticLockError");
   }
 
   return toUser(result);

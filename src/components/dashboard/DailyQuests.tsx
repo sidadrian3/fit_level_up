@@ -2,7 +2,8 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { Quest } from "@/lib/types";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Target } from "lucide-react";
+import { QuestIconMap } from "@/lib/constants/quest-icons";
 
 export interface DailyQuestsProps {
     quests: readonly Quest[];
@@ -26,10 +27,12 @@ export function DailyQuests({ quests, className = "" }: DailyQuestsProps) {
                 <span className="text-xs text-muted">{quests.filter(q => q.completed).length}/{quests.length} completed</span>
             </div>
             <div className="space-y-4">
-                {quests.map((quest) => (
+                {quests.map((quest) => {
+                    const Icon = QuestIconMap[quest.icon] || Target;
+                    return (
                     <div key={quest.id} className="flex gap-4 p-3 rounded-lg border border-border bg-background hover:bg-card-hover transition-default group">
                         <div className="text-2xl pt-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                            {quest.icon}
+                            <Icon size={24} />
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
@@ -56,7 +59,8 @@ export function DailyQuests({ quests, className = "" }: DailyQuestsProps) {
                             )}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         </Card>
     );

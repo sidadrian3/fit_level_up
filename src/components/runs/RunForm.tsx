@@ -72,7 +72,7 @@ export function RunForm({
             difficulty: run.difficulty,
         }),
         onCreate: (input) => createRun({ ...input, idempotencyKey: crypto.randomUUID() }),
-        onUpdate: (id, input) => updateRun(id, input),
+        onUpdate: (id, input) => updateRun(id, { ...input, idempotencyKey: crypto.randomUUID() }),
         getId: (run) => run.id,
         onSuccess: onRunLogged,
     });
@@ -80,7 +80,7 @@ export function RunForm({
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
         
-        const result = CreateRunSchema.safeParse(fields);
+        const result = CreateRunSchema.omit({ idempotencyKey: true }).safeParse(fields);
         if (!result.success) {
             setError(result.error.issues[0].message);
             return;

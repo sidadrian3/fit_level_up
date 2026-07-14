@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { Quest } from "@/lib/types";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Target } from "lucide-react";
+import { QuestIconMap } from "@/lib/constants/quest-icons";
 import { useState, } from "react";
 
 export interface QuestCardProps {
@@ -14,6 +15,7 @@ export interface QuestCardProps {
  * Displays a single quest with progress/completion state.
  */
 export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
+    const Icon = QuestIconMap[quest.icon] || Target;
 
     const [isClaiming, setIsClaiming] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function QuestCard({ quest, className = "", onClaim }: QuestCardProps) {
             <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                     <div className="text-3xl shrink-0 leading-none mt-1">
-                        {quest.icon}
+                        <Icon size={32} />
                     </div>
                     <div>
                         <h4 className={`font-semibold ${isCompleted ? "line-through text-muted" : "text-foreground"}`}>

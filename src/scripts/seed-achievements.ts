@@ -57,8 +57,8 @@ async function seed() {
     const client = new MongoClient(uri);
     await client.connect();
 
-    // Use the default database specified in MONGODB_URI
-    const db = client.db();
+    // Use the explicit database name
+    const db = client.db(env.MONGODB_DB);
     const collection = db.collection("achievements");
 
     console.log("Checking for existing achievements...");
