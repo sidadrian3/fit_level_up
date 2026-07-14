@@ -74,6 +74,29 @@ export async function ensureIndexes(): Promise<void> {
             { name: "idx_customExercises_userId" }
         ),
 
+        // Friendships 4 indexes
+        db.collection(config.friendshipsCollection).createIndex(
+            { requesterId: 1, receiverId: 1},
+            {
+                name: "idx_friendships_requester_receiver",
+                unique: true,   
+            }
+        ),
+        // Powers GET /api/friends/requests (incoming pending)
+        db.collection(config.friendshipsCollection).createIndex(
+            { receiverId: 1, status: 1 },
+            { name: "idx_friendships_receiver_status" }
+        ),
+        // Powers GET /api/friends (your accepted friends)
+        db.collection(config.friendshipsCollection).createIndex(
+            { requesterId: 1, status: 1 },
+            { name: "idx_friendships_requester_status" }
+        ),
+        // Powers the "are we friends?" lookup
+        db.collection(config.friendshipsCollection).createIndex(
+            { receiverId: 1, requesterId: 1, status: 1 },
+            { name: "idx_friendships_status" }
+        ),
     ]);
 
     indexesEnsured = true;

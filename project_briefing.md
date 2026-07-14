@@ -271,11 +271,14 @@ When you're on the Friends page:
 
 ## Known Issues (Still Open)
 
-| Priority | Issue                             | Status        |
-| -------- | --------------------------------- | ------------- |
-| 🟢 P3    | Quest template caching            | In plan       |
-| 🟢 P3    | Centralized error handler wrapper | In plan       |
-| 🆕 New   | Friend System + Real-Time SSE     | Starting next |
+| Priority | Issue                                                             | Status        |
+| -------- | ----------------------------------------------------------------- | ------------- |
+| 🟢 P3    | Quest template caching                                            | In plan       |
+| 🟢 P3    | Centralized error handler wrapper                                 | In plan       |
+| 🆕 New   | Friend System + Real-Time SSE                                     | Starting next |
+| 🟢 P3    | log-workout-test, stamina and lastStaminaUpdate update test mocks | In plan       |
+
+|
 
 ---
 
