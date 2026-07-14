@@ -11,3 +11,4 @@ export { getQuests, claimQuest } from "./quests";
 export { getAchievements } from "./achievements";
 export { getDashboardStats, getPersonalRecords } from "./stats";
 export { createCustomExercise, fetchCustomExercises } from "./exercises";
+export * from "./friends";
