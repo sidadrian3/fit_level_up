@@ -25,3 +25,9 @@ export const CreateRunSchema = z.object({
   difficulty: z.enum(["easy", "moderate", "hard", "intense"]),
   idempotencyKey: z.uuid(),
 });
+
+// ─── Friends ───
+export const SendFriendRequestSchema = z.object({
+  receiverId: z.string().min(1, "Receiver ID is required"),
+});
+

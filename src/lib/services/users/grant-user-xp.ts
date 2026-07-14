@@ -1,3 +1,4 @@
+import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
 import type { User } from "@/lib/types";
 import { getUserFromDb, updateUserXPInDb } from "@/lib/data/user-db";
 import { calcLevelUp } from "@/lib/domain/user-rules";
@@ -24,6 +25,13 @@ export async function grantUserXP(userId: string, amount: number, session?: Clie
         user.__v ?? 0,
         session
       );
+
+      // Event-Driven Side Effects (Decoupled from transaction)
+      if (levelUp) {
+        notifyFriendsLevelUp(userId, newLevel).catch(err => {
+          console.error(`[SSE] Failed to notify friends of level up for user ${userId}:`, err);
+        });
+      }
 
       return { user: updatedUser, levelUp };
     } catch (error: unknown) {
