@@ -28,6 +28,6 @@ export const CreateRunSchema = z.object({
 
 // ─── Friends ───
 export const SendFriendRequestSchema = z.object({
-  receiverId: z.string().min(1, "Receiver ID is required"),
+  receiverId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid User ID format"),
 });
 

@@ -24,6 +24,17 @@ export function SidebarUserProfile({ user }: { user: User }) {
       <p className="text-xs text-muted mt-1">
         {user.xp} / {user.xpToNextLevel} XP
       </p>
+
+      {/* Mini stamina bar */}
+      <div className="w-full h-2 bg-border rounded-full overflow-hidden">
+        <div
+          className="h-full bg-accent-blue rounded-full transition-all duration-500"
+          style={{ width: `${user.stamina}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted mt-1">
+        {user.stamina} / 100 stamina
+      </p>
     </div>
   );
 }

@@ -24,6 +24,9 @@ Most fitness apps are boring. They capture data but give you no emotional reward
 - Manage a stamina system — overtraining costs more XP (exhaustion debuff)
 - Create custom exercises and reuse them across sessions
 - Fully authenticated accounts (email/password via Better Auth)
+- **Add friends by User ID**, accept/decline incoming requests, and remove friends
+- **View a friend's profile modal** — see their level, streak, total workouts, distance, and personal records (heaviest lifts, fastest 5K/10K, longest run)
+- **Receive real-time notifications** via SSE — when a friend accepts a request or logs activity, a toast notification appears instantly without a page refresh
 
 ---
 
@@ -154,18 +157,26 @@ POST /api/workouts
 - Dashboard with weekly workout/run stats
 - Custom exercises (create, reuse across workouts)
 - Full CRUD for workouts and runs (create, list with pagination, edit, delete)
-- Profile page
+- Profile page with personal records
+- **Friend System (fully implemented):**
+  - Send/accept/decline friend requests by User ID
+  - Remove friends
+  - Friend cards show level, streak, and link to a detailed profile modal
+  - Friend profile modal: avatar, name, level, streak, total workouts, total distance, and full personal records (top lifts, fastest 5K/10K, longest run)
+  - Personal records calculated on-the-fly from all workouts and runs at query time
+  - Real-time SSE layer: friend events (accepted requests, friend activity) pushed to connected browsers
+  - Automatic reconnection on SSE drop with exponential backoff
 
 **Infrastructure:**
 
 - Strict 4-layer architecture (domain/service/data separation fully enforced)
 - MongoDB transactions wrapping all multi-step writes (`logWorkout`, `logRun`, `claimQuestReward`)
 - Idempotency keys on workout and run creation (prevents duplicate submissions on network retry)
-- Proper MongoDB indexes on all hot-path queries
+- Proper MongoDB indexes on all hot-path queries (including a unique compound index on `(requesterId, receiverId)` for friendships)
 - Zod validation on every API endpoint
 - Type-safe environment variables (validated at startup — server won't start with missing env vars)
-- Unit tests (Vitest + in-memory MongoDB) covering domain rules and data layer
-- E2E tests (Playwright)
+- Unit tests (Vitest + in-memory MongoDB) covering domain rules, data layer, service layer, and SSE registry
+- Service layer uses `targetUserId` (the other person's ID) — no internal document IDs exposed to frontend
 
 **Code quality improvements already applied (from the P0/P2 audit fixes):**
 
@@ -203,80 +214,90 @@ These are architectural upgrades that make the system more scalable and robust. 
 
 ---
 
-### Track B — Friend System (Real-Time Updates Showcase)
+### Track B — Friend System (Real-Time Updates Showcase) ✅ COMPLETED
 
-This is a brand new feature that doesn't exist yet. It serves two purposes:
+This feature has been fully implemented. It serves two purposes:
 
-1. **Product value:** Users can add friends, see their activity, and compete socially — a huge motivation multiplier for fitness apps.
-2. **Technical showcase:** This feature will demonstrate **real-time updates** using WebSockets or Server-Sent Events (SSE). When your friend logs a workout, you see it appear live without refreshing.
+1. **Product value:** Users can add friends, see their stats, and compete socially — a huge motivation multiplier for fitness apps.
+2. **Technical showcase:** Demonstrates **real-time updates** using Server-Sent Events (SSE). When your friend accepts a request, you see a toast notification live without refreshing.
 
-**What the Friend System needs to include:**
+**What was built:**
 
 #### Data Model
 
-- `friendships` MongoDB collection: stores pairs of user IDs with status (`pending`, `accepted`, `declined`)
-- Friend requests (send, accept, decline, cancel)
-- Friend list with each friend's public profile (name, level, streak, recent activity)
+- `friendships` MongoDB collection with fields: `requesterId`, `receiverId`, `status` (`pending` | `accepted` | `declined`)
+- Unique compound index on `(requesterId, receiverId)` — prevents duplicate requests
+- Sparse index on `status` — fast query for pending/accepted lists
 
-#### API Endpoints Needed
+#### API Endpoints
 
-- `POST /api/friends/request` — send a friend request
-- `POST /api/friends/accept/:id` — accept a request
-- `POST /api/friends/decline/:id` — decline a request
-- `GET /api/friends` — list your friends with their stats
-- `GET /api/friends/requests` — list pending incoming requests
-- `DELETE /api/friends/:id` — remove a friend
+| Method   | Endpoint                    | What It Does                                           |
+| -------- | --------------------------- | ------------------------------------------------------ |
+| `POST`   | `/api/friends/request`      | Send a friend request by target User ID                |
+| `POST`   | `/api/friends/[id]/accept`  | Accept a request (using target's User ID)              |
+| `POST`   | `/api/friends/[id]/decline` | Decline a request (using target's User ID)             |
+| `GET`    | `/api/friends`              | List your accepted friends with full profile + records |
+| `GET`    | `/api/friends/requests`     | List pending incoming requests with requester profile  |
+| `DELETE` | `/api/friends/[id]`         | Remove a friend (using target's User ID)               |
+| `GET`    | `/api/friends/events`       | SSE stream — pushes live events to the browser         |
 
-#### Real-Time Layer
+> **Important design decision:** All friendship mutation endpoints accept the **other user's `userId`** (not an opaque MongoDB `_id`). The backend internally resolves the correct `Friendship` document using `getFriendshipBetweenFromDb(currentUserId, targetUserId)`. This was a deliberate refactor to fix a bug where the frontend was passing the wrong ID type.
 
-The key technical challenge: when Friend A logs a workout, Friend B's feed should update **live** without a page refresh.
+#### Real-Time Layer (SSE)
 
-**Approach options:**
+- `src/lib/sse/sse-registry.ts` — a global in-process registry mapping `userId → ReadableStreamController`. Allows any server-side service to push an event to any connected user by ID.
+- `src/lib/hooks/useFriendEvents.ts` — client-side hook. Opens a persistent `EventSource` connection to `/api/friends/events`, listens for named events, and calls `queryClient.invalidateQueries()` on arrival so TanStack Query auto-refreshes the UI.
+- Events pushed: `friend_request_accepted`, `friend_request_received`.
+- Auto-reconnects on drop (standard `EventSource` browser behaviour).
+- The `/api/friends/events` route does **not** use the `edge` runtime — it requires Node.js core modules (`stream`, `crypto`) from `better-auth` and `mongodb`.
 
-- **Server-Sent Events (SSE)** — simpler, one-direction (server → client). Client connects once and gets a stream of events. Perfect for "a friend just logged a workout" notifications.
-- **WebSockets** — two-direction. More complex but needed if we want real-time chat or reactions.
-- **TanStack Query polling** — simplest fallback, but not truly real-time.
+#### Friend Page UI
 
-The recommended approach for this app is **SSE**, because:
+- Three tabs: **My Friends**, **Requests** (with unread badge count), **Add Friends**
+- Add Friends tab uses User ID lookup (not username/email search) — shows a preview of the found user before sending
+- `FriendCard` — clickable card that opens the profile modal on click
+- `FriendProfileModal` — glassmorphic modal with: gradient cover, avatar, level/streak badges, total workouts/distance stats, and a full personal records list (strength, cardio, endurance icons)
+- `FriendRequestCard` — shows requester's avatar, name, level with Accept/Decline actions
+- Personal records calculated on-the-fly via `calculatePersonalRecords(workouts, runs)` in `get-friends.ts`
 
-- It works over standard HTTP (no upgrade handshake complexity)
-- It's perfect for notifications that flow server → client
-- Next.js App Router supports streaming responses natively
-- It degrades gracefully (falls back to polling if SSE drops)
+#### Business Rules (`src/lib/domain/friend-rules.ts`)
 
-#### What "Real-Time" Means in This Context
-
-When you're on the Friends page:
-
-1. Your browser opens a persistent SSE connection to `/api/friends/events`
-2. When any of your friends logs a workout or run (server-side), the server pushes an event down the stream
-3. Your TanStack Query cache is invalidated automatically, the friend's stats update on screen without any click
+- Cannot send a request to yourself
+- Cannot send a duplicate request (checked by existing friendship document)
+- Only the receiver can accept or decline a request
+- Either party can remove an accepted friendship
+- Re-requesting after a decline creates a new document
 
 ---
 
 ## Quick Reference: Key Files to Know
 
-| File                                                                                        | What It Does                                                      |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [log-workout.ts](file:///z:/Projects/fit_level_up/src/lib/services/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.  |
-| [user-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/user-rules.ts)              | XP leveling, streak calculation — the core game math.             |
-| [game-config.ts](file:///z:/Projects/fit_level_up/src/lib/config/game-config.ts)            | Every balance constant. Change here to tune the game feel.        |
-| [user-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/user-db.ts)                      | MongoDB reads/writes for the user document (XP, streak, stamina). |
-| [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.    |
-| [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.     |
-| [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.    |
-| [ensure-indexes.ts](file:///z:/Projects/fit_level_up/src/lib/data/ensure-indexes.ts)        | All MongoDB index definitions. Run at startup.                    |
+| File                                                                                        | What It Does                                                                      |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [log-workout.ts](file:///z:/Projects/fit_level_up/src/lib/services/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.                  |
+| [user-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/user-rules.ts)              | XP leveling, streak calculation — the core game math.                             |
+| [game-config.ts](file:///z:/Projects/fit_level_up/src/lib/config/game-config.ts)            | Every balance constant. Change here to tune the game feel.                        |
+| [user-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/user-db.ts)                      | MongoDB reads/writes for the user document (XP, streak, stamina).                 |
+| [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.                    |
+| [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                     |
+| [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                    |
+| [ensure-indexes.ts](file:///z:/Projects/fit_level_up/src/lib/data/ensure-indexes.ts)        | All MongoDB index definitions. Run at startup.                                    |
+| [friendships-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/friendships-db.ts)        | All MongoDB CRUD for the `friendships` collection.                                |
+| [sse-registry.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-registry.ts)             | Global in-process SSE registry. Push events to any connected user by userId.      |
+| [useFriendEvents.ts](file:///z:/Projects/fit_level_up/src/lib/hooks/useFriendEvents.ts)     | Client hook — opens SSE stream and invalidates TanStack Query cache on events.    |
+| [friend-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/friend-rules.ts)          | Pure domain rules: who can send/accept/remove friendships.                        |
+| [records.ts](file:///z:/Projects/fit_level_up/src/lib/utils/records.ts)                     | `calculatePersonalRecords()` — computes top lifts and fastest runs from raw data. |
 
 ---
 
 ## Known Issues (Still Open)
 
-| Priority | Issue                                                             | Status  |
-| -------- | ----------------------------------------------------------------- | ------- |
-| 🟢 P3    | Quest template caching                                            | In plan |
-| 🟢 P3    | Centralized error handler wrapper                                 | In plan |
-| Ongoing  | Friend System + Real-Time SSE                                     | In plan |
-| 🟢 P3    | log-workout-test, stamina and lastStaminaUpdate update test mocks | In plan |
+| Priority | Issue                                                             | Status    |
+| -------- | ----------------------------------------------------------------- | --------- |
+| 🟢 P3    | Quest template caching                                            | In plan   |
+| 🟢 P3    | Centralized error handler wrapper                                 | In plan   |
+| ✅ Done  | Friend System + Real-Time SSE                                     | Completed |
+| 🟢 P3    | log-workout-test, stamina and lastStaminaUpdate update test mocks | In plan   |
 
 |
 
