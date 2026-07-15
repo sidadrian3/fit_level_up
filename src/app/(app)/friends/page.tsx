@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { FriendCard } from "@/components/friends/FriendCard";
 import { FriendRequestCard } from "@/components/friends/FriendRequestCard";
 import { AddFriendSection } from "@/components/friends/AddFriendSection";
+import { FriendProfileModal } from "@/components/friends/FriendProfileModal";
+import type { FriendProfile } from "@/lib/types";
 import {
   getFriends,
   getFriendRequests,
@@ -19,6 +21,7 @@ type Tab = "friends" | "requests" | "add";
 
 export default function FriendsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("friends");
+  const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
   const queryClient = useQueryClient();
 
   // Queries
@@ -133,6 +136,7 @@ export default function FriendsPage() {
                     key={friend.userId}
                     friend={friend}
                     onRemove={(id) => removeMutation.mutate(id)}
+                    onViewProfile={() => setSelectedFriend(friend)}
                     isRemoving={removeMutation.isPending && removeMutation.variables === friend.userId}
                   />
                 ))}
@@ -179,6 +183,12 @@ export default function FriendsPage() {
           </div>
         )}
       </div>
+
+      <FriendProfileModal 
+        friend={selectedFriend}
+        isOpen={!!selectedFriend}
+        onClose={() => setSelectedFriend(null)}
+      />
     </div>
   );
 }

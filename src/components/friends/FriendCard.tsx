@@ -6,19 +6,25 @@ import { useState } from "react";
 interface FriendCardProps {
   friend: FriendProfile;
   onRemove: (id: string) => void;
+  onViewProfile: () => void;
   isRemoving?: boolean;
 }
 
-export function FriendCard({ friend, onRemove, isRemoving }: FriendCardProps) {
+export function FriendCard({ friend, onRemove, onViewProfile, isRemoving }: FriendCardProps) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   return (
     <div className="flex items-center justify-between p-4 bg-card/80 border border-border backdrop-blur-md rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-      <div className="flex items-center gap-4">
-        <UserAvatar avatar={friend.avatar} size="md" />
+      <div 
+        className="flex items-center gap-4 cursor-pointer group"
+        onClick={onViewProfile}
+      >
+        <div className="transition-transform group-hover:scale-105">
+          <UserAvatar avatar={friend.avatar} size="md" />
+        </div>
         
         <div>
-          <h3 className="font-bold text-foreground text-lg">{friend.name}</h3>
+          <h3 className="font-bold text-foreground text-lg group-hover:text-accent-blue transition-colors">{friend.name}</h3>
           <div className="flex items-center gap-2 text-sm text-muted">
             <span className="bg-accent-purple/20 text-accent-purple px-2 py-0.5 rounded-full font-semibold">
               Lvl {friend.level}
