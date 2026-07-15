@@ -4,6 +4,7 @@ import {
   Footprints,
   Scroll,
   UserCircle,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -19,5 +20,6 @@ export const navLinks: readonly NavLink[] = [
   { href: "/workouts", label: "Workouts", icon: Dumbbell },
   { href: "/runs", label: "Running", icon: Footprints },
   { href: "/quests", label: "Quests", icon: Scroll },
+  { href: "/friends", label: "Friends", icon: Users },
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];

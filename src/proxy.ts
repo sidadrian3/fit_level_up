@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { betterFetch } from '@better-fetch/fetch'
 import type { Session } from 'better-auth/types'
 
-const protectedRoutes = ['/dashboard', '/workouts', '/runs', '/quests', '/profile']
+const protectedRoutes = ['/dashboard', '/workouts', '/runs', '/quests', '/profile', '/friends']
 const publicAuthRoutes = ['/login', '/signup']
 
 export async function proxy(request: NextRequest) {
