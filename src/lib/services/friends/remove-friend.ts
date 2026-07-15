@@ -1,7 +1,7 @@
-import { getFriendshipByIdFromDb, deleteFriendshipInDb } from "@/lib/data/friendships-db";
+import { getFriendshipBetweenFromDb, deleteFriendshipInDb } from "@/lib/data/friendships-db";
 
-export async function removeFriend(friendshipId: string, userId: string): Promise<{ success: boolean }> {
-    const friendship = await getFriendshipByIdFromDb(friendshipId);
+export async function removeFriend(targetUserId: string, userId: string): Promise<{ success: boolean }> {
+    const friendship = await getFriendshipBetweenFromDb(userId, targetUserId);
     if (!friendship) {
         throw new Error("Friendship not found.");
     }
@@ -11,6 +11,6 @@ export async function removeFriend(friendshipId: string, userId: string): Promis
         throw new Error("Not authorized to remove this friend.");
     }
 
-    const success = await deleteFriendshipInDb(friendshipId, userId);
+    const success = await deleteFriendshipInDb(friendship.id, userId);
     return { success };
 }

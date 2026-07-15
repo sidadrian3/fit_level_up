@@ -1,11 +1,11 @@
 import type { Friendship } from "@/lib/types";
-import { getFriendshipByIdFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
+import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
 import { getUserFromDb } from "@/lib/data/user-db";
 import { sseRegistry } from "@/lib/sse/sse-registry";
 
-export async function acceptFriendRequest(friendshipId: string, userId: string): Promise<Friendship> {
-    // 1. Fetch existing request
-    const friendship = await getFriendshipByIdFromDb(friendshipId);
+export async function acceptFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {
+    // 1. Fetch existing request between the two users
+    const friendship = await getFriendshipBetweenFromDb(userId, targetUserId);
     if (!friendship) {
         throw new Error("Friend request not found.");
     }
@@ -20,8 +20,8 @@ export async function acceptFriendRequest(friendshipId: string, userId: string):
         throw new Error("Not authorized to respond to this request.");
     }
 
-    // 4. Update status in database
-    const updated = await updateFriendshipStatusInDb(friendshipId, "accepted", new Date());
+    // 4. Update status in database using the fetched friendship's ID
+    const updated = await updateFriendshipStatusInDb(friendship.id, "accepted", new Date());
     if (!updated) {
         throw new Error("Failed to accept friend request.");
     }

@@ -3,8 +3,9 @@ import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { acceptFriendRequest } from "@/lib/services/friends/accept-friend-request";
 import { RateLimit } from "@/lib/auth/rate-limit";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
+        const { id } = await params;
         const userId = await getAuthUserId();
         
         const { success } = await RateLimit.limit(userId);
@@ -12,7 +13,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
             return NextResponse.json({ error: "Too many requests" }, { status: 429 });
         }
 
-        const friendship = await acceptFriendRequest(params.id, userId);
+        const friendship = await acceptFriendRequest(id, userId);
         return NextResponse.json(friendship);
     } catch (err) {
         if (err instanceof Error && err.message === "Unauthorized") {

@@ -1,9 +1,9 @@
 import type { Friendship } from "@/lib/types";
-import { getFriendshipByIdFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
+import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
 
-export async function declineFriendRequest(friendshipId: string, userId: string): Promise<Friendship> {
-    // 1. Fetch existing request
-    const friendship = await getFriendshipByIdFromDb(friendshipId);
+export async function declineFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {
+    // 1. Fetch existing request between the two users
+    const friendship = await getFriendshipBetweenFromDb(userId, targetUserId);
     if (!friendship) {
         throw new Error("Friend request not found.");
     }
@@ -18,8 +18,8 @@ export async function declineFriendRequest(friendshipId: string, userId: string)
         throw new Error("Not authorized to respond to this request.");
     }
 
-    // 4. Update status in database (tombstone)
-    const updated = await updateFriendshipStatusInDb(friendshipId, "declined", new Date());
+    // 4. Update status in database (tombstone) using the fetched friendship's ID
+    const updated = await updateFriendshipStatusInDb(friendship.id, "declined", new Date());
     if (!updated) {
         throw new Error("Failed to decline friend request.");
     }

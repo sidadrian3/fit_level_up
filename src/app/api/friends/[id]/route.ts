@@ -3,16 +3,17 @@ import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { removeFriend } from "@/lib/services/friends/remove-friend";
 import { RateLimit } from "@/lib/auth/rate-limit";
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
+        const { id } = await params;
         const userId = await getAuthUserId();
         
-        const { success } = await RateLimit.limit(userId);
-        if (!success) {
+        const { success: rateLimitSuccess } = await RateLimit.limit(userId);
+        if (!rateLimitSuccess) {
             return NextResponse.json({ error: "Too many requests" }, { status: 429 });
         }
 
-        const result = await removeFriend(params.id, userId);
+        const result = await removeFriend(id, userId);
         return NextResponse.json(result);
     } catch (err) {
         if (err instanceof Error && err.message === "Unauthorized") {

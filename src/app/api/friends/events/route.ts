@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { sseRegistry } from "@/lib/sse/sse-registry";
 
-export const runtime = "edge"; // Important for Vercel Hobby plan no timeout
+// export const runtime = "edge"; // Important for Vercel Hobby plan no timeout
 
 export async function GET() {
     try {
