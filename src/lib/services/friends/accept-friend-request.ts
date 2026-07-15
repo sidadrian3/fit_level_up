@@ -1,7 +1,7 @@
 import type { Friendship } from "@/lib/types";
 import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
 import { getUserFromDb } from "@/lib/data/user-db";
-import { sseRegistry } from "@/lib/sse/sse-registry";
+import { publishToUser } from "@/lib/sse/sse-publisher";
 
 export async function acceptFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {
     // 1. Fetch existing request between the two users
@@ -26,11 +26,11 @@ export async function acceptFriendRequest(targetUserId: string, userId: string):
         throw new Error("Failed to accept friend request.");
     }
 
-    // 5. Side Effects (Fire-and-forget real-time notification to the original requester)
+    // 5. Side Effects (fire-and-forget via Redis queue)
     // We fetch the current user to get their name and avatar for the notification payload.
     getUserFromDb(userId).then(user => {
         if (user) {
-            sseRegistry.notify(updated.requesterId, {
+            publishToUser(updated.requesterId, {
                 type: "friend_accepted",
                 payload: {
                     actorId: user.id,
@@ -38,7 +38,7 @@ export async function acceptFriendRequest(targetUserId: string, userId: string):
                     actorAvatar: user.avatar,
                     timestamp: new Date().toISOString()
                 }
-            });
+            }).catch(err => console.error("[SSE] Failed to publish friend_accepted:", err));
         }
     }).catch(err => {
         console.error("Failed to send friend_accepted SSE:", err);
@@ -46,3 +46,4 @@ export async function acceptFriendRequest(targetUserId: string, userId: string):
 
     return updated;
 }
+

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { getCollection } from '@/lib/data/get-collection';
-import { sseRegistry } from '@/lib/sse/sse-registry';
 import { ensureIndexes } from '@/lib/data/ensure-indexes';
+import * as ssePublisher from '@/lib/sse/sse-publisher';
 
 import { sendFriendRequest } from '../friends/send-friend-request';
 import { acceptFriendRequest } from '../friends/accept-friend-request';
@@ -36,8 +36,8 @@ describe('friends Service Layer Test', () => {
         const col = await getCollection("friendshipsCollection");
         await col.deleteMany({});
         vi.clearAllMocks();
-        vi.spyOn(sseRegistry, 'notify').mockImplementation(() => {});
-        vi.spyOn(sseRegistry, 'notifyMany').mockImplementation(() => {});
+        vi.spyOn(ssePublisher, 'publishToUser').mockResolvedValue(undefined);
+        vi.spyOn(ssePublisher, 'publishToMany').mockResolvedValue(undefined);
     });
 
     afterAll(async () => {
@@ -55,7 +55,7 @@ describe('friends Service Layer Test', () => {
             expect(result.requesterId).toBe(userA.id);
             expect(result.receiverId).toBe(userB.id);
             
-            expect(sseRegistry.notify).toHaveBeenCalledWith(userB.id, expect.objectContaining({ type: "friend_request" }));
+            expect(ssePublisher.publishToUser).toHaveBeenCalledWith(userB.id, expect.objectContaining({ type: "friend_request" }));
         });
 
         it('Throws for self-request', async () => {
@@ -87,7 +87,7 @@ describe('friends Service Layer Test', () => {
             expect(accepted.status).toBe("accepted");
             
             await new Promise(r => setTimeout(r, 50));
-            expect(sseRegistry.notify).toHaveBeenCalledWith(userA.id, expect.objectContaining({ type: "friend_accepted" }));
+            expect(ssePublisher.publishToUser).toHaveBeenCalledWith(userA.id, expect.objectContaining({ type: "friend_accepted" }));
 
             const aFriends = await getFriends(userA.id);
             expect(aFriends.length).toBe(1);

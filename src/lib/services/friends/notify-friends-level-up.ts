@@ -1,6 +1,6 @@
 import { getAcceptedFriendIdsFromDb } from "@/lib/data/friendships-db";
 import { getUserFromDb } from "@/lib/data/user-db";
-import { sseRegistry } from "@/lib/sse/sse-registry";
+import { publishToMany } from "@/lib/sse/sse-publisher";
 
 export async function notifyFriendsLevelUp(userId: string, newLevel: number): Promise<void> {
   const friendIds = await getAcceptedFriendIdsFromDb(userId);
@@ -9,7 +9,7 @@ export async function notifyFriendsLevelUp(userId: string, newLevel: number): Pr
   const user = await getUserFromDb(userId);
   if (!user) return;
 
-  sseRegistry.notifyMany(friendIds, {
+  await publishToMany(friendIds, {
     type: "friend_level_up",
     payload: {
       actorId: userId,
@@ -20,3 +20,4 @@ export async function notifyFriendsLevelUp(userId: string, newLevel: number): Pr
     },
   });
 }
+

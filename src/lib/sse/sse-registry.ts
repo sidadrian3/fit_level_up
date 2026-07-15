@@ -1,5 +1,12 @@
 import type { SSEEvent } from "./sse-types";
 
+/**
+ * @deprecated Use `sse-publisher.ts` for production code.
+ * This in-process registry only works on single-server deployments.
+ * On Vercel (serverless), each container has its own isolated Map, so
+ * notifications sent from one container cannot reach streams in another.
+ * Retained for local development reference and existing unit tests.
+ */
 class SSERegistry {
   // We store a mapping of userId to their open connection stream controller
   private connections = new Map<string, ReadableStreamDefaultController>();
