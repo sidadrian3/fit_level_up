@@ -245,11 +245,11 @@ This feature has been fully implemented. It serves two purposes:
 
 #### Real-Time Layer (SSE)
 
-- `src/lib/sse/sse-registry.ts` — a global in-process registry mapping `userId → ReadableStreamController`. Allows any server-side service to push an event to any connected user by ID.
+- `src/lib/sse/sse-publisher.ts` — the Redis queue publisher. Uses Upstash Redis `RPUSH` to send events to per-user message queues (`"sse:{userId}"`) with a 60-second auto-expiry. Allows any serverless container to push an event to any connected user by ID, fixing the Vercel container isolation problem.
 - `src/lib/hooks/useFriendEvents.ts` — client-side hook. Opens a persistent `EventSource` connection to `/api/friends/events`, listens for named events, and calls `queryClient.invalidateQueries()` on arrival so TanStack Query auto-refreshes the UI.
-- Events pushed: `friend_request_accepted`, `friend_request_received`.
+- Events pushed: `friend_request`, `friend_accepted`, `friend_level_up`.
 - Auto-reconnects on drop (standard `EventSource` browser behaviour).
-- The `/api/friends/events` route does **not** use the `edge` runtime — it requires Node.js core modules (`stream`, `crypto`) from `better-auth` and `mongodb`.
+- The `/api/friends/events` route uses a 5-second polling loop (`LPOP`) to check Redis for messages and forward them to the browser. It sets `maxDuration = 60` for Vercel Hobby compatibility.
 
 #### Friend Page UI
 
@@ -283,7 +283,7 @@ This feature has been fully implemented. It serves two purposes:
 | [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                    |
 | [ensure-indexes.ts](file:///z:/Projects/fit_level_up/src/lib/data/ensure-indexes.ts)        | All MongoDB index definitions. Run at startup.                                    |
 | [friendships-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/friendships-db.ts)        | All MongoDB CRUD for the `friendships` collection.                                |
-| [sse-registry.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-registry.ts)             | Global in-process SSE registry. Push events to any connected user by userId.      |
+| [sse-publisher.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-publisher.ts)             | Redis-backed publisher. Pushes SSE events to per-user queues for serverless compatibility. |
 | [useFriendEvents.ts](file:///z:/Projects/fit_level_up/src/lib/hooks/useFriendEvents.ts)     | Client hook — opens SSE stream and invalidates TanStack Query cache on events.    |
 | [friend-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/friend-rules.ts)          | Pure domain rules: who can send/accept/remove friendships.                        |
 | [records.ts](file:///z:/Projects/fit_level_up/src/lib/utils/records.ts)                     | `calculatePersonalRecords()` — computes top lifts and fastest runs from raw data. |
