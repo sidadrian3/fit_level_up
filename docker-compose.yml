@@ -1,4 +1,25 @@
 
+# ─── Local Development Infrastructure ────────────────────────────────────────
+#
+# This file starts the services needed to run FitLevelUp locally.
+#
+# What's covered here:
+#     MongoDB 7 (with Replica Set — required for transactions)
+#
+# What's NOT covered here (must be configured separately):
+#     Redis (SSE real-time layer) — the app uses @upstash/redis, which talks
+#       to Upstash's cloud REST API, NOT a raw TCP Redis container. A plain
+#       redis:alpine container is NOT compatible with this SDK.
+#
+#       → To enable SSE locally, add these to your .env.local:
+#           UPSTASH_REDIS_REST_URL=<your Upstash REST URL>
+#           UPSTASH_REDIS_REST_TOKEN=<your Upstash REST token>
+#
+#       → Get free credentials at: https://console.upstash.com/
+#       → If these vars are missing, SSE events will silently fail (no crash).
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
   mongodb:
     image: mongo:7.0

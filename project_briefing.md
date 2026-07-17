@@ -69,6 +69,36 @@ Services    ← use-case orchestration (the "what happens when you log a workout
 - Uses a **Replica Set** even locally, because MongoDB multi-document transactions require one
 - Mongoose is NOT used — the native MongoDB driver is used directly, with typed collection wrappers
 
+### Local Development Setup
+
+To run the app locally you need **two infrastructure services**:
+
+| Service | How to Run | Required For |
+| ------- | ---------- | ------------ |
+| **MongoDB 7 (Replica Set)** | `docker compose up -d` | Everything — workouts, runs, quests, auth |
+| **Upstash Redis (cloud)** | Set env vars in `.env.local` | SSE real-time friend notifications |
+
+**Why can't Redis just be a local Docker container?**  
+The SSE layer uses `@upstash/redis`, which speaks Upstash's **HTTP REST API** — not raw TCP Redis. A standard `redis:alpine` container is not compatible. You must point to a real Upstash endpoint. Free tier is sufficient for local dev.
+
+**Required `.env.local` variables for a full local setup:**
+
+```bash
+# MongoDB (swap for Docker URI if not using Atlas)
+MONGODB_URI="mongodb://127.0.0.1:27017/?directConnection=true"
+MONGODB_DB="fitlevelup"
+
+# Auth
+BETTER_AUTH_SECRET="any-long-random-string"
+NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
+
+# Upstash Redis — get free credentials at https://console.upstash.com/
+UPSTASH_REDIS_REST_URL="https://<your-instance>.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="<your-token>"
+```
+
+> **Note:** If `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are missing, SSE events will silently fail (the publisher catches and logs the error). The rest of the app works fine without them.
+
 ### Game Balance Configuration
 
 All the "magic numbers" that control how the game feels live in one file:
