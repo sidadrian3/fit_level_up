@@ -2,7 +2,7 @@ import type { Friendship } from "@/lib/types";
 import { validateFriendRequest } from "@/lib/domain/friend-rules";
 import { getUserFromDb } from "@/lib/data/user-db";
 import { getFriendshipBetweenFromDb, insertFriendshipInDb } from "@/lib/data/friendships-db";
-import { sseRegistry } from "@/lib/sse/sse-registry";
+import { publishToUser } from "@/lib/sse/sse-publisher";
 
 export async function sendFriendRequest(requesterId: string, receiverId: string): Promise<Friendship> {
     validateFriendRequest(requesterId, receiverId);
@@ -40,8 +40,8 @@ export async function sendFriendRequest(requesterId: string, receiverId: string)
         throw error;
     }
 
-    // 2. Side Effects (async)
-    sseRegistry.notify(receiverId, {
+    // 2. Side Effects (fire-and-forget via Redis queue)
+    publishToUser(receiverId, {
         type: "friend_request",
         payload: {
             actorId: friendshipObj.requesterId,
@@ -49,7 +49,7 @@ export async function sendFriendRequest(requesterId: string, receiverId: string)
             actorAvatar: requester.avatar,
             timestamp: new Date().toISOString()
         },
-    });
+    }).catch(err => console.error("[SSE] Failed to publish friend_request:", err));
 
     return friendshipObj;
 }
