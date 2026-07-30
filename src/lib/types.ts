@@ -15,6 +15,7 @@ export interface User {
     totalWorkouts: number;
     totalDistance: number; //km
     joinDate: DateString;
+    lastActivityDate?: DateString;
     stamina: number;
     lastStaminaUpdate: DateString;
     __v?: number;
