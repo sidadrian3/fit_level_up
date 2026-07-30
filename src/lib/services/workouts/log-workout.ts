@@ -15,6 +15,7 @@ import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import clientPromise from "@/lib/mongodb";
 import { after } from "next/server";
+import { ConflictError } from "@/lib/api/errors";
 
 export async function logWorkout(
     input: CreateWorkoutInput,
@@ -68,7 +69,7 @@ export async function logWorkout(
         const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
         if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
             console.log("Duplicate workout request ignored safely.");
-            throw new Error("This workout was already logged.");
+            throw new ConflictError("This workout was already logged.");
         }
         throw error;
     } finally {

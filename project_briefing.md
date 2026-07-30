@@ -221,6 +221,7 @@ POST /api/workouts
 - **Serverless Background Tasks (`after()` API):** Migrated all fire-and-forget background promises (`evaluateAchievements`, `notifyFriendsLevelUp`) to the Next.js `after()` API to ensure they complete in serverless environments (like Vercel) before the container freezes.
 - **Unified `UserStateService`:** Consolidated 4 fragmented database updates (XP, Streak, Stamina, Stats) into a single deep module. `log-workout.ts` and `log-run.ts` now execute a single atomic `findOneAndUpdate` via `UserStateService.applyActivity()` instead of scattering 4+ separate update calls.
 - **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
+- **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`) and standardized all 19 API routes to use a centralized `handleApiError` utility, ensuring consistent HTTP status codes across the app.
 
 ### Why was it built this way?
 
@@ -245,7 +246,7 @@ These are architectural upgrades that make the system more scalable and robust. 
 | --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 16  | **Quest template caching** | Right now, every quest read hits MongoDB to fetch all active templates. Templates almost never change. A 60-second in-memory cache (or `React.cache`) would cut this to near-zero DB reads. |
 
-| 19 | **Centralized error handling** | Every API route has its own `try/catch` with slightly different error handling. A `withAuth(handler)` wrapper would standardize all of this. |
+| 19 | **Centralized error handling (COMPLETED)** | Every API route had its own `try/catch` with slightly different error handling. We standardized this using semantic error classes and a `handleApiError` utility. |
 
 ---
 
@@ -330,7 +331,7 @@ This feature has been fully implemented. It serves two purposes:
 | Priority | Issue                                                             | Status    |
 | -------- | ----------------------------------------------------------------- | --------- |
 | 🟢 P3    | Quest template caching                                            | In plan   |
-| 🟢 P3    | Centralized error handler wrapper                                 | In plan   |
+| ✅ Done  | Centralized API error handling                                    | Completed |
 | ✅ Done  | Friend System + Real-Time SSE                                     | Completed |
 | 🟢 P3    | log-workout-test, stamina and lastStaminaUpdate update test mocks | In plan   |
 

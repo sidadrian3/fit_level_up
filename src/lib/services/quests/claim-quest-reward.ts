@@ -4,6 +4,7 @@ import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdF
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import clientPromise from "@/lib/mongodb";
 import type { User } from "@/lib/types";
+import { NotFoundError, ConflictError } from "@/lib/api/errors";
 
 export async function claimQuestReward(userId: string, questId: string): Promise<{ user: User; levelUp: boolean } | undefined> {
   await syncUserQuests(userId);
@@ -11,7 +12,7 @@ export async function claimQuestReward(userId: string, questId: string): Promise
   const quest = await getUserQuestByIdFromDb(questId, userId);
 
   if (!quest) {
-    throw new Error("Quest not found");
+    throw new NotFoundError("Quest not found");
   }
 
   // Validate using domain logic
@@ -27,7 +28,7 @@ export async function claimQuestReward(userId: string, questId: string): Promise
         const modifiedCount = await markUserQuestClaimedInDb(quest._id!.toString(), session);
 
         if (modifiedCount === 0) {
-          throw new Error("Quest already claimed");
+          throw new ConflictError("Quest already claimed");
         }
 
         // Apply side effects

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAllAchievementsForUser } from "@/lib/data/achievements-db";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { handleApiError } from "@/lib/api/handle-api-error";
 
 export async function GET() {
     try {
@@ -10,10 +11,6 @@ export async function GET() {
             headers: { 'Cache-control': 'private, max-age=60, stale-while-revalidate=300' }
         });
     } catch (error) {
-        console.error("Failed to fetch achievements:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch achievements" },
-            { status: 500 }
-        );
+        return handleApiError(error);
     }
 }

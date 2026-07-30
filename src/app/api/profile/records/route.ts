@@ -3,6 +3,7 @@ import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
 import { getAllRunsFromDb } from "@/lib/data/runs-db";
 import { calculatePersonalRecords } from "@/lib/utils";
+import { handleApiError } from "@/lib/api/handle-api-error";
 
 export async function GET() {
     try {
@@ -19,10 +20,6 @@ export async function GET() {
         
         return NextResponse.json(records);
     } catch (err) {
-        console.error("GET /api/profile/records error:", err);
-        return NextResponse.json(
-            { error: "Failed to fetch personal records" }, 
-            { status: 500 }
-        );
+        return handleApiError(err);
     }
 }

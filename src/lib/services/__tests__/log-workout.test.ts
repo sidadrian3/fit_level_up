@@ -22,6 +22,8 @@ describe('logWorkout Integration Test', () => {
       streak: 0,
       totalWorkouts: 0,
       totalDistance: 0,
+      stamina: 100,
+      lastStaminaUpdate: new Date(),
       createdAt: new Date(),
     });
     userId = result.insertedId.toString();
@@ -43,7 +45,8 @@ describe('logWorkout Integration Test', () => {
       exercises: [
         { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 3, reps: 10, weight: 135 },
         { name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }
-      ]
+      ],
+      idempotencyKey: crypto.randomUUID()
     };
 
     const workout = await logWorkout(workoutInput, userId);
@@ -98,12 +101,13 @@ describe('logWorkout Integration Test', () => {
     it('should correctly deduct stamina for a normal workout', async () => {
       // 1. Arrange: Update the dummy user to have 100 stamina
       const usersCol = await getCollection<UserMongoDoc>("usersCollection");
-      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 100, lastStaminaUpdate: new Date().toISOString() } });
+      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 100, lastStaminaUpdate: new Date() } });
 
       const workoutInput = {
         title: "Normal Workout",
         duration: 60, // 60 min -> 15 + 30 = 45 cost
-        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }]
+        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }],
+        idempotencyKey: crypto.randomUUID()
       };
 
       // 2. Act
@@ -117,12 +121,13 @@ describe('logWorkout Integration Test', () => {
     it('should apply exhaustion debuff if stamina is 0', async () => {
       // 1. Arrange: Update the dummy user to have 0 stamina
       const usersCol = await getCollection<UserMongoDoc>("usersCollection");
-      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 0, lastStaminaUpdate: new Date().toISOString() } });
+      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 0, lastStaminaUpdate: new Date() } });
 
       const workoutInput = {
         title: "Exhausted Workout",
         duration: 60, // Base XP: 60*2 + 1*15 = 135
-        exercises: [{ name: "Running", targetMuscle: TargetMuscle.Cardio, sets: 1, reps: 1, weight: null }]
+        exercises: [{ name: "Running", targetMuscle: TargetMuscle.Cardio, sets: 1, reps: 1, weight: null }],
+        idempotencyKey: crypto.randomUUID()
       };
 
       // 2. Act
@@ -140,12 +145,13 @@ describe('logWorkout Integration Test', () => {
       twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
 
       const usersCol = await getCollection<UserMongoDoc>("usersCollection");
-      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 10, lastStaminaUpdate: twoDaysAgo.toISOString() } });
+      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 10, lastStaminaUpdate: twoDaysAgo } });
 
       const workoutInput = {
         title: "Recovered Workout",
         duration: 60, // 45 cost
-        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }]
+        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }],
+        idempotencyKey: crypto.randomUUID()
       };
 
       // 2. Act

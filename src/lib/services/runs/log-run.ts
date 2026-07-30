@@ -12,6 +12,7 @@ import {
     calcPace,
 } from "@/lib/domain/run-rules";
 import { after } from "next/server";
+import { ConflictError } from "@/lib/api/errors";
 
 export async function logRun(
     input: CreateRunInput,
@@ -69,7 +70,7 @@ export async function logRun(
         const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
         if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
             console.log("Duplicate run request ignored safely.");
-            throw new Error("This run was already logged.");
+            throw new ConflictError("This run was already logged.");
         }
         throw error;
     } finally {

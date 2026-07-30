@@ -4,6 +4,7 @@ import { getUserFromDb } from "@/lib/data/user-db";
 import { getFriendshipBetweenFromDb, insertFriendshipInDb } from "@/lib/data/friendships-db";
 import { publishToUser } from "@/lib/sse/sse-publisher";
 import { after } from "next/server";
+import { NotFoundError, ConflictError } from "@/lib/api/errors";
 
 
 export async function sendFriendRequest(requesterId: string, receiverId: string): Promise<Friendship> {
@@ -11,17 +12,17 @@ export async function sendFriendRequest(requesterId: string, receiverId: string)
 
     const receiver = await getUserFromDb(receiverId);
     if (!receiver) {
-        throw new Error("User not found.");
+        throw new NotFoundError("User not found.");
     }
 
     const requester = await getUserFromDb(requesterId);
     if (!requester) {
-        throw new Error("Requester not found.");
+        throw new NotFoundError("Requester not found.");
     }
 
     const existing = await getFriendshipBetweenFromDb(receiverId, requesterId);
     if (existing && existing.status !== "declined") {
-        throw new Error("Friend request already sent.");
+        throw new ConflictError("Friend request already sent.");
     }
 
     let friendshipObj: Friendship;
@@ -37,7 +38,7 @@ export async function sendFriendRequest(requesterId: string, receiverId: string)
         const err = error as { code?: number; keyPattern?: { requesterId?: string } };
         if (err.code === 11000 && err.keyPattern?.requesterId) {
             console.log("Duplicate friend request ignored safely.");
-            throw new Error("This friend request was already sent.");
+            throw new ConflictError("This friend request was already sent.");
         }
         throw error;
     }
