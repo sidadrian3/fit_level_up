@@ -146,7 +146,7 @@ src/
 
 ### What Happens When You Log a Workout (The Full Flow)
 
-This is the most important sequence to understand. Every workout log triggers a 6-step transaction:
+This is the most important sequence to understand. Every workout log triggers a transaction and background side-effects:
 
 ```
 POST /api/workouts
@@ -158,15 +158,14 @@ POST /api/workouts
       4. Domain calculation (pure): how much XP, what stamina cost?
 
       ─── MongoDB Transaction (all-or-nothing) ──────────────────────
-      5. getUserFromDb()           ← read stamina + last activity
+      5. getUserFromDb()           ← read stamina (for debuff calculation)
       6. insertWorkout()           ← save the workout
       7. updateQuestProgress()     ← update quest counters
-      8. grantUserXP()             ← add XP + level up if threshold crossed
-      9. updateUserStatsInDb()     ← increment totalWorkouts counter
-     10. updateUserStreakOnActivity() ← recalculate streak
-     11. evaluateAchievements()    ← check if any badges unlock
-     12. updateUserStaminaInDb()   ← drain stamina
+      8. UserStateService.applyActivity() ← atomically update XP, level, streak, stamina, and stats in one DB call
       ───────────────────────────────────────────────────────────────
+
+      9. evaluateAchievements()    ← [Background Task via `after()`] check if any badges unlock
+
   ← return the Workout to the client
 ```
 
@@ -216,6 +215,12 @@ POST /api/workouts
 - Dead batch fetch in `updateQuestProgress` removed
 - XP race condition in `grantUserXP` fixed (read moved inside the session)
 - Auth errors now return proper `401` status codes instead of being swallowed as `400`
+
+**Architectural Refactors (Vercel Compatibility & Deep Modules):**
+
+- **Serverless Background Tasks (`after()` API):** Migrated all fire-and-forget background promises (`evaluateAchievements`, `notifyFriendsLevelUp`) to the Next.js `after()` API to ensure they complete in serverless environments (like Vercel) before the container freezes.
+- **Unified `UserStateService`:** Consolidated 4 fragmented database updates (XP, Streak, Stamina, Stats) into a single deep module. `log-workout.ts` and `log-run.ts` now execute a single atomic `findOneAndUpdate` via `UserStateService.applyActivity()` instead of scattering 4+ separate update calls.
+- **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
 
 ### Why was it built this way?
 
