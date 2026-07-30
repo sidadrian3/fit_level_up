@@ -10,8 +10,8 @@ import {
 import { calcStaminaCost, calcRecoveredStamina, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { updateUserStatsInDb, updateUserStreakOnActivity, updateUserStaminaInDb, getUserFromDb } from "@/lib/data/user-db";
-import { grantUserXP } from "@/lib/services/users/grant-user-xp";
+import { getUserFromDb } from "@/lib/data/user-db";
+import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import clientPromise from "@/lib/mongodb";
 import { after } from "next/server";
@@ -55,11 +55,13 @@ export async function logWorkout(
                 type: "workout_created",
                 xpEarned: workout.xpEarned,
             }, session);
-            await grantUserXP(userId, workout.xpEarned, session);
 
-            await updateUserStatsInDb(userId, { incrementWorkouts: 1 }, session);
-            await updateUserStreakOnActivity(userId, workout.date, session);
-            await updateUserStaminaInDb(userId, finalStamina, new Date().toISOString(), session);
+            await UserStateService.applyActivity(userId, {
+                xpEarned: workout.xpEarned,
+                activityDate: new Date(workout.date),
+                staminaCost: staminaCost,
+                stats: { incrementWorkouts: 1 }
+            }, session);
 
             return workout;
         });

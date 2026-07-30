@@ -54,6 +54,7 @@ export function toUser(doc: UserMongoDoc): User {
     totalWorkouts: doc.totalWorkouts ?? 0,
     totalDistance: doc.totalDistance ?? 0,
     joinDate: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    lastActivityDate: lastActivityStr,
     stamina: recoveredStamina,
     lastStaminaUpdate: doc.lastStaminaUpdate ? new Date(doc.lastStaminaUpdate).toISOString() : new Date().toISOString(),
     __v: doc.__v ?? 0,
