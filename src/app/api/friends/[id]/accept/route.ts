@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { acceptFriendRequest } from "@/lib/services/friends/accept-friend-request";
 import { RateLimit } from "@/lib/auth/rate-limit";
+import { handleApiError } from "@/lib/api/handle-api-error";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -16,14 +17,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const friendship = await acceptFriendRequest(id, userId);
         return NextResponse.json(friendship);
     } catch (err) {
-        if (err instanceof Error && err.message === "Unauthorized") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-        const message = err instanceof Error ? err.message : "Invalid request";
-        let status = 400;
-        if (message.includes("not found")) status = 404;
-        if (message.includes("Not authorized")) status = 403;
-        if (message.includes("not pending")) status = 409;
-        return NextResponse.json({ error: message }, { status });
+        return handleApiError(err);
     }
 }

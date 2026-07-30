@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth/server";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { UnauthorizedError } from "@/lib/api/errors";
 
 export async function getAuthUserId(): Promise<string> {
   let session = null;
@@ -13,7 +14,7 @@ export async function getAuthUserId(): Promise<string> {
   }
 
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw new UnauthorizedError("Unauthorized");
   }
   return session.user.id;
 }

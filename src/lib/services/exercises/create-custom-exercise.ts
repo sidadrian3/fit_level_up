@@ -1,6 +1,7 @@
 import { TargetMuscle, CustomExercise } from "@/lib/types";
 import { getCustomExerciseByNameFromDb, createCustomExerciseFromDb } from "@/lib/data/custom-exercises-db";
 import { formatExerciseName } from "@/lib/domain/exercise-rules";
+import { ConflictError } from "@/lib/api/errors";
 
 export async function createCustomExercise(userId: string, rawName: string, targetMuscle: TargetMuscle): Promise<CustomExercise> {
     const name = formatExerciseName(rawName);
@@ -8,7 +9,7 @@ export async function createCustomExercise(userId: string, rawName: string, targ
     // 1. Domain Validation: Check for duplicates
     const existing = await getCustomExerciseByNameFromDb(userId, name, targetMuscle);
     if (existing) {
-        throw new Error("You already created an exercise with this name for this muscle group.");
+        throw new ConflictError("You already created an exercise with this name for this muscle group.");
     }
 
     // 2. Persistence

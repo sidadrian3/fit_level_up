@@ -4,6 +4,7 @@ import { updateRun } from "@/lib/services/runs/update-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { CreateRunSchema } from "@/lib/validations/schemas";
 import { z } from "zod";
+import { handleApiError } from "@/lib/api/handle-api-error";
 
 export async function PUT(
     request: Request,
@@ -24,14 +25,7 @@ export async function PUT(
         }
         return NextResponse.json(result);
     } catch (err) {
-        if (err instanceof z.ZodError) {
-            return NextResponse.json(
-                { error: err.issues[0]?.message ?? "Invalid input" },
-                { status: 400 }
-            );
-        }
-        const message = err instanceof Error ? err.message : "Invalid request";
-        return NextResponse.json({ error: message }, { status: 400 });
+        return handleApiError(err);
     }
 }
 
@@ -52,10 +46,6 @@ export async function DELETE(
         }
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (err) {
-        console.error("DELETE /api/runs/[id] error:", err);
-        return NextResponse.json(
-            { error: "Failed to delete run" },
-            { status: 500 }
-        );
+        return handleApiError(err);
     }
 }

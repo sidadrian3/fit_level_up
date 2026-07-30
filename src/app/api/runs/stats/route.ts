@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAllRunsFromDb } from "@/lib/data/runs-db";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { calcRunStats } from "@/lib/utils";
+import { handleApiError } from "@/lib/api/handle-api-error";
 
 export async function GET() {
     try {
@@ -12,7 +13,6 @@ export async function GET() {
         const stats = calcRunStats(runs);
         return NextResponse.json(stats);
     } catch (err) {
-        console.error("GET /api/runs/stats error:", err);
-        return NextResponse.json({ error: "Failed to fetch run stats" }, { status: 500 });
+        return handleApiError(err);
     }
 }

@@ -15,8 +15,6 @@ export function handleApiError(err: unknown): NextResponse {
   }
 
   // Unhandled crashes (e.g. Database connection lost, syntax errors, etc.)
-  // We log them internally so developers can debug, but we return a generic 500 to the client
-  // to avoid leaking infrastructure details or stack traces to the public.
   console.error("[Unhandled API Error]", err);
   return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
 }

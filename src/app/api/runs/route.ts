@@ -5,6 +5,7 @@ import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { CreateRunSchema } from "@/lib/validations/schemas";
 import { z } from "zod";
 import { RateLimit } from "@/lib/auth/rate-limit";
+import { handleApiError } from "@/lib/api/handle-api-error";
 
 export async function GET(request: Request) {
     try {
@@ -26,11 +27,7 @@ export async function GET(request: Request) {
             currentPage: page
         });
     } catch (err) {
-        if(err instanceof Error && err.message === "Unauthorized"){
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        } 
-        const message = err instanceof Error ? err.message : "Failed to fetch runs";
-        return NextResponse.json({ error: message }, { status: 500 });
+        return handleApiError(err);
     }
 }
 
@@ -48,16 +45,6 @@ export async function POST(request: Request) {
         const run = await logRun(parsed, userId);
         return NextResponse.json(run, { status: 201 });
     } catch (err) {
-        if(err instanceof Error && err.message === "Unauthorized"){
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-        if (err instanceof z.ZodError) {
-            return NextResponse.json(
-                { error: err.issues[0]?.message ?? "Invalid input" },
-                { status: 400 }
-            );
-        }
-        const message = err instanceof Error ? err.message : "Invalid request";
-        return NextResponse.json({ error: message }, { status: 400 });
+        return handleApiError(err);
     }
 }

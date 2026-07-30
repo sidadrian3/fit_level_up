@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { consumeNextEvent } from "@/lib/sse/sse-publisher";
+import { handleApiError } from "@/lib/api/handle-api-error";
 
 // On Vercel Pro, increase this to 300 for longer-lived SSE connections.
 // On Hobby plan the max is 60 seconds — the client will auto-reconnect after that.
@@ -62,6 +63,6 @@ export async function GET() {
             },
         });
     } catch (err) {
-        return new Response("Unauthorized", { status: 401 });
+        return handleApiError(err);
     }
 }

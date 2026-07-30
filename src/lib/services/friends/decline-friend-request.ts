@@ -1,21 +1,22 @@
 import type { Friendship } from "@/lib/types";
 import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
+import { NotFoundError, ConflictError, UnauthorizedError } from "@/lib/api/errors";
 
 export async function declineFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {
     // 1. Fetch existing request between the two users
     const friendship = await getFriendshipBetweenFromDb(userId, targetUserId);
     if (!friendship) {
-        throw new Error("Friend request not found.");
+        throw new NotFoundError("Friend request not found.");
     }
 
     // 2. Validate state
     if (friendship.status !== "pending") {
-        throw new Error("Friend request is not pending.");
+        throw new ConflictError("Friend request is not pending.");
     }
 
     // 3. Authorize (only the receiver can decline)
     if (friendship.receiverId !== userId) {
-        throw new Error("Not authorized to respond to this request.");
+        throw new UnauthorizedError("Not authorized to respond to this request.");
     }
 
     // 4. Update status in database (tombstone) using the fetched friendship's ID
