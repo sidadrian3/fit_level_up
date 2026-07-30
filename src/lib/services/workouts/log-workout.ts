@@ -14,6 +14,7 @@ import { updateUserStatsInDb, updateUserStreakOnActivity, updateUserStaminaInDb,
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import clientPromise from "@/lib/mongodb";
+import { after } from "next/server";
 
 export async function logWorkout(
     input: CreateWorkoutInput,
@@ -75,9 +76,11 @@ export async function logWorkout(
 
     // 5. Event-Driven Side Effects (Decoupled from transaction)
     // Run achievements evaluation asynchronously so we don't block the API response
-    evaluateAchievements(userId).catch(err => {
-        console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
-    });
+    after(
+        evaluateAchievements(userId).catch(err => {
+            console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
+        })
+    );
 
     return workoutObj;
 }

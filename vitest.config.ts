@@ -11,6 +11,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
     globalSetup: './vitest.global-setup.ts',
+    setupFiles: ['./vitest.setup.ts'],
     exclude: [...configDefaults.exclude, 'tests/e2e/**'],
     fileParallelism: false,
   },
