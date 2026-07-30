@@ -50,3 +50,4 @@ AGENT_GUIDE.md
 CLAUDE.md
 codebase_audit.md
 security_and_production_readiness.md
+.agents/

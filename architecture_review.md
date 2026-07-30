@@ -1,345 +1,300 @@
-# FitLevelUp — Principal-Level Architecture Review
+# ⚡ FitLevelUp — Architecture Review
+
+> **Stack:** Next.js 16 App Router · MongoDB + Better-Auth · Upstash Redis SSE · TanStack Query
 
 ---
 
-## 1. High-Level Architectural Assessment
+## 01 — Data Flow Architecture
 
-### What You Did Right
+### Full Request Lifecycle — Log a Workout
 
-You're ahead of most junior/mid-level developers. Genuinely.
-
-- **Clean type definitions.** [types.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/types.ts) is well-structured. `DateString` type alias, `CreateWorkoutInput` vs `Workout`, `readonly` arrays in repository returns — this is real domain modelling.
-- **Repository pattern exists.** The [repositories/](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/repositories) layer that wraps `fetch` calls for client components shows deliberate intent to separate transport from usage.
-- **Pure utility functions.** [formatters.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/utils/formatters.ts) and [calculations.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/utils/calculations.ts) are textbook — zero side effects, zero imports from infrastructure, trivially testable. This is senior-level instinct.
-- **Auth middleware.** [proxy.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/proxy.ts) handles route protection at the edge. Good.
-- **MongoDB connection singleton.** [mongodb.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/mongodb.ts) handles hot-reload correctly with the global trick.
-
-### The Biggest Overarching Structural Flaw
-
-**Your `-db.ts` files are God Modules.** They are the single biggest architectural liability in this codebase.
-
-Each file — [workout-db.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/workout-db.ts), [runs-db.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/runs-db.ts), [quests-db.ts](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/quests-db.ts) — is simultaneously responsible for:
-
-1. **Configuration** (reading `process.env`)
-2. **Validation** (input checking)
-3. **Domain logic** (XP calculation, pace calculation, streak calculation)
-4. **Persistence** (MongoDB CRUD operations)
-5. **Orchestration** (calling quest progress, XP grants, achievement evaluation as side effects)
-6. **Data mapping** (Mongo doc → domain type)
-
-This means your **business rules are imprisoned inside your database layer**. You cannot test XP calculation without a running MongoDB. You cannot reuse quest-progress logic without importing half your infrastructure. A change to your database schema forces you to touch business logic files. This is the definition of a Clean Architecture violation.
-
----
-
-## 2. The Code Smells (Violations)
-
-### 🔴 SOLID Violations
-
-#### Single Responsibility Principle (SRP)
-
-| File | Violation | Why It's a Problem |
-|---|---|---|
-| [workout-db.ts:76-116](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/workout-db.ts#L76-L116) | `addWorkoutToDb` does CRUD **AND** orchestrates quest progress, XP grants, stat updates, achievement evaluation | One function has **5 reasons to change**: workout schema changes, XP formula changes, quest logic changes, stat tracking changes, achievement logic changes |
-| [runs-db.ts:87-128](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/runs-db.ts#L87-L128) | `addRunToDb` has the exact same God Function pattern | Identical duplication of the orchestration concern |
-| [stats-db.ts:42-118](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/stats-db.ts#L42-L118) | `getDashboardStatsFromDb` queries 4 different collections in one function | This is a reporting/analytics concern forced into a "stats" module that also reads user docs and achievement counts |
-| [user-db.ts:52-83](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/user-db.ts#L52-L83) | `getUserFromDb` calculates streak **and** mutates the database as a side-effect of a read operation | A function named `getUser` should never have write side-effects. This violates Command-Query Separation (CQS) |
-
-#### Dependency Inversion Principle (DIP)
-
-| File | Violation | Why It's a Problem |
-|---|---|---|
-| [workout-db.ts:4-6](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/workout-db.ts#L4-L6) | `workout-db` directly imports `quests-db`, `user-db`, `achievements-db` | High-level orchestration policy depends on low-level concrete modules. There is no abstraction boundary — you can't swap achievement evaluation without touching the workout module |
-| Every `-db.ts` file | All modules hardcode `clientPromise` import and `process.env` access | The database connection is a concrete dependency, not an injected one. No way to test against an in-memory database or mock |
-| [achievements-db.ts:41-82](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/achievements-db.ts#L41-L82) | `INITIAL_ACHIEVEMENTS` seed data lives inside the database access module | Configuration/seed data is coupled to the persistence layer |
-
-#### Open-Closed Principle (OCP)
-
-| File | Violation | Why It's a Problem |
-|---|---|---|
-| [achievements-db.ts:161-174](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/achievements-db.ts#L161-L174) | `evaluateAchievements` uses a `switch` over `condition.metric` | Adding a new metric (e.g., `total_xp_earned`) requires modifying this switch. Should be a strategy pattern or a metric-to-getter map |
-| [quests-db.ts:232-252](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/quests-db.ts#L232-L252) | `getQuestProgressUpdates` uses `if` to branch on `activity.type` | Same issue — new activity types require modifying existing code |
-
-### 🟡 Functional Programming / React Violations
-
-| File | Violation | Why It's a Problem |
-|---|---|---|
-| [dashboard/page.tsx](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/app/(app)/dashboard/page.tsx) (entire file) | `"use client"` on a page that does **zero** interactive work beyond mounting | This should be a Server Component that fetches data at request time. You're forcing the client to waterfall 4 separate API calls instead of a single server-side render |
-| [profile/page.tsx](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/app/(app)/profile/page.tsx) (entire file) | Same — `"use client"` + 3 `useEffect` data fetches on mount | Same problem. No user interaction requires client-side rendering here. The profile page should be an `async` Server Component |
-| [dashboard/page.tsx:100-108](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/app/(app)/dashboard/page.tsx#L100-L108) | `workoutTrendPercent` is computed inline in the render body with mutable `let` | This should be a pure function in `calculations.ts`. Derived state should never be computed inline with mutable variables |
-| [Sidebar.tsx:43](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/components/layout/Sidebar.tsx#L43) | `xpPercent` is computed inline | You already have `calcXPPercent` in `calculations.ts` but don't use it. Duplication of logic |
-| [api-fetch.ts:19-26](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/repositories/api-fetch.ts#L19-L26) | `apiFetchAndNotify` couples fetch with DOM side-effects (`window.dispatchEvent`) | This is an impure function masquerading as a utility. Side-effect coupling prevents testing and reuse in non-browser contexts (SSR) |
-
-### 🟠 Clean Architecture Violations
-
-| Issue | Where | What's Wrong |
-|---|---|---|
-| **Business logic in persistence layer** | `calcXpEarned` in [workout-db.ts:63-65](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/workout-db.ts#L63-L65), `calcXpEarned` in [runs-db.ts:63-72](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/runs-db.ts#L63-L72), `calcPace` in [runs-db.ts:74-76](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/runs-db.ts#L74-L76) | These are **domain rules**. They should live in a `domain/` or `services/` layer, not next to MongoDB operations. In an interview, this is the kind of thing that makes an architect say "they haven't separated concerns" |
-| **Duplicated `getDbConfig()` pattern** | Every single `-db.ts` file | 6 copies of essentially the same function reading `process.env`. This is infrastructure concern that should be centralised |
-| **No service/use-case layer** | `addWorkoutToDb` directly orchestrates 4 operations | In Clean Architecture, a "Log Workout" use case would call `workoutRepo.save()`, `xpService.grant()`, `questService.updateProgress()`, `achievementService.evaluate()` — each independently testable |
-| **Date logic scattered everywhere** | `getWeekStartDate` in [stats-db.ts:18-25](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/stats-db.ts#L18-L25), `getMondayDateString` in [quests-db.ts:59-67](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/quests-db.ts#L59-L67) | Two different implementations of "get Monday". Both impure (depend on `new Date()`). Should be one function in `utils/`, taking a date parameter for testability |
-
-### 🟤 Miscellaneous Code Smells
-
-| File | Issue |
-|---|---|
-| [user-db.ts:59](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/user-db.ts#L59) | `console.log("getUserFromDb called with userId:", ...)` — debug logging left in production code |
-| [user-db.ts:62](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/user-db.ts#L62) | More debug logging: `console.log("Could not find userDoc for _id:", ...)` |
-| [runs-db.ts:57-59](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/runs-db.ts#L57-L59) | Commented-out validation code. Either implement it or delete it |
-| [auth-helpers.ts:3](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/auth/auth-helpers.ts#L3) | `NextResponse` imported but never used |
-| [stats-db.ts:107](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/lib/data/stats-db.ts#L107) | `process.env.MONGODB_USER_ACHIEVEMENTS_COLLECTION` read **inside** the function body instead of in `getDbConfig()`. Inconsistent with every other file's pattern |
-| [PageHeader.tsx:28](file:///c:/Users/Sid/Documents/personal/Project_2/fit_level_up/src/components/layout/PageHeader.tsx#L28) | Using array index as React `key`. This is a React anti-pattern that can cause render bugs if the list reorders |
-
----
-
-## 3. The Senior Refactor
-
-The worst violation is the **God Function** pattern in `addWorkoutToDb` and `addRunToDb`. I'll refactor `addWorkoutToDb` to demonstrate the architectural correction.
-
-### The Problem (Current)
-
-```typescript
-// workout-db.ts — ONE function does everything
-export async function addWorkoutToDb(input, userId) {
-  validateInput(input);                    // Validation
-  const xp = calcXpEarned(...);            // Business logic
-  await collection.insertOne(docToInsert); // Persistence
-  await updateQuestProgressFromActivity(); // Side-effect orchestration
-  await grantXP();                         // Side-effect orchestration
-  await updateUserStats();                 // Side-effect orchestration
-  await evaluateAchievements();            // Side-effect orchestration
-}
+```
+Browser
+  │
+  ▼
+Middleware (proxy.ts)
+  │  Validate session via better-auth
+  │
+  ▼
+API Route (workouts/route.ts)
+  │  Rate limit check → Zod schema parse
+  │
+  ▼
+Service (log-workout.ts)
+  │  validateWorkoutInput()   [pure domain]
+  │  calcWorkoutXP()          [pure domain]
+  │  startSession() → withTransaction()
+  │    ├── getUserFromDb()
+  │    ├── calcStaminaCost()       [pure domain]
+  │    ├── calcExhaustionDebuff()  [pure domain]
+  │    ├── insertWorkout()
+  │    ├── updateQuestProgress()
+  │    ├── grantUserXP()
+  │    ├── updateUserStatsInDb()
+  │    ├── updateUserStreakOnActivity()
+  │    └── updateUserStaminaInDb()
+  │  ← commit transaction
+  │
+  │  [After transaction — fire & forget]
+  ├──▶ publishToUser() via Upstash Redis  [levelUp SSE toast]
+  └──▶ evaluateAchievements()             [async, no await]
+  │
+  ▼
+201 { workout } → Browser
 ```
 
-### The Fix: Use-Case / Application Service Pattern
+### The 4-Layer Stack
 
-**Design Pattern**: Application Service (a.k.a. Use Case Interactor from Clean Architecture). The key principle: **the persistence layer only persists. The domain layer only calculates. The service layer orchestrates.**
+| Layer | Location | Responsibility |
+|---|---|---|
+| **HTTP Boundary** | `src/app/api/*/route.ts` | Auth, rate-limit, Zod parse. No business logic. |
+| **Application Services** | `src/lib/services/**/*.ts` | Orchestrates domain + persistence + side effects. |
+| **Domain Logic** | `src/lib/domain/*.ts` | **Pure functions only.** Zero infrastructure imports. |
+| **Data Access** | `src/lib/data/*-db.ts` | Dumb persistence. Wraps MongoDB. Owns `toXxx()` mappers. |
 
-#### Step 1 — Extract domain logic into a pure domain module
+---
+
+## 02 — Design Patterns In Use
+
+### 🏗 Creational
+
+**Singleton (MongoDB Connection Pooling)**
+- `mongodb.ts` uses `global._mongoClientPromise` to prevent hot-reload from spawning extra clients in development.
+
+**Factory Function**
+- `getCollection<WorkoutDoc>("workoutsCollection")` acts as a typed factory hiding all connection details from callers.
+
+**Lazy Initialization**
+- `getRedis()` in `sse-publisher.ts` creates a Redis client on-demand per call — correctly stateless for Vercel's serverless model.
+
+---
+
+### 🔧 Structural
+
+**Adapter / Data Mapper**
+- `toWorkout()`, `toUser()`, `toRun()` — each `*-db.ts` module owns a private mapper translating `ObjectId`/`Date` MongoDB documents into clean domain types (`WorkoutDoc → Workout`).
+
+**Facade**
+- `api-client/index.ts` is a barrel facade. Consumers import from one place, and the internals are split across 9 focused modules (`workouts.ts`, `runs.ts`, etc.).
+
+**Decorator (Auth Guard)**
+- `getAuthUserId()` acts as a consistent auth gate — every API route calls it first as a synchronized cross-cutting concern.
+
+---
+
+### 🎭 Behavioral
+
+**Strategy (Quest Dispatch Table)**
+- `QUEST_ACTIVITY_UPDATES` in `quest-rules.ts` is a type-safe dispatch table. Adding a new activity type (e.g., `yoga_session`) requires zero changes to calling code — just a new entry in the table.
+
+**Optimistic Locking (Retry Loop)**
+- `grant-user-xp.ts` uses a `__v` version field + retry loop to prevent XP race conditions without full pessimistic locks or advisory locks.
+
+**Observer / Event-Driven**
+- Side effects (level-up SSE notification, achievement evaluation) are decoupled from the transaction using fire-and-forget `async` patterns with `.catch()` error boundaries. The DB transaction never waits on them.
+
+---
+
+## 03 — Code Smells & Issues
+
+### 🔴 HIGH — Dead Commented-Out Code
+**File:** `src/lib/data/achievements-db.ts`
+
+~40 lines of achievement seeding logic is commented out. This is a code graveyard — it adds cognitive noise and implies the seeding approach was abandoned mid-refactor without cleanup.
+
+**Fix:** Delete it entirely. The data lives in MongoDB. The seed script handles setup. Dead code is misleading documentation.
+
+---
+
+### 🟠 HIGH — Wrong HTTP Status Codes (Deployment Risk)
+**File:** `src/app/api/workouts/route.ts` (and replicated in ~8 other routes)
+
+In the POST handler's catch-all, any non-Zod, non-Auth error (e.g., a MongoDB connection timeout) returns a `400 Bad Request`. A server crash should be `500 Internal Server Error`.
 
 ```typescript
-// src/lib/domain/workout-rules.ts
-// PURE FUNCTIONS — no imports from infrastructure, no database, no process.env
+// BEFORE (smell) — catch-all returns 400 for everything
+const message = err instanceof Error ? err.message : "Invalid request";
+return NextResponse.json({ error: message }, { status: 400 }); // ← WRONG
 
-import type { CreateWorkoutInput, Exercise } from "@/lib/types";
-
-export function validateWorkoutInput(input: CreateWorkoutInput): void {
-  if (!input.title.trim()) {
-    throw new Error("Title is required");
-  }
-  if (input.duration <= 0) {
-    throw new Error("Duration must be greater than 0");
-  }
-  const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-  if (namedExercises.length === 0) {
-    throw new Error("Add at least one exercise with a name");
-  }
+// AFTER (fix) — distinguish domain errors from infra errors
+if (err instanceof Error && err.message === "This workout was already logged.") {
+  return NextResponse.json({ error: err.message }, { status: 409 });
 }
-
-export function filterNamedExercises(exercises: Exercise[]): Exercise[] {
-  return exercises.filter((ex) => ex.name.trim());
-}
-
-export function calcWorkoutXP(duration: number, exerciseCount: number): number {
-  return Math.round(duration * 2 + exerciseCount * 15);
-}
+return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
 ```
 
-#### Step 2 — Make the DB module only responsible for persistence
+---
+
+### 🟡 MEDIUM — Two Conflicting Streak Functions
+**File:** `src/lib/domain/user-rules.ts`
+
+The domain has **two** streak calculation functions:
+- `calcNewStreak()` — called during activity, increments the stored streak
+- `calculateStreak()` — recalculates from an array of dates; appears **unused** in any service
+
+**Fix:** Audit usages. If `calculateStreak()` is truly dead, delete it.
+
+---
+
+### 🟡 MEDIUM — Business Logic Leaking Into the Data Mapper
+**File:** `src/lib/data/user-db.ts` — `toUser()` function
+
+The `toUser()` Data Mapper (Layer 4) is executing non-trivial domain rules:
+1. Calling `calcRecoveredStamina()` — a stamina domain calculation
+2. Containing inline streak display validation logic
+
+A mapper's only job is type translation.
 
 ```typescript
-// src/lib/data/workout-db.ts
-// ONLY database operations — no business logic, no side-effects
-
-import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
-import type { Workout, Exercise } from "@/lib/types";
-
-type WorkoutDoc = {
-  _id?: ObjectId;
-  userId: string;
-  type: Workout["type"];
-  title: string;
-  exercises: Exercise[];
-  duration: number;
-  xpEarned: number;
-  date: string;
-};
-
-function getDbConfig() {
-  const dbName = process.env.MONGODB_DB;
-  const collectionName = process.env.MONGODB_WORKOUTS_COLLECTION;
-  if (!dbName) throw new Error("Missing MONGODB_DB");
-  if (!collectionName) throw new Error("Missing MONGODB_WORKOUTS_COLLECTION");
-  return { dbName, collectionName };
+// BEFORE (smell — domain logic IN the mapper)
+function toUser(doc: UserMongoDoc): User {
+  const recoveredStamina = calcRecoveredStamina(...); // ← domain rule!
+  if (displayStreak > 0 && lastActivityStr !== today) {
+    displayStreak = 0; // ← domain rule!
+  }
 }
 
-function toWorkout(doc: WorkoutDoc): Workout {
-  if (!doc._id) throw new Error("Workout document is missing _id");
-  return {
-    id: doc._id.toString(),
-    type: doc.type,
-    title: doc.title,
-    exercises: doc.exercises,
-    duration: doc.duration,
-    xpEarned: doc.xpEarned,
-    date: doc.date,
+// AFTER (fix — mapper is dumb, service applies rules)
+function toUser(doc: UserMongoDoc): UserRaw { /* just maps fields */ }
+// In the service layer:
+const raw = await getUserFromDb(userId);
+const stamina = calcRecoveredStamina(raw.stamina, raw.lastStaminaUpdate, new Date());
+```
+
+---
+
+### 🔵 LOW — Hardcoded SSE Duration
+**File:** `src/app/api/friends/events/route.ts`
+
+```typescript
+export const maxDuration = 60; // "increase to 300 for Vercel Pro"
+```
+
+Should be driven by an env var so upgrading Vercel plans doesn't require a code change.
+
+---
+
+### 🔵 LOW — Missing Env Var Validation for Upstash Redis
+**File:** `src/env.ts`
+
+`UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are **not** declared in `env.ts`. A missing Vercel env var causes a runtime crash, not a clean startup failure.
+
+```typescript
+// Add to env.ts server section:
+UPSTASH_REDIS_REST_URL: z.string().url(),
+UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+```
+
+---
+
+## 04 — Architectural Deepening Opportunities
+
+### Candidate A — Unified UserStateService ⭐ Strong
+
+Currently, updating a user requires 6+ separate DB calls across 3 files. A deep `UserStateService` hides all mutations behind a narrow seam:
+
+```
+// BEFORE — log-workout.ts makes 6 DB calls
+await updateQuestProgress(...)
+await grantUserXP(...)
+await updateUserStatsInDb(...)
+await updateUserStreakOnActivity(...)
+await updateUserStaminaInDb(...)
+
+// AFTER — log-workout.ts makes 1 service call
+await userState.applyActivity(userId, { xp, workout, stamina }, session);
+```
+
+---
+
+### Candidate B — Route Error Handler HOF ⭐ Worth Exploring
+
+Every route has identical try/catch boilerplate. A `withApiHandler()` wrapper eliminates duplication and fixes status codes in one shot:
+
+```typescript
+// src/lib/api/with-api-handler.ts
+export function withApiHandler(fn: RouteHandler): RouteHandler {
+  return async (req, ctx) => {
+    try { return await fn(req, ctx); }
+    catch (err) {
+      if (err instanceof Error && err.message === "Unauthorized")
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      if (err instanceof z.ZodError)
+        return NextResponse.json({ error: err.issues[0]?.message }, { status: 400 });
+      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
   };
 }
-
-export async function getAllWorkouts(userId: string): Promise<Workout[]> {
-  const { dbName, collectionName } = getDbConfig();
-  const client = await clientPromise;
-  const docs = await client
-    .db(dbName)
-    .collection<WorkoutDoc>(collectionName)
-    .find({ userId })
-    .sort({ _id: -1 })
-    .toArray();
-  return docs.map(toWorkout);
-}
-
-// ONLY inserts the document. Returns the created Workout. No side-effects.
-export async function insertWorkout(
-  doc: Omit<WorkoutDoc, "_id">
-): Promise<Workout> {
-  const { dbName, collectionName } = getDbConfig();
-  const client = await clientPromise;
-  const collection = client.db(dbName).collection<WorkoutDoc>(collectionName);
-  const result = await collection.insertOne(doc);
-  return toWorkout({ _id: result.insertedId, ...doc });
-}
-
-// ... deleteWorkout, updateWorkout stay similar but WITHOUT side-effects
 ```
 
-#### Step 3 — Create a Use Case that orchestrates
-
-```typescript
-// src/lib/services/log-workout.ts
-// APPLICATION SERVICE — orchestrates domain logic + persistence + side effects
-
-import type { CreateWorkoutInput, Workout } from "@/lib/types";
-import {
-  validateWorkoutInput,
-  filterNamedExercises,
-  calcWorkoutXP,
-} from "@/lib/domain/workout-rules";
-import { insertWorkout } from "@/lib/data/workout-db";
-import { updateQuestProgressFromActivity } from "@/lib/data/quests-db";
-import { grantXP, updateUserStats } from "@/lib/data/user-db";
-import { evaluateAchievements } from "@/lib/data/achievements-db";
-
-export async function logWorkout(
-  input: CreateWorkoutInput,
-  userId: string
-): Promise<Workout> {
-  // 1. Domain validation (pure)
-  validateWorkoutInput(input);
-
-  // 2. Domain calculation (pure)
-  const exercises = filterNamedExercises(input.exercises);
-  const xpEarned = calcWorkoutXP(input.duration, exercises.length);
-
-  // 3. Persistence (single responsibility)
-  const workout = await insertWorkout({
-    userId,
-    type: input.type,
-    title: input.title.trim(),
-    exercises,
-    duration: input.duration,
-    xpEarned,
-    date: new Date().toISOString().slice(0, 10),
-  });
-
-  // 4. Side-effects (explicitly orchestrated, easy to extend or skip)
-  await updateQuestProgressFromActivity(userId, {
-    type: "workout_created",
-    xpEarned: workout.xpEarned,
-  });
-  await grantXP(userId, workout.xpEarned);
-  await updateUserStats(userId, { incrementWorkouts: 1 });
-  await evaluateAchievements(userId);
-
-  return workout;
-}
-```
-
-#### Step 4 — The API route becomes a thin adapter
-
-```typescript
-// src/app/api/workouts/route.ts
-import { NextResponse } from "next/server";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { getAllWorkouts } from "@/lib/data/workout-db";
-import { logWorkout } from "@/lib/services/log-workout";
-
-export async function POST(request: Request) {
-  try {
-    const userId = await getAuthUserId();
-    const body = await request.json();
-    const workout = await logWorkout(body, userId);
-    return NextResponse.json(workout, { status: 201 });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Invalid request";
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
-}
-```
-
-### What This Gives You
-
-| Before | After |
-|---|---|
-| Can't test XP formula without MongoDB | `calcWorkoutXP` is a pure function — test with `expect(calcWorkoutXP(30, 5)).toBe(135)` |
-| Adding a new side-effect (e.g., push notification) means editing `workout-db.ts` | Add it to `log-workout.ts` — the persistence layer is untouched |
-| Business logic is hidden inside 5 different `-db.ts` files | All domain rules live in `domain/` — discoverable, auditable |
-| API routes import from the persistence layer | API routes import from the service layer — Clean Architecture dependency rule is satisfied |
-
-> [!TIP]
-> **Interview power move:** If an interviewer asks "how would you add email notifications when a user levels up?", you can answer: "I'd add a `notificationService.sendLevelUpEmail()` call in the `logWorkout` use case, right after `grantXP`. The persistence layer and domain rules don't change at all." That answer demonstrates mastery of the Open-Closed Principle.
-
 ---
 
-## 4. The Interview Angle
+### Candidate C — Vercel Deployment Readiness ⭐ Strong — Do This First
 
-Here's your interview question. Take 2 minutes to think about it before looking at the hint.
-
----
-
-> **Question:** In your current `addWorkoutToDb` function, you execute 5 sequential async operations: `insertOne`, `updateQuestProgressFromActivity`, `grantXP`, `updateUserStats`, and `evaluateAchievements`. If `grantXP` succeeds but `updateUserStats` throws a network error:
->
-> 1. What is the **observable state** of your system?
-> 2. Is the user's data **consistent**?  
-> 3. How would you fix this in a real production system?
-
----
-
-<details>
-<summary><strong>Hint (click to expand after thinking)</strong></summary>
-
-The system is left in a **partially committed state**: the workout is persisted, the quest progress is updated, the user has received XP, but their `totalWorkouts` counter is wrong and achievements haven't been evaluated. This is a **saga consistency** problem.
-
-Three approaches to discuss:
-
-1. **MongoDB multi-document transactions** — wrap all 5 operations in `session.withTransaction()`. Simple but couples you to MongoDB and doesn't scale across services.
-2. **Outbox pattern** — insert the workout + an "event" document in a single transaction. A background worker reads the event and executes the side-effects idempotently. This is the enterprise-grade answer.
-3. **Eventual consistency with compensating actions** — accept that side-effects may fail, implement retry logic with idempotency keys, and run periodic reconciliation jobs. This is the pragmatic startup answer.
-
-The *best* interview answer acknowledges all three and explains the tradeoff: **consistency guarantees vs. complexity vs. coupling**.
-
-</details>
-
----
-
-## Summary of Priority Actions
-
-| Priority | Action | Effort |
+| | Item | Priority |
 |---|---|---|
-| 🔴 P0 | Extract domain logic from `-db.ts` into `domain/` pure modules | Medium |
-| 🔴 P0 | Create `services/` layer for use-case orchestration | Medium |
-| 🟡 P1 | Convert Dashboard and Profile pages to Server Components | Low |
-| 🟡 P1 | Fix `getUserFromDb` write-on-read violation (extract streak update to a separate function) | Low |
-| 🟡 P1 | Deduplicate `getWeekStartDate` / `getMondayDateString` into `utils/` | Low |
-| 🟠 P2 | Centralise `getDbConfig` into a single config module | Low |
-| 🟠 P2 | Remove debug `console.log` statements from user-db | Trivial |
-| 🟠 P2 | Replace `apiFetchAndNotify` with composed side-effects | Low |
+| ✅ | Add `UPSTASH_REDIS_*` to `env.ts` | **Fix before deploy** |
+| ✅ | Verify `BETTER_AUTH_URL` is set in Vercel env vars | **Fix before deploy** |
+| ✅ | Wrap fire-and-forget promises in `waitUntil()` (`log-workout.ts` & others) | **Fix before deploy** |
+| ✅ | Confirm `migrate-db.ts` targets Atlas (not Docker) on Vercel build | Verify |
+| ✅ | Run seed script against Atlas cluster before go-live | Manual step |
+| ⚠️ | SSE drops every 60s on Hobby plan — add "reconnecting" UI state | Nice to have |
+| ⚠️ | Remove `console.log` from `evaluate-achievements.ts` | Nice to have |
+
+---
+
+## 05 — Authentication & Authorization
+
+### The Framework: `better-auth`
+The application uses **[better-auth](https://better-auth.com/)** with the `mongodbAdapter` as the core identity provider.
+- **Provider:** Email and Password (configured in `src/lib/auth/server.ts`).
+- **Session Storage:** Server-side sessions persisted in MongoDB.
+
+### Authorization Method: The Decorator Pattern
+There is no complex Role-Based Access Control (RBAC) yet. Authorization is handled via a simple but effective decorator-style gatekeeper: `getAuthUserId()`.
+
+1. **The Gatekeeper (`auth-helpers.ts`):** 
+   Reads the incoming request headers and checks `auth.api.getSession()`. If no valid session exists, it deliberately throws `new Error("Unauthorized")`.
+2. **The Route Handlers (`route.ts`):**
+   Every protected API route begins by calling `const userId = await getAuthUserId();`. 
+3. **The Error Boundary:**
+   The pervasive `try/catch` block in every route handler catches that specific `"Unauthorized"` error string and returns a `401` HTTP response.
+
+**Architectural Assessment of Auth:**
+- **Pros:** It's extremely explicit. You can't accidentally expose a protected route because you must call `getAuthUserId()` to get the `userId` needed for any database query. 
+- **Cons:** It relies on throwing a generic `Error` with a magic string (`"Unauthorized"`) rather than a custom exception class (e.g., `class UnauthorizedError extends Error`). This is part of the reason why the `withApiHandler()` HOF (Candidate B) is strongly recommended — it would clean up this magic string matching across all routes.
+
+---
+
+## 🏆 Top Recommendation
+
+1. **Add `UPSTASH_REDIS_*` to `env.ts`** — fail fast at startup, not at runtime.
+2. **Wrap background tasks in `waitUntil()`** — prevent Vercel from freezing container mid-execution.
+3. **Seed MongoDB Atlas** with achievements and quests. Vercel build does NOT run the seed script.
+4. **Delete the commented-out code** in `achievements-db.ts` — 2-minute cleanup.
+5. **Fix HTTP status codes** in API routes — `500` for server errors, not `400`.
+
+> **Overall assessment:** This is a genuinely well-structured Next.js codebase. The 4-layer separation is clean, the pure domain layer is excellent, and the optimistic locking pattern for XP is sophisticated. The main technical debt is in error handling consistency and domain logic leaking into the data mapper. Both are fixable in a day.
+
+---
+
+## 06 — Upcoming Frontend Features (v1.1)
+
+Based on our architectural review and brainstorming session, the following frontend-heavy gamification features are approved for the next development cycle before the Vercel deployment:
+
+### 1. Interactive Human Anatomy UI
+A visual representation of the human muscular system mapping to the `TargetMuscle` enum (`Chest`, `Back`, `Legs`, etc.). It will be implemented across 3 contexts:
+* **The 7-Day Heatmap (Dashboard):** Evaluates workout history over the past 7 days. Muscle groups glow red/orange based on training volume, helping identify neglected muscle groups.
+* **Live Session "Pump" Tracker (Workout View):** As exercises are added to an active session, the corresponding muscles light up instantly, acting as a visual checklist.
+* **Recovery Monitor (Profile/Dashboard):** Evaluates fatigue. Muscles trained recently start red (exhausted) and slowly transition to green (recovered) over a 48-72 hour window.
+
+### 2. Workout Templates
+Frictionless workout entry. Allows users to save a collection of exercises as a named template (e.g., "Push Day", "Upper Body Power").
+* **Data Layer:** Will require a new MongoDB collection or sub-document on the user profile (`Template[]`).
+* **UX:** A 1-click "Start from Template" button on the workout screen that pre-populates the exercise list.
+
+### 3. "Beat Your Ghost" (Personal Records Integration)
+A gamified pacing mechanic utilizing the existing `PersonalRecord[]` data.
+* **Live Target:** When logging an exercise (e.g., Bench Press) or a run, the UI fetches and displays the user's historical PR as the "Ghost to beat".
+* **Social Hype:** If the user logs a value that exceeds their ghost, it triggers a confetti/explosion animation locally.
+* **Event Integration:** Hooked into the Upstash Redis SSE system to broadcast a special achievement toast to all friends: *"Adrian just shattered their Bench Press record!"*
