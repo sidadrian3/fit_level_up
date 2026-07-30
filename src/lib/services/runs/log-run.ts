@@ -1,8 +1,8 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { getUserFromDb, updateUserStatsInDb, updateUserStreakOnActivity, updateUserStaminaInDb } from "@/lib/data/user-db";
+import { getUserFromDb } from "@/lib/data/user-db";
+import { UserStateService } from "@/lib/services/users/user-state.service";
 import { calcStaminaCost, calcRecoveredStamina, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
-import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun } from "@/lib/data/runs-db";
 import clientPromise from "@/lib/mongodb";
@@ -36,7 +36,6 @@ export async function logRun(
             const recoveredStamina = calcRecoveredStamina(user.stamina, user.lastStaminaUpdate, new Date());
             
             const finalXpEarned = calcExhaustionDebuff(xpEarned, recoveredStamina, staminaCost);
-            const finalStamina = Math.max(0, recoveredStamina - staminaCost);
 
             // 3. Persistence
             const run = await insertRun({
@@ -57,10 +56,12 @@ export async function logRun(
                 xpEarned: run.xpEarned,
             }, session);
 
-            await grantUserXP(userId, run.xpEarned, session);
-            await updateUserStatsInDb(userId, { incrementDistance: run.distance }, session);
-            await updateUserStreakOnActivity(userId, run.date, session);
-            await updateUserStaminaInDb(userId, finalStamina, new Date().toISOString(), session);
+            await UserStateService.applyActivity(userId, {
+                xpEarned: run.xpEarned,
+                activityDate: new Date(run.date),
+                staminaCost: staminaCost,
+                stats: { incrementDistance: run.distance }
+            }, session);
 
             return run;
         });

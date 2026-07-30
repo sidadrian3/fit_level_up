@@ -37,7 +37,6 @@ export async function logWorkout(
             const recoveredStamina = calcRecoveredStamina(user.stamina, user.lastStaminaUpdate, new Date());
             
             const finalXpEarned = calcExhaustionDebuff(xpEarned, recoveredStamina, staminaCost);
-            const finalStamina = Math.max(0, recoveredStamina - staminaCost);
 
             // 3. Persistence
             const workout = await insertWorkout({
