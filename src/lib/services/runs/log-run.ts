@@ -11,6 +11,7 @@ import {
     calcRunXP,
     calcPace,
 } from "@/lib/domain/run-rules";
+import { after } from "next/server";
 
 export async function logRun(
     input: CreateRunInput,
@@ -75,9 +76,11 @@ export async function logRun(
     }
 
     // 5. Event-Driven Side Effects (Decoupled from transaction)
-    evaluateAchievements(userId).catch(err => {
-        console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
-    });
+    after(
+        evaluateAchievements(userId).catch(err => {
+            console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
+        })
+    );
 
     return runObj;
 }

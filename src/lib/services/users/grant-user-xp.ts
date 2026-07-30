@@ -3,6 +3,8 @@ import type { User } from "@/lib/types";
 import { getUserFromDb, updateUserXPInDb } from "@/lib/data/user-db";
 import { calcLevelUp } from "@/lib/domain/user-rules";
 import { ClientSession } from "mongodb";
+import { after } from "next/server";
+
 
 export async function grantUserXP(userId: string, amount: number, session?: ClientSession): Promise<{ user: User; levelUp: boolean }> {
   let retries = 3;
@@ -28,9 +30,11 @@ export async function grantUserXP(userId: string, amount: number, session?: Clie
 
       // Event-Driven Side Effects (Decoupled from transaction)
       if (levelUp) {
-        notifyFriendsLevelUp(userId, newLevel).catch(err => {
-          console.error(`[SSE] Failed to notify friends of level up for user ${userId}:`, err);
-        });
+        after(
+          notifyFriendsLevelUp(userId, newLevel).catch(err => {
+            console.error(`[SSE] Failed to notify friends of level up for user ${userId}:`, err);
+          })
+      );
       }
 
       return { user: updatedUser, levelUp };

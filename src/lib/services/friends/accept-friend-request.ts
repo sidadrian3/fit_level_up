@@ -2,6 +2,8 @@ import type { Friendship } from "@/lib/types";
 import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
 import { getUserFromDb } from "@/lib/data/user-db";
 import { publishToUser } from "@/lib/sse/sse-publisher";
+import { after } from "next/server";
+
 
 export async function acceptFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {
     // 1. Fetch existing request between the two users
@@ -30,15 +32,17 @@ export async function acceptFriendRequest(targetUserId: string, userId: string):
     // We fetch the current user to get their name and avatar for the notification payload.
     getUserFromDb(userId).then(user => {
         if (user) {
-            publishToUser(updated.requesterId, {
-                type: "friend_accepted",
-                payload: {
-                    actorId: user.id,
-                    actorName: user.name,
-                    actorAvatar: user.avatar,
-                    timestamp: new Date().toISOString()
-                }
-            }).catch(err => console.error("[SSE] Failed to publish friend_accepted:", err));
+            after(
+                publishToUser(updated.requesterId, {
+                    type: "friend_accepted",
+                    payload: {
+                        actorId: user.id,
+                        actorName: user.name,
+                        actorAvatar: user.avatar,
+                        timestamp: new Date().toISOString()
+                    }
+                }).catch(err => console.error("[SSE] Failed to publish friend_accepted:", err))
+            );
         }
     }).catch(err => {
         console.error("Failed to send friend_accepted SSE:", err);
