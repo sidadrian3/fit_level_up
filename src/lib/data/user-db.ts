@@ -168,3 +168,55 @@ export async function updateUserStaminaInDb(
   )
 }
 
+export interface UserActivityUpdates {
+  newXp: number;
+  newLevel: number;
+  newXpToNextLevel: number;
+  newStreak: number;
+  lastActivityDate: Date;
+  newStamina: number;
+  lastStaminaUpdate: Date;
+  incrementWorkouts?: number;
+  incrementDistance?: number;
+}
+
+export async function applyUserActivityInDb(
+  userId: string,
+  updates: UserActivityUpdates,
+  currentVersion: number,
+  session?: ClientSession
+): Promise<User> {
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
+
+  const query = currentVersion === 0 
+    ? { _id: new ObjectId(userId), $or: [{ __v: 0 }, { __v: { $exists: false } }] }
+    : { _id: new ObjectId(userId), __v: currentVersion };
+
+  const incParams: Record<string, number> = { __v: 1 };
+  if (updates.incrementWorkouts) incParams.totalWorkouts = updates.incrementWorkouts;
+  if (updates.incrementDistance) incParams.totalDistance = updates.incrementDistance;
+
+  const result = await collection.findOneAndUpdate(
+    query,
+    {
+      $set: {
+        xp: updates.newXp,
+        level: updates.newLevel,
+        xpToNextLevel: updates.newXpToNextLevel,
+        streak: updates.newStreak,
+        lastActivityDate: updates.lastActivityDate,
+        stamina: updates.newStamina,
+        lastStaminaUpdate: updates.lastStaminaUpdate,
+      },
+      $inc: incParams
+    },
+    { session, returnDocument: "after" }
+  );
+
+  if (!result) {
+    throw new Error("OptimisticLockError");
+  }
+
+  return toUser(result);
+}
+
