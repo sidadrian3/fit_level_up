@@ -22,7 +22,7 @@ describe('workout-evaluator', () => {
                 { name: 'Pushups', targetMuscle: TargetMuscle.Chest, sets: 3, reps: 10, weight: null },
                 { name: '', targetMuscle: TargetMuscle.Core, sets: 0, reps: 0, weight: null }
             ],
-            idempotencyKey: 123
+            idempotencyKey: '123'
         };
         const result = evaluateWorkout(input, 100);
         
