@@ -77,6 +77,28 @@ export function calcNewStreak(
   return currentStreak ?? 1;
 }
 
+export function calcDisplayStreak(
+  rawStreak: number,
+  lastActivityDate: string | Date | undefined,
+  currentDate: Date = new Date()
+): number {
+  if (rawStreak <= 0 || !lastActivityDate) {
+    return rawStreak;
+  }
+
+  const lastDateStr = lastActivityDate instanceof Date 
+    ? lastActivityDate.toISOString().slice(0, 10) 
+    : lastActivityDate;
+  
+  const today = currentDate.toISOString().slice(0, 10);
+  const yesterday = new Date(currentDate.getTime() - 86400000).toISOString().slice(0, 10);
+
+  if (lastDateStr !== today && lastDateStr !== yesterday) {
+    return 0;
+  }
+
+  return rawStreak;
+}
 
 /** Calculate which days of the current week (Monday-Sunday) the user was active. */
 export function calcActiveDays(dates: string[]): boolean[] {

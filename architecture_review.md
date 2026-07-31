@@ -270,7 +270,7 @@ export function withApiHandler(fn: RouteHandler): RouteHandler {
 
 ---
 
-### Candidate D — Purify the Data Mapper ⭐ Strong
+### Candidate D — Purify the Data Mapper [✅ RESOLVED]
 
 The `toUser()` mapper in the data layer (`user-db.ts`) is currently a shallow module that leaks business logic by computing `calcRecoveredStamina` and validating streak breakage.
 

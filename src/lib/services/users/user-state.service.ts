@@ -1,6 +1,6 @@
 import { ClientSession } from "mongodb";
 import { getUserFromDb, applyUserActivityInDb } from "@/lib/data/user-db";
-import { calcLevelUp, calcNewStreak } from "@/lib/domain/user-rules";
+import { calcLevelUp, calcNewStreak, calcDisplayStreak } from "@/lib/domain/user-rules";
 import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
 import { after } from "next/server";
@@ -20,14 +20,7 @@ export const UserStateService = {
     async getUser(userId: string, session?: ClientSession): Promise<User> {
         const rawUser = await getUserFromDb(userId, session);
         
-        let displayStreak = rawUser.streak;
-        if (displayStreak > 0 && rawUser.lastActivityDate) {
-            const today = new Date().toISOString().slice(0, 10);
-            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-            if (rawUser.lastActivityDate !== today && rawUser.lastActivityDate !== yesterday) {
-                displayStreak = 0;
-            }
-        }
+        const displayStreak = calcDisplayStreak(rawUser.streak, rawUser.lastActivityDate);
 
         const recoveredStamina = calcRecoveredStamina(
             rawUser.stamina,

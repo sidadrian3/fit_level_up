@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcLevelUp, calcNewStreak, calcLifetimeXp } from '../user-rules';
+import { calcLevelUp, calcNewStreak, calcDisplayStreak, calcLifetimeXp } from '../user-rules';
 
 describe('user-rules', () => {
   describe('calcLevelUp', () => {
@@ -58,6 +58,30 @@ describe('user-rules', () => {
 
     it('should handle Date objects properly', () => {
       expect(calcNewStreak(5, new Date('2024-01-01T12:00:00Z'), '2024-01-02')).toBe(6);
+    });
+  });
+
+  describe('calcDisplayStreak', () => {
+    it('should return raw streak if 0 or no last activity date', () => {
+      expect(calcDisplayStreak(0, undefined)).toBe(0);
+      expect(calcDisplayStreak(5, undefined)).toBe(5);
+    });
+
+    it('should return raw streak if last activity was today', () => {
+      const today = new Date();
+      expect(calcDisplayStreak(5, today, today)).toBe(5);
+    });
+
+    it('should return raw streak if last activity was yesterday', () => {
+      const today = new Date('2024-01-02T12:00:00Z');
+      const yesterday = new Date('2024-01-01T12:00:00Z');
+      expect(calcDisplayStreak(5, yesterday, today)).toBe(5);
+    });
+
+    it('should return 0 if last activity was before yesterday', () => {
+      const today = new Date('2024-01-03T12:00:00Z');
+      const twoDaysAgo = new Date('2024-01-01T12:00:00Z');
+      expect(calcDisplayStreak(5, twoDaysAgo, today)).toBe(0);
     });
   });
 
