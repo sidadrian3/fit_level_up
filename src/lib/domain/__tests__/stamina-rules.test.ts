@@ -4,18 +4,18 @@ import { calcStaminaCost, calcRecoveredStamina, calcExhaustionDebuff } from '../
 describe('stamina-rules', () => {
   describe('calcStaminaCost', () => {
     it('should calculate the correct cost for a 60 minute workout', () => {
-      expect(calcStaminaCost(60)).toBe(45); // 15 + (60 * 0.5)
+      expect(calcStaminaCost(60)).toBe(22); // 10 + (60 * 0.2)
     });
 
-    it('should charge the minimum base cost of 15 for a 0 minute workout', () => {
-      expect(calcStaminaCost(0)).toBe(15);
+    it('should charge the minimum base cost of 10 for a 0 minute workout', () => {
+      expect(calcStaminaCost(0)).toBe(10);
     });
   });
 
   describe('calcRecoveredStamina', () => {
-    it('should recover 50 stamina if exactly one day has passed', () => {
-      // Current stamina is 20. Updated yesterday. Should add 50. Total 70.
-      expect(calcRecoveredStamina(20, '2024-01-01T12:00:00Z', new Date('2024-01-02T12:00:00Z'))).toBe(70);
+    it('should recover 100 stamina if exactly one day has passed', () => {
+      // Current stamina is 20. Updated yesterday. Should add 100. Total 120 -> cap 100
+      expect(calcRecoveredStamina(20, '2024-01-01T12:00:00Z', new Date('2024-01-02T12:00:00Z'))).toBe(100);
     });
 
     it('should cap stamina at 100 after recovery', () => {
@@ -29,7 +29,7 @@ describe('stamina-rules', () => {
     });
 
     it('should recover full stamina if multiple days have passed', () => {
-      // Formula suggestion: 50 stamina per day. 2 days = 100.
+      // Formula suggestion: 100 stamina per day. 2 days = 200.
       expect(calcRecoveredStamina(10, '2024-01-01T12:00:00Z', new Date('2024-01-03T12:00:00Z'))).toBe(100); 
     });
     
