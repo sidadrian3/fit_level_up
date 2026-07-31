@@ -1,6 +1,6 @@
 import type { FriendProfile } from "@/lib/types";
 import { getAcceptedFriendshipsFromDb } from "@/lib/data/friendships-db";
-import { getUserFromDb } from "@/lib/data/user-db";
+import { UserStateService } from "@/lib/services/users/user-state.service";
 import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
 import { getAllRunsFromDb } from "@/lib/data/runs-db";
 import { calculatePersonalRecords } from "@/lib/utils/records";
@@ -15,7 +15,7 @@ export async function getFriends(userId: string): Promise<FriendProfile[]> {
         
         // Parallel fetch for speed
         const [user, workouts, runs] = await Promise.all([
-            getUserFromDb(friendId),
+            UserStateService.getUser(friendId),
             getAllWorkoutsFromDb(friendId),
             getAllRunsFromDb(friendId)
         ]);

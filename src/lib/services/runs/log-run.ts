@@ -1,8 +1,7 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { getUserFromDb } from "@/lib/data/user-db";
 import { UserStateService } from "@/lib/services/users/user-state.service";
-import { calcStaminaCost, calcRecoveredStamina, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
+import { calcStaminaCost, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun } from "@/lib/data/runs-db";
 import clientPromise from "@/lib/mongodb";
@@ -33,10 +32,9 @@ export async function logRun(
 
     try {
         runObj = await session.withTransaction(async () => {
-            const user = await getUserFromDb(userId, session);
-            const recoveredStamina = calcRecoveredStamina(user.stamina, user.lastStaminaUpdate, new Date());
+            const user = await UserStateService.getUser(userId, session);
             
-            const finalXpEarned = calcExhaustionDebuff(xpEarned, recoveredStamina, staminaCost);
+            const finalXpEarned = calcExhaustionDebuff(xpEarned, user.stamina, staminaCost);
 
             // 3. Persistence
             const run = await insertRun({

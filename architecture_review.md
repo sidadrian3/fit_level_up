@@ -209,7 +209,7 @@ UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
 
 ## 04 — Architectural Deepening Opportunities
 
-### Candidate A — Unified UserStateService ⭐ Strong
+### Candidate A — Unified UserStateService ⭐ Strong [✅ RESOLVED]
 
 Currently, updating a user requires 6+ separate DB calls across 3 files. A deep `UserStateService` hides all mutations behind a narrow seam:
 
