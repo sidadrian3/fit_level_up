@@ -13,6 +13,8 @@ export const env = createEnv({
         MONGODB_USER_ACHIEVEMENTS_COLLECTION: z.string().min(1).default("user_achievements"),
         MONGODB_CUSTOM_EXERCISES_COLLECTION: z.string().min(1).default("customExercises"),
         MONGODB_FRIENDSHIPS_COLLECTION: z.string().min(1).default("friendships"),
+        MONGODB_WORKOUT_TEMPLATES_COLLECTION: z.string().min(1).default("workout_templates"),
+
         BETTER_AUTH_SECRET: z.string().min(10),
     },
     client: {

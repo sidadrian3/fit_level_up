@@ -18,6 +18,6 @@ export function getDbConfig() {
     userAchievementsCollection: env.MONGODB_USER_ACHIEVEMENTS_COLLECTION || "user_achievements",
     customExercisesCollection: env.MONGODB_CUSTOM_EXERCISES_COLLECTION || "custom_exercises",
     friendshipsCollection: env.MONGODB_FRIENDSHIPS_COLLECTION || "friendships",
-    
+    workoutTemplatesCollection: env.MONGODB_WORKOUT_TEMPLATES_COLLECTION || "workout_templates",
   };
 }
