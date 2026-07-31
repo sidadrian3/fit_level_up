@@ -17,6 +17,31 @@ export interface ActivityPayload {
 }
 
 export const UserStateService = {
+    async getUser(userId: string, session?: ClientSession): Promise<User> {
+        const rawUser = await getUserFromDb(userId, session);
+        
+        let displayStreak = rawUser.streak;
+        if (displayStreak > 0 && rawUser.lastActivityDate) {
+            const today = new Date().toISOString().slice(0, 10);
+            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            if (rawUser.lastActivityDate !== today && rawUser.lastActivityDate !== yesterday) {
+                displayStreak = 0;
+            }
+        }
+
+        const recoveredStamina = calcRecoveredStamina(
+            rawUser.stamina,
+            rawUser.lastStaminaUpdate,
+            new Date()
+        );
+
+        return {
+            ...rawUser,
+            streak: displayStreak,
+            stamina: recoveredStamina
+        };
+    },
+
     async applyActivity(
         userId: string,
         payload: ActivityPayload,
