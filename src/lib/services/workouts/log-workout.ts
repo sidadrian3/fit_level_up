@@ -1,14 +1,8 @@
 // APPLICATION SERVICE — orchestrates domain logic + persistence + side effects
 
 import type { CreateWorkoutInput, Workout } from "@/lib/types";
-import {
-    validateWorkoutInput,
-    filterNamedExercises,
-
-    calcWorkoutXP,
-} from "@/lib/domain/workout-rules";
-import { calcStaminaCost, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
 import { insertWorkout } from "@/lib/data/workout-db";
+import { evaluateWorkout } from "@/lib/domain/workout-evaluator";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
@@ -20,30 +14,22 @@ export async function logWorkout(
     input: CreateWorkoutInput,
     userId: string
 ): Promise<Workout> {
-    // 1. Domain validation (pure)
-    validateWorkoutInput(input);
-
-    // 2. Domain calculation (pure)
-    const exercises = filterNamedExercises(input.exercises);
-    const xpEarned = calcWorkoutXP(input.duration, exercises.length);
 
     const client = await clientPromise;
     const session = client.startSession();
-    const staminaCost = calcStaminaCost(input.duration);
     let workoutObj: Workout;
     try {
         workoutObj = await session.withTransaction(async () => {
             const user = await UserStateService.getUser(userId, session);
             
-            const finalXpEarned = calcExhaustionDebuff(xpEarned, user.stamina, staminaCost);
-
+            const evaluation = evaluateWorkout(input, user.stamina);
             // 3. Persistence
             const workout = await insertWorkout({
                 userId,
                 title: input.title.trim(),
-                exercises,
+                exercises: evaluation.exercises,
                 duration: input.duration,
-                xpEarned: finalXpEarned,
+                xpEarned: evaluation.finalXpEarned,
                 date: new Date(),
                 idempotencyKey: input.idempotencyKey,
             }, session);
@@ -57,7 +43,7 @@ export async function logWorkout(
             await UserStateService.applyActivity(userId, {
                 xpEarned: workout.xpEarned,
                 activityDate: new Date(workout.date),
-                staminaCost: staminaCost,
+                staminaCost: evaluation.staminaCost,
                 stats: { incrementWorkouts: 1 }
             }, session);
 

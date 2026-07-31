@@ -1,15 +1,10 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
-import { calcStaminaCost, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun } from "@/lib/data/runs-db";
+import { evaluateRun } from "@/lib/domain/run-evaluator";
 import clientPromise from "@/lib/mongodb";
-import {
-    validateRunInput,
-    calcRunXP,
-    calcPace,
-} from "@/lib/domain/run-rules";
 import { after } from "next/server";
 import { ConflictError } from "@/lib/api/errors";
 
@@ -18,32 +13,24 @@ export async function logRun(
     userId: string
 ): Promise<Run> {
 
-    // 1. Domain validation (pure)
-    validateRunInput(input);
-
-    // 2. Domain calculation (pure)
-    const xpEarned = calcRunXP(input.distance, input.duration, input.difficulty);
-    const pace = calcPace(input.distance, input.duration);
 
     const client = await clientPromise;
     const session = client.startSession();
-    const staminaCost = calcStaminaCost(input.duration);
     let runObj: Run;
 
     try {
         runObj = await session.withTransaction(async () => {
             const user = await UserStateService.getUser(userId, session);
-            
-            const finalXpEarned = calcExhaustionDebuff(xpEarned, user.stamina, staminaCost);
+            const evaluation =  evaluateRun(input, user.stamina);
 
             // 3. Persistence
             const run = await insertRun({
                 userId,
                 distance: input.distance,
                 duration: input.duration,
-                pace,
+                pace: evaluation.pace,
                 difficulty: input.difficulty,
-                xpEarned: finalXpEarned,
+                xpEarned: evaluation.finalXpEarned,
                 date: new Date(),
                 idempotencyKey: input.idempotencyKey,
             }, session);
@@ -58,7 +45,7 @@ export async function logRun(
             await UserStateService.applyActivity(userId, {
                 xpEarned: run.xpEarned,
                 activityDate: new Date(run.date),
-                staminaCost: staminaCost,
+                staminaCost: evaluation.staminaCost,
                 stats: { incrementDistance: run.distance }
             }, session);
 
