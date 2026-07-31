@@ -220,6 +220,8 @@ POST /api/workouts
 
 - **Serverless Background Tasks (`after()` API):** Migrated all fire-and-forget background promises (`evaluateAchievements`, `notifyFriendsLevelUp`) to the Next.js `after()` API to ensure they complete in serverless environments (like Vercel) before the container freezes.
 - **Unified `UserStateService`:** Consolidated 4 fragmented database updates (XP, Streak, Stamina, Stats) into a single deep module. `log-workout.ts` and `log-run.ts` now execute a single atomic `findOneAndUpdate` via `UserStateService.applyActivity()` instead of scattering 4+ separate update calls.
+- **Pure Data Mappers:** Ensuring data mappers (like `toUser`) are strictly dumb type translators. Dynamic state assembly (like calculating stamina recovery or zeroing a broken streak) is properly encapsulated behind the `UserStateService` boundary rather than leaking into the data layer.
+- **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.
 - **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
 - **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`) and standardized all 19 API routes to use a centralized `handleApiError` utility, ensuring consistent HTTP status codes across the app.
 
