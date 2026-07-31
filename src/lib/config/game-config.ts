@@ -11,9 +11,9 @@ export const GAME_CONFIG = {
     exhaustionDebuffMultiplier: 0.5,
   },
   stamina: {
-    baseWorkoutCost: 15,
-    workoutDurationMultiplier: 0.5,
-    dailyRecovery: 50,
+    baseWorkoutCost: 10,
+    workoutDurationMultiplier: 0.2,
+    dailyRecovery: 100,
   },
   leveling: {
     xpPerLevelMultiplier: 500, // newLevel * 500

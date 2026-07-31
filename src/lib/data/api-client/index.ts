@@ -12,3 +12,4 @@ export { getAchievements } from "./achievements";
 export { getDashboardStats, getPersonalRecords } from "./stats";
 export { createCustomExercise, fetchCustomExercises } from "./exercises";
 export * from "./friends";
+export * from "./workout-templates";

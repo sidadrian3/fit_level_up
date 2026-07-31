@@ -42,7 +42,9 @@ export function useEntityForm<TInput, TEntity>({
       setFields(entityToInput(initialEntity));
       setError(null);
     }
-  }, [initialEntity, entityToInput]);
+    // Explicitly exclude entityToInput so we only overwrite state when the actual entity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEntity]);
 
   const resetForm = useCallback(() => {
     setFields(defaults);

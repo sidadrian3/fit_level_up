@@ -105,7 +105,7 @@ describe('logWorkout Integration Test', () => {
 
       const workoutInput = {
         title: "Normal Workout",
-        duration: 60, // 60 min -> 15 + 30 = 45 cost
+        duration: 60, // 60 min -> 10 + 12 = 22 cost
         exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }],
         idempotencyKey: crypto.randomUUID()
       };
@@ -115,7 +115,7 @@ describe('logWorkout Integration Test', () => {
 
       // 3. Assert
       const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
-      expect(userAfter!.stamina).toBe(55); // 100 - 45 = 55
+      expect(userAfter!.stamina).toBe(78); // 100 - 22 = 78
     });
 
     it('should apply exhaustion debuff if stamina is 0', async () => {
@@ -149,7 +149,7 @@ describe('logWorkout Integration Test', () => {
 
       const workoutInput = {
         title: "Recovered Workout",
-        duration: 60, // 45 cost
+        duration: 60, // 22 cost
         exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }],
         idempotencyKey: crypto.randomUUID()
       };
@@ -158,10 +158,10 @@ describe('logWorkout Integration Test', () => {
       await logWorkout(workoutInput, userId);
 
       // 3. Assert
-      // Recovery: 10 + (2*50) = 110 -> 100
-      // Cost: 100 - 45 = 55
+      // Recovery: 10 + (2*100) = 210 -> 100
+      // Cost: 100 - 22 = 78
       const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
-      expect(userAfter!.stamina).toBe(55);
+      expect(userAfter!.stamina).toBe(78);
     });
   });
 });

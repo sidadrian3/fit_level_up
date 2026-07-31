@@ -62,6 +62,20 @@ export type CreateWorkoutInput = {
     idempotencyKey: string;
 }
 
+export interface WorkoutTemplate {
+    id: string;
+    userId: string;
+    name: string;
+    exercises: Exercise[];
+    createdAt: DateString;
+}
+
+export type CreateWorkoutTemplateInput = {
+    name: string;
+    exercises: Exercise[];
+    idempotencyKey: string;
+}
+
 
 export interface Run {
     id: string;

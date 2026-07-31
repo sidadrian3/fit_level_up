@@ -12,6 +12,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
 import { CreateExerciseModal } from "./CreateExerciseModal";
+import { TemplateSelectorModal } from "./TemplateSelectorModal";
+import { BookmarkPlus } from "lucide-react";
 import { AnatomyModel } from "../ui/AnatomyModel";
 import { MuscleIntensity, calcMuscleVolume } from "@/lib/domain/muscle-evaluator";
 
@@ -39,6 +41,7 @@ export function WorkoutForm({
     onCancel?: () => void;
 }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
     const queryClient = useQueryClient();
 
@@ -169,14 +172,25 @@ export function WorkoutForm({
                 {/* Left side: Form Inputs */}
                 <div className="flex-1 flex flex-col min-w-[300px]">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-semibold text-foreground">
-                            {isEditMode ? "Edit Workout" : "Log Workout"}
-                        </h2>
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-lg font-semibold text-foreground">
+                                {isEditMode ? "Edit Workout" : "Log Workout"}
+                            </h2>
+                            {!isEditMode && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTemplateModalOpen(true)}
+                                    className="px-3 py-1.5 text-sm font-medium text-accent-green bg-accent-green/10 hover:bg-accent-green/20 rounded-lg flex items-center gap-1.5 transition-colors active:scale-95"
+                                >
+                                    <BookmarkPlus size={16} /> Templates
+                                </button>
+                            )}
+                        </div>
                         {isEditMode && onCancel && (
                             <button
                                 type="button"
                                 onClick={handleCancel}
-                                className="p-1 text-muted hover:text-foreground hover:bg-card-hover rounded transition-default"
+                                className="p-2 -mr-2 text-muted hover:text-foreground hover:bg-card-hover rounded-full transition-colors active:scale-95"
                                 aria-label="Cancel edit"
                             >
                                 <X size={20} />
@@ -433,6 +447,18 @@ export function WorkoutForm({
                         ]
                     }));
                 }} 
+            />
+
+            <TemplateSelectorModal
+                isOpen={isTemplateModalOpen}
+                onClose={() => setIsTemplateModalOpen(false)}
+                onSelect={(template) => {
+                    setFields(prev => ({
+                        ...prev,
+                        title: template.name,
+                        exercises: template.exercises.map(ex => ({ ...ex })) // Deep copy
+                    }));
+                }}
             />
         </div>
     );
