@@ -187,6 +187,9 @@ POST /api/workouts
 - Custom exercises (create, reuse across workouts)
 - Full CRUD for workouts and runs (create, list with pagination, edit, delete)
 - Profile page with personal records
+- **Interactive Human Anatomy UI:**
+  - 7-Day Heatmap (Dashboard widget) to visualize trained vs neglected muscles
+  - Live Session "Pump" Tracker (Workout Form) with dynamic SVG highlighting
 - **Friend System (fully implemented):**
   - Send/accept/decline friend requests by User ID
   - Remove friends
