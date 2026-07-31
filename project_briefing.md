@@ -190,6 +190,10 @@ POST /api/workouts
 - **Interactive Human Anatomy UI:**
   - 7-Day Heatmap (Dashboard widget) to visualize trained vs neglected muscles
   - Live Session "Pump" Tracker (Workout Form) with dynamic SVG highlighting
+- **Workout Templates (fully implemented):**
+  - Save a collection of exercises as a named template (e.g. "Push Day")
+  - 1-click "Templates" modal in the workout form for frictionless data entry
+  - Dedicated `/templates/new` builder UI with quick exercise selection
 - **Friend System (fully implemented):**
   - Send/accept/decline friend requests by User ID
   - Remove friends

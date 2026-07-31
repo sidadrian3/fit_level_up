@@ -93,8 +93,12 @@ export function CreateTemplateForm() {
             });
             queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
             router.push("/workouts");
-        } catch (err: any) {
-            setError(err.message || "Failed to save template");
+        } catch (err) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError("Failed to save template");
+            }
             setIsSubmitting(false);
         }
     };
