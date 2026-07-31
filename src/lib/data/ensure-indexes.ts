@@ -97,6 +97,22 @@ export async function ensureIndexes(): Promise<void> {
             { receiverId: 1, requesterId: 1, status: 1 },
             { name: "idx_friendships_status" }
         ),
+        // Workout Templates: covers { userId } queries
+        db.collection(config.workoutTemplatesCollection).createIndex(
+            { userId: 1 },
+            { name: "idx_workoutTemplates_userId" }
+        ),
+
+        // Workout Templates: covers { userId, idempotencyKey } queries
+        db.collection(config.workoutTemplatesCollection).createIndex(
+            { userId: 1, idempotencyKey: 1 },
+            {
+                name: "idx_workoutTemplates_idempotencyKey",
+                unique: true,
+                partialFilterExpression: { idempotencyKey: { $exists: true } },
+            }
+        ),
+        
     ]);
 
     indexesEnsured = true;
