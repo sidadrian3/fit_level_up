@@ -12,6 +12,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
 import { CreateExerciseModal } from "./CreateExerciseModal";
+import { AnatomyModel } from "../ui/AnatomyModel";
+import { MuscleIntensity } from "@/lib/domain/muscle-evaluator";
 
 const emptyExercise: Exercise = {
     name: "",
@@ -37,7 +39,14 @@ export function WorkoutForm({
     onCancel?: () => void;
 }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
     const queryClient = useQueryClient();
+
+    const baseIntensities = useMemo(() => {
+        const obj = {} as Record<TargetMuscle, MuscleIntensity>;
+        Object.values(TargetMuscle).forEach(m => obj[m as TargetMuscle] = "inactive");
+        return obj;
+    }, []);
 
     // Fetch custom exercises
     const { data: customExercises = [] } = useQuery<CustomExercise[]>({
@@ -148,7 +157,8 @@ export function WorkoutForm({
         "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-foreground text-sm placeholder:text-muted focus:border-accent-green focus:ring-1 focus:ring-accent-green/50 focus:outline-none transition-default";
 
     return (
-        <>
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+            <div className="flex-1 w-full">
             <Card className={`flex flex-col gap-6 ${className}`}>
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-foreground">
@@ -201,11 +211,19 @@ export function WorkoutForm({
                                 >
                                     <div className="flex-1 min-w-0">
                                         <select
+                                            onFocus={() => {
+                                                const currentEx = fields.exercises[index];
+                                                if (currentEx.name) {
+                                                    const found = allExercises.find(ex => ex.name === currentEx.name);
+                                                    if (found) setActiveMuscle(found.targetMuscle);
+                                                }
+                                            }}
                                             value={exercise.name}
                                             onChange={(e) => {
                                                 const selectedName = e.target.value;
                                                 const found = allExercises.find(ex => ex.name === selectedName);
                                                 if (found) {
+                                                    setActiveMuscle(found.targetMuscle);
                                                     setFields(prev => ({
                                                         ...prev,
                                                         exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, name: found.name, targetMuscle: found.targetMuscle } : ex)
@@ -241,6 +259,7 @@ export function WorkoutForm({
                                                 <input
                                                     type="number"
                                                     min={1}
+                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
                                                     value={exercise.sets}
                                                     onChange={(e) =>
                                                         updateExercise(
@@ -261,6 +280,7 @@ export function WorkoutForm({
                                                 <input
                                                     type="number"
                                                     min={1}
+                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
                                                     value={exercise.reps}
                                                     onChange={(e) =>
                                                         updateExercise(
@@ -282,6 +302,7 @@ export function WorkoutForm({
                                                     type="number"
                                                     min={0}
                                                     placeholder="BW"
+                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
                                                     value={
                                                         exercise.weight !== null
                                                             ? exercise.weight
@@ -392,6 +413,16 @@ export function WorkoutForm({
                     }));
                 }} 
             />
-        </>
+            </div>
+            
+            <div className="w-full lg:w-80 bg-slate-900 p-6 rounded-xl border border-slate-800 sticky top-6">
+                <h4 className="text-center font-bold text-slate-400 text-sm mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
+                <AnatomyModel 
+                    intensities={baseIntensities} 
+                    activeMuscle={activeMuscle} 
+                    view={activeMuscle === TargetMuscle.Back ? 'back' : 'front'} 
+                />
+            </div>
+        </div>
     );
 }
