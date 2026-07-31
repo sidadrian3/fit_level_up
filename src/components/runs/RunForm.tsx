@@ -77,7 +77,7 @@ export function RunForm({
         onSuccess: onRunLogged,
     });
 
-    async function onSubmit(e: React.FormEvent) {
+    async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
         
         const result = CreateRunSchema.omit({ idempotencyKey: true }).safeParse(fields);

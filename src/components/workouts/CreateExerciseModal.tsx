@@ -16,7 +16,7 @@ export function CreateExerciseModal({ isOpen, onClose, onSubmit }: CreateExercis
     const [targetMuscle, setTargetMuscle] = useState<TargetMuscle>(TargetMuscle.Chest);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!name.trim()) {
             setError("Name is required");

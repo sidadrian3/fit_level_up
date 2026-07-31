@@ -142,7 +142,7 @@ export function WorkoutForm({
         }));
     };
 
-    async function onSubmit(e: React.FormEvent) {
+    async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
 
         const namedExercises = fields.exercises.filter((ex) => ex.name.trim());

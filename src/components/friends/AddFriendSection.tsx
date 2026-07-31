@@ -27,7 +27,7 @@ export function AddFriendSection({ onSendRequest, isSending }: AddFriendSectionP
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!friendId.trim()) return;
     if (friendId.trim() === user?.id) {

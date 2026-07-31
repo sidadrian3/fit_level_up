@@ -69,7 +69,7 @@ export function CreateTemplateForm() {
         setExercises(prev => prev.map((ex, i) => i === index ? { ...ex, [field]: value } : ex));
     };
 
-    const onSubmit = async (e: React.FormEvent) => {
+    const onSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
 
