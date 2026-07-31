@@ -163,38 +163,40 @@ export function WorkoutForm({
         "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-foreground text-sm placeholder:text-muted focus:border-accent-green focus:ring-1 focus:ring-accent-green/50 focus:outline-none transition-default";
 
     return (
-        <div className={`flex flex-col xl:flex-row gap-6 items-start ${className}`}>
-            <div className="flex-1 w-full min-w-75">
-            <Card className="flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-foreground">
-                        {isEditMode ? "Edit Workout" : "Log Workout"}
-                    </h2>
-                    {isEditMode && onCancel && (
-                        <button
-                            type="button"
-                            onClick={handleCancel}
-                            className="p-1 text-muted hover:text-foreground hover:bg-card-hover rounded transition-default"
-                            aria-label="Cancel edit"
-                        >
-                            <X size={20} />
-                        </button>
-                    )}
-                </div>
-
-                <form onSubmit={onSubmit} className="flex flex-col gap-6">
-                    <div>
-                        <label className="block text-sm text-muted mb-2">
-                            Workout Title
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Upper Body Power"
-                            value={fields.title}
-                            onChange={(e) => setFields((prev) => ({ ...prev, title: e.target.value }))}
-                            className={inputBase}
-                        />
+        <div className={`w-full ${className}`}>
+            <Card className="flex flex-col lg:flex-row gap-8">
+                
+                {/* Left side: Form Inputs */}
+                <div className="flex-1 flex flex-col min-w-[300px]">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-semibold text-foreground">
+                            {isEditMode ? "Edit Workout" : "Log Workout"}
+                        </h2>
+                        {isEditMode && onCancel && (
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                className="p-1 text-muted hover:text-foreground hover:bg-card-hover rounded transition-default"
+                                aria-label="Cancel edit"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
                     </div>
+
+                    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+                        <div>
+                            <label className="block text-sm text-muted mb-2">
+                                Workout Title
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Upper Body Power"
+                                value={fields.title}
+                                onChange={(e) => setFields((prev) => ({ ...prev, title: e.target.value }))}
+                                className={inputBase}
+                            />
+                        </div>
 
                     <div>
                         <div className="flex items-center justify-between mb-2">
@@ -398,10 +400,23 @@ export function WorkoutForm({
                         )}
                     </div>
 
-                    {error && (
-                        <p className="text-sm text-accent-red">{error}</p>
-                    )}
-                </form>
+                        {error && (
+                            <p className="text-sm text-accent-red">{error}</p>
+                        )}
+                    </form>
+                </div>
+
+                {/* Right side: Compact Live Pump Tracker */}
+                <div className="w-full lg:w-48 shrink-0 flex flex-col items-center border-t lg:border-t-0 lg:border-l border-border pt-8 lg:pt-0 lg:pl-8">
+                    <h4 className="text-center font-bold text-muted text-xs mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
+                    <div className="w-32 lg:w-40">
+                        <AnatomyModel 
+                            intensities={currentIntensities} 
+                            activeMuscle={activeMuscle} 
+                            view={activeMuscle === TargetMuscle.Back ? 'back' : 'front'} 
+                        />
+                    </div>
+                </div>
             </Card>
 
             <CreateExerciseModal 
@@ -419,16 +434,6 @@ export function WorkoutForm({
                     }));
                 }} 
             />
-            </div>
-            
-            <Card className="w-full lg:w-80 p-6 sticky top-6">
-                <h4 className="text-center font-bold text-muted text-sm mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
-                <AnatomyModel 
-                    intensities={currentIntensities} 
-                    activeMuscle={activeMuscle} 
-                    view={activeMuscle === TargetMuscle.Back ? 'back' : 'front'} 
-                />
-            </Card>
         </div>
     );
 }

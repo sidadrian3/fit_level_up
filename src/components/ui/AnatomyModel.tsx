@@ -32,7 +32,7 @@ export function AnatomyModel({ intensities, activeMuscle, view = "front" }: Prop
   const containerStyle = hasAura ? "filter drop-shadow-[0_0_20px_#22C55E]" : "";
 
   return (
-    <div className={`relative w-full max-w-sm mx-auto aspect[1/2] ${containerStyle}`}>
+    <div className={`relative w-full max-w-sm mx-auto aspect-1/2 ${containerStyle}`}>
       {/* 
         Stylized placeholder paths for the muscle groups mapping to the front/back references.
         A designer can drop in precise SVG <path> d="..." data later while keeping these IDs and classes.

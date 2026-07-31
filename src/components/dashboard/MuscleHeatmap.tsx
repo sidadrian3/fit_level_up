@@ -46,7 +46,7 @@ export function MuscleHeatmap() {
             Back
           </button>
       </div>
-      <div className="w-full">
+      <div className="w-full max-w-[200px] lg:max-w-[250px] mx-auto">
         <AnatomyModel intensities={intensities} view={view} />
       </div>
     </Card>
