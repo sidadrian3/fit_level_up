@@ -13,7 +13,7 @@ import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
 import { CreateExerciseModal } from "./CreateExerciseModal";
 import { AnatomyModel } from "../ui/AnatomyModel";
-import { MuscleIntensity } from "@/lib/domain/muscle-evaluator";
+import { MuscleIntensity, calcMuscleVolume } from "@/lib/domain/muscle-evaluator";
 
 const emptyExercise: Exercise = {
     name: "",
@@ -41,12 +41,6 @@ export function WorkoutForm({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
     const queryClient = useQueryClient();
-
-    const baseIntensities = useMemo(() => {
-        const obj = {} as Record<TargetMuscle, MuscleIntensity>;
-        Object.values(TargetMuscle).forEach(m => obj[m as TargetMuscle] = "inactive");
-        return obj;
-    }, []);
 
     // Fetch custom exercises
     const { data: customExercises = [] } = useQuery<CustomExercise[]>({
@@ -111,6 +105,18 @@ export function WorkoutForm({
         onSuccess: onWorkoutLogged,
     });
 
+    const currentIntensities = useMemo(() => {
+        const mockWorkout: Workout = {
+            id: "temp",
+            title: "temp",
+            duration: 1,
+            xpEarned: 0,
+            date: new Date().toISOString(),
+            exercises: fields.exercises.filter(ex => ex.name.trim() !== "")
+        };
+        return calcMuscleVolume([mockWorkout], 1);
+    }, [fields.exercises]);
+
     const addExercise = () => {
         setFields((prev) => ({ ...prev, exercises: [...prev.exercises, { ...emptyExercise }] }));
     };
@@ -157,9 +163,9 @@ export function WorkoutForm({
         "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-foreground text-sm placeholder:text-muted focus:border-accent-green focus:ring-1 focus:ring-accent-green/50 focus:outline-none transition-default";
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-            <div className="flex-1 w-full">
-            <Card className={`flex flex-col gap-6 ${className}`}>
+        <div className={`flex flex-col xl:flex-row gap-6 items-start ${className}`}>
+            <div className="flex-1 w-full min-w-75">
+            <Card className="flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-foreground">
                         {isEditMode ? "Edit Workout" : "Log Workout"}
@@ -418,7 +424,7 @@ export function WorkoutForm({
             <div className="w-full lg:w-80 bg-slate-900 p-6 rounded-xl border border-slate-800 sticky top-6">
                 <h4 className="text-center font-bold text-slate-400 text-sm mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
                 <AnatomyModel 
-                    intensities={baseIntensities} 
+                    intensities={currentIntensities} 
                     activeMuscle={activeMuscle} 
                     view={activeMuscle === TargetMuscle.Back ? 'back' : 'front'} 
                 />
