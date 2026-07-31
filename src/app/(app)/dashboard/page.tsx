@@ -5,6 +5,7 @@ import { XPCard } from "@/components/dashboard/XPCard";
 import { ActivityTracker } from "@/components/dashboard/ActivityTracker";
 import { DailyQuests } from "@/components/dashboard/DailyQuests";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { MuscleHeatmap } from "@/components/dashboard/MuscleHeatmap";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { UserStateService } from "@/lib/services/users/user-state.service";
@@ -107,10 +108,11 @@ export default async function DashboardPage() {
             {/* Middle row: Activity Tracker Grid */}
             <ActivityTracker activeDays={activeDays} />
 
-            {/* Bottom row: Quests & Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            {/* Bottom row: Quests, Recent Activity & Heatmap */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 <DailyQuests quests={dailyQuests} />
                 <RecentActivity workouts={recentWorkouts} />
+                <MuscleHeatmap />
             </div>
         </div>
     );
