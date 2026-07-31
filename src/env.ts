@@ -15,6 +15,8 @@ export const env = createEnv({
         MONGODB_FRIENDSHIPS_COLLECTION: z.string().min(1).default("friendships"),
         MONGODB_WORKOUT_TEMPLATES_COLLECTION: z.string().min(1).default("workout_templates"),
 
+        UPSTASH_REDIS_REST_URL: z.string().url(),
+        UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
         BETTER_AUTH_SECRET: z.string().min(10),
     },
     client: {

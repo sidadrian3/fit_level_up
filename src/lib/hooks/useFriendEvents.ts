@@ -5,11 +5,17 @@ import type { SSEEvent } from "../sse/sse-types";
 export function useFriendEvents() {
   const queryClient = useQueryClient();
   const [activeEvent, setActiveEvent] = useState<SSEEvent | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   useEffect(() => {
     const es = new EventSource("/api/friends/events");
 
+    es.onopen = () => {
+      setIsReconnecting(false);
+    };
+
     es.onmessage = (e) => {
+      setIsReconnecting(false);
       const event: SSEEvent = JSON.parse(e.data);
 
       switch (event.type) {
@@ -33,6 +39,7 @@ export function useFriendEvents() {
 
     es.onerror = () => {
       console.warn("[SSE] Connection error, reconnecting...");
+      setIsReconnecting(true);
     };
 
     return () => es.close();
@@ -40,5 +47,5 @@ export function useFriendEvents() {
 
   const clearEvent = () => setActiveEvent(null);
 
-  return { activeEvent, clearEvent };
+  return { activeEvent, clearEvent, isReconnecting };
 }
