@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AnatomyModel } from "../ui/AnatomyModel";
 import { calcMuscleVolume } from "@/lib/domain/muscle-evaluator";
 
+import { Card } from "@/components/ui/Card";
 import { getWorkouts } from "@/lib/data/api-client";
 
 export function MuscleHeatmap() {
@@ -15,32 +16,32 @@ export function MuscleHeatmap() {
   });
 
   if (isLoading || !data) {
-    return <div className="animate-pulse bg-slate-800 border border-slate-700 rounded-xl h-[400px] w-full"></div>;
+    return <Card className="animate-pulse flex items-center justify-center text-muted h-[400px] w-full">Loading...</Card>;
   }
 
   if (error) {
     return (
-      <div className="bg-slate-900 border border-red-900 p-6 rounded-xl flex items-center justify-center h-[400px] w-full text-red-500">
+      <Card className="flex items-center justify-center h-[400px] w-full text-accent-red">
         Failed to load heatmap data.
-      </div>
+      </Card>
     );
   }
 
   const intensities = calcMuscleVolume(data.data, 7);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col items-center w-full">
-      <h3 className="text-xl font-bold font-condensed mb-4 text-slate-100 uppercase tracking-wider">7-Day Volume Heatmap</h3>
-      <div className="flex gap-2 mb-6 bg-slate-800 p-1 rounded-full">
+    <Card className="flex flex-col items-center w-full p-6">
+      <h3 className="text-xl font-bold font-condensed mb-4 text-foreground uppercase tracking-wider">7-Day Volume Heatmap</h3>
+      <div className="flex gap-2 mb-6 bg-background p-1 rounded-full border border-border">
           <button 
             onClick={() => setView("front")} 
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${view === 'front' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-default ${view === 'front' ? 'bg-accent-green/20 text-accent-green shadow' : 'text-muted hover:text-foreground'}`}
           >
             Front
           </button>
           <button 
             onClick={() => setView("back")} 
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${view === 'back' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-default ${view === 'back' ? 'bg-accent-green/20 text-accent-green shadow' : 'text-muted hover:text-foreground'}`}
           >
             Back
           </button>
@@ -48,6 +49,6 @@ export function MuscleHeatmap() {
       <div className="w-full">
         <AnatomyModel intensities={intensities} view={view} />
       </div>
-    </div>
+    </Card>
   );
 }

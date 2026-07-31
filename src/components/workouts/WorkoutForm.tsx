@@ -421,14 +421,14 @@ export function WorkoutForm({
             />
             </div>
             
-            <div className="w-full lg:w-80 bg-slate-900 p-6 rounded-xl border border-slate-800 sticky top-6">
-                <h4 className="text-center font-bold text-slate-400 text-sm mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
+            <Card className="w-full lg:w-80 p-6 sticky top-6">
+                <h4 className="text-center font-bold text-muted text-sm mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
                 <AnatomyModel 
                     intensities={currentIntensities} 
                     activeMuscle={activeMuscle} 
                     view={activeMuscle === TargetMuscle.Back ? 'back' : 'front'} 
                 />
-            </div>
+            </Card>
         </div>
     );
 }
