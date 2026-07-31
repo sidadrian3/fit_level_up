@@ -209,7 +209,7 @@ UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
 
 ## 04 — Architectural Deepening Opportunities
 
-### Candidate A — Unified UserStateService ⭐ Strong
+### Candidate A — Unified UserStateService ⭐ Strong [✅ RESOLVED]
 
 Currently, updating a user requires 6+ separate DB calls across 3 files. A deep `UserStateService` hides all mutations behind a narrow seam:
 
@@ -270,7 +270,7 @@ export function withApiHandler(fn: RouteHandler): RouteHandler {
 
 ---
 
-### Candidate D — Purify the Data Mapper ⭐ Strong
+### Candidate D — Purify the Data Mapper [✅ RESOLVED]
 
 The `toUser()` mapper in the data layer (`user-db.ts`) is currently a shallow module that leaks business logic by computing `calcRecoveredStamina` and validating streak breakage.
 

@@ -1,6 +1,6 @@
 import type { FriendProfile } from "@/lib/types";
 import { getPendingIncomingRequestsFromDb } from "@/lib/data/friendships-db";
-import { getUserFromDb } from "@/lib/data/user-db";
+import { UserStateService } from "@/lib/services/users/user-state.service";
 
 export async function getFriendRequests(userId: string): Promise<FriendProfile[]> {
     const requests = await getPendingIncomingRequestsFromDb(userId);
@@ -12,7 +12,7 @@ export async function getFriendRequests(userId: string): Promise<FriendProfile[]
         
         // We only fetch basic user info.
         // We don't need their full workouts/runs to show a pending request card.
-        const user = await getUserFromDb(requesterId);
+        const user = await UserStateService.getUser(requesterId);
         if (!user) continue;
 
         profiles.push({

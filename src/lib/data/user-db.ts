@@ -2,7 +2,6 @@ import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
 import { calcNewStreak } from "@/lib/domain/user-rules";
-import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
@@ -29,19 +28,6 @@ export type UserMongoDoc = {
 export function toUser(doc: UserMongoDoc): User {
   const lastActivityStr = doc.lastActivityDate ? doc.lastActivityDate.toISOString().slice(0, 10) : undefined;
 
-  // Compute display streak: if last activity wasn't today or yesterday, streak is broken
-  let displayStreak = doc.streak;
-  if (displayStreak > 0 && lastActivityStr) {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    if (lastActivityStr !== today && lastActivityStr !== yesterday) {
-      displayStreak = 0;
-    }
-  }
-
-  const rawStamina = doc.stamina ?? 100;
-  const recoveredStamina = calcRecoveredStamina(rawStamina, doc.lastStaminaUpdate, new Date());
-
   return {
     id: doc._id?.toString() || doc.id || "",
     email: doc.email || "",
@@ -50,12 +36,12 @@ export function toUser(doc: UserMongoDoc): User {
     level: doc.level ?? 1,
     xp: doc.xp ?? 0,
     xpToNextLevel: doc.xpToNextLevel ?? 500,
-    streak: displayStreak ?? 0,
+    streak: doc.streak ?? 0,
     totalWorkouts: doc.totalWorkouts ?? 0,
     totalDistance: doc.totalDistance ?? 0,
     joinDate: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
     lastActivityDate: lastActivityStr,
-    stamina: recoveredStamina,
+    stamina: doc.stamina ?? 100,
     lastStaminaUpdate: doc.lastStaminaUpdate ? new Date(doc.lastStaminaUpdate).toISOString() : new Date().toISOString(),
     __v: doc.__v ?? 0,
   };

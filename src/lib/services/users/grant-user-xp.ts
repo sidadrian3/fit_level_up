@@ -1,6 +1,7 @@
 import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
 import type { User } from "@/lib/types";
-import { getUserFromDb, updateUserXPInDb } from "@/lib/data/user-db";
+import { updateUserXPInDb } from "@/lib/data/user-db";
+import { UserStateService } from "@/lib/services/users/user-state.service";
 import { calcLevelUp } from "@/lib/domain/user-rules";
 import { ClientSession } from "mongodb";
 import { after } from "next/server";
@@ -10,7 +11,7 @@ export async function grantUserXP(userId: string, amount: number, session?: Clie
   let retries = 3;
   while (retries > 0) {
     try {
-      const user = await getUserFromDb(userId, session);
+      const user = await UserStateService.getUser(userId, session);
       
       const { newXp, newLevel, newXpToNextLevel, levelUp } = calcLevelUp(
         user.xp,
