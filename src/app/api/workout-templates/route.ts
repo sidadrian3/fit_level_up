@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { handleApiError } from "@/lib/api/handle-api-error";
 import { WorkoutTemplateSchema } from "@/lib/validations/schemas";
-import { getWorkoutTemplatesFromDb, createWorkoutTemplateInDb } from "@/lib/data/workout-templates-db";
+import { getWorkoutTemplatesFromDb} from "@/lib/data/workout-templates-db";
+import { createWorkoutTemplate } from "@/lib/services/workout-templates/create-workout-template";
 
 export async function GET(){
     try{
@@ -20,13 +21,7 @@ export async function POST(req: Request){
         const body = await req.json();
         const input = WorkoutTemplateSchema.parse(body);
 
-        const template = await createWorkoutTemplateInDb({
-            userId,
-            name: input.name,
-            exercises: input.exercises,
-            idempotencyKey: input.idempotencyKey,
-            createdAt: new Date().toISOString(),
-        });
+        const template = await createWorkoutTemplate(input, userId);
 
         return NextResponse.json(template, {status: 201});
     }catch(err){
