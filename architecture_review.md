@@ -279,7 +279,7 @@ The `toUser()` mapper in the data layer (`user-db.ts`) is currently a shallow mo
 
 ---
 
-### Candidate E — Deepen the Domain with a Workout Evaluator ⭐ Worth Exploring
+### Candidate E — Deepen the Domain with a Workout Evaluator [✅ RESOLVED]
 
 The `logWorkout` service is a transaction script that orchestrates multiple pure domain rules step-by-step before committing to the DB. It acts as a shallow adapter, meaning the core game loop can only be tested using full database integration tests.
 
@@ -338,7 +338,7 @@ A visual representation of the human muscular system mapping to the `TargetMuscl
 - **Live Session "Pump" Tracker (Workout View):** As exercises are added to an active session, the corresponding muscles light up instantly, acting as a visual checklist.
 - **Recovery Monitor (Profile/Dashboard):** Evaluates fatigue. Muscles trained recently start red (exhausted) and slowly transition to green (recovered) over a 48-72 hour window.
 
-### 2. Workout Templates
+### 2. Workout Templates [INITIALLY DONE ✅ ]
 
 Frictionless workout entry. Allows users to save a collection of exercises as a named template (e.g., "Push Day", "Upper Body Power").
 
