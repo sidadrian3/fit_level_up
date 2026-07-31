@@ -12,6 +12,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
 import { CreateExerciseModal } from "./CreateExerciseModal";
+import { AnatomyModel } from "../ui/AnatomyModel";
+import { MuscleIntensity, calcMuscleVolume } from "@/lib/domain/muscle-evaluator";
 
 const emptyExercise: Exercise = {
     name: "",
@@ -37,6 +39,7 @@ export function WorkoutForm({
     onCancel?: () => void;
 }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
     const queryClient = useQueryClient();
 
     // Fetch custom exercises
@@ -102,6 +105,18 @@ export function WorkoutForm({
         onSuccess: onWorkoutLogged,
     });
 
+    const currentIntensities = useMemo(() => {
+        const mockWorkout: Workout = {
+            id: "temp",
+            title: "temp",
+            duration: 1,
+            xpEarned: 0,
+            date: new Date().toISOString(),
+            exercises: fields.exercises.filter(ex => ex.name.trim() !== "")
+        };
+        return calcMuscleVolume([mockWorkout], 1);
+    }, [fields.exercises]);
+
     const addExercise = () => {
         setFields((prev) => ({ ...prev, exercises: [...prev.exercises, { ...emptyExercise }] }));
     };
@@ -148,37 +163,40 @@ export function WorkoutForm({
         "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-foreground text-sm placeholder:text-muted focus:border-accent-green focus:ring-1 focus:ring-accent-green/50 focus:outline-none transition-default";
 
     return (
-        <>
-            <Card className={`flex flex-col gap-6 ${className}`}>
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-foreground">
-                        {isEditMode ? "Edit Workout" : "Log Workout"}
-                    </h2>
-                    {isEditMode && onCancel && (
-                        <button
-                            type="button"
-                            onClick={handleCancel}
-                            className="p-1 text-muted hover:text-foreground hover:bg-card-hover rounded transition-default"
-                            aria-label="Cancel edit"
-                        >
-                            <X size={20} />
-                        </button>
-                    )}
-                </div>
-
-                <form onSubmit={onSubmit} className="flex flex-col gap-6">
-                    <div>
-                        <label className="block text-sm text-muted mb-2">
-                            Workout Title
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Upper Body Power"
-                            value={fields.title}
-                            onChange={(e) => setFields((prev) => ({ ...prev, title: e.target.value }))}
-                            className={inputBase}
-                        />
+        <div className={`w-full ${className}`}>
+            <Card className="flex flex-col lg:flex-row gap-8">
+                
+                {/* Left side: Form Inputs */}
+                <div className="flex-1 flex flex-col min-w-[300px]">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-semibold text-foreground">
+                            {isEditMode ? "Edit Workout" : "Log Workout"}
+                        </h2>
+                        {isEditMode && onCancel && (
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                className="p-1 text-muted hover:text-foreground hover:bg-card-hover rounded transition-default"
+                                aria-label="Cancel edit"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
                     </div>
+
+                    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+                        <div>
+                            <label className="block text-sm text-muted mb-2">
+                                Workout Title
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Upper Body Power"
+                                value={fields.title}
+                                onChange={(e) => setFields((prev) => ({ ...prev, title: e.target.value }))}
+                                className={inputBase}
+                            />
+                        </div>
 
                     <div>
                         <div className="flex items-center justify-between mb-2">
@@ -201,11 +219,19 @@ export function WorkoutForm({
                                 >
                                     <div className="flex-1 min-w-0">
                                         <select
+                                            onFocus={() => {
+                                                const currentEx = fields.exercises[index];
+                                                if (currentEx.name) {
+                                                    const found = allExercises.find(ex => ex.name === currentEx.name);
+                                                    if (found) setActiveMuscle(found.targetMuscle);
+                                                }
+                                            }}
                                             value={exercise.name}
                                             onChange={(e) => {
                                                 const selectedName = e.target.value;
                                                 const found = allExercises.find(ex => ex.name === selectedName);
                                                 if (found) {
+                                                    setActiveMuscle(found.targetMuscle);
                                                     setFields(prev => ({
                                                         ...prev,
                                                         exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, name: found.name, targetMuscle: found.targetMuscle } : ex)
@@ -241,6 +267,7 @@ export function WorkoutForm({
                                                 <input
                                                     type="number"
                                                     min={1}
+                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
                                                     value={exercise.sets}
                                                     onChange={(e) =>
                                                         updateExercise(
@@ -261,6 +288,7 @@ export function WorkoutForm({
                                                 <input
                                                     type="number"
                                                     min={1}
+                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
                                                     value={exercise.reps}
                                                     onChange={(e) =>
                                                         updateExercise(
@@ -282,6 +310,7 @@ export function WorkoutForm({
                                                     type="number"
                                                     min={0}
                                                     placeholder="BW"
+                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
                                                     value={
                                                         exercise.weight !== null
                                                             ? exercise.weight
@@ -371,10 +400,23 @@ export function WorkoutForm({
                         )}
                     </div>
 
-                    {error && (
-                        <p className="text-sm text-accent-red">{error}</p>
-                    )}
-                </form>
+                        {error && (
+                            <p className="text-sm text-accent-red">{error}</p>
+                        )}
+                    </form>
+                </div>
+
+                {/* Right side: Compact Live Pump Tracker */}
+                <div className="w-full lg:w-48 shrink-0 flex flex-col items-center border-t lg:border-t-0 lg:border-l border-border pt-8 lg:pt-0 lg:pl-8">
+                    <h4 className="text-center font-bold text-muted text-xs mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
+                    <div className="w-32 lg:w-40">
+                        <AnatomyModel 
+                            intensities={currentIntensities} 
+                            activeMuscle={activeMuscle} 
+                            view={activeMuscle === TargetMuscle.Back ? 'back' : 'front'} 
+                        />
+                    </div>
+                </div>
             </Card>
 
             <CreateExerciseModal 
@@ -392,6 +434,6 @@ export function WorkoutForm({
                     }));
                 }} 
             />
-        </>
+        </div>
     );
 }
