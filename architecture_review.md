@@ -270,6 +270,24 @@ export function withApiHandler(fn: RouteHandler): RouteHandler {
 
 ---
 
+### Candidate D — Purify the Data Mapper ⭐ Strong
+
+The `toUser()` mapper in the data layer (`user-db.ts`) is currently a shallow module that leaks business logic by computing `calcRecoveredStamina` and validating streak breakage.
+
+**Solution:** Make `toUser()` a dumb type translator. Move the stamina and streak evaluation behind the seam of the `UserStateService` so the service layer is responsible for assembling the fully computed `User`.
+**Benefits:** Restores locality to the game logic and makes the mapper instantly testable without mocking time or game config.
+
+---
+
+### Candidate E — Deepen the Domain with a Workout Evaluator ⭐ Worth Exploring
+
+The `logWorkout` service is a transaction script that orchestrates multiple pure domain rules step-by-step before committing to the DB. It acts as a shallow adapter, meaning the core game loop can only be tested using full database integration tests.
+
+**Solution:** Extract a new deep module in the domain layer: `WorkoutEvaluator`. It takes the workout input and current user state, runs all rules, and returns a `WorkoutResult`. The service layer simply passes this result to the database.
+**Benefits:** Massive leverage in testing (you can unit-test the entire workout outcome purely) and narrows the service layer interface.
+
+---
+
 ## 05 — Authentication & Authorization
 
 ### The Framework: `better-auth`
