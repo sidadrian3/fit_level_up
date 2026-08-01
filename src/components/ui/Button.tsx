@@ -6,11 +6,10 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     variant?: ButtonVariant;
 }
 
-// Map variants to specific Tailwind class strings to avoid nasty nested ternaries
 const variantStyles: Record<ButtonVariant, string> = {
-    primary: "bg-accent-green text-background hover:opacity-90",
-    secondary: "bg-card-hover text-foreground hover:bg-border",
-    outline: "border border-border text-foreground hover:bg-card-hover",
+    primary: "bg-accent-green text-black hover:bg-accent-green/90",
+    secondary: "bg-card text-foreground border border-white/5 hover:border-white/20",
+    outline: "border border-border text-foreground hover:bg-card hover:border-accent-green/50",
 };
 
 export function Button({
@@ -19,8 +18,7 @@ export function Button({
     className = "",
     ...props
 }: ButtonProps) {
-    // Base styles all buttons share, plus focus/disabled states
-    const baseStyles = "px-6 py-3 font-medium rounded-xl transition-default text-base inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent-green/50 disabled:opacity-50 disabled:cursor-not-allowed hover-lift";
+    const baseStyles = "px-6 py-3 font-bold rounded-xl transition-default text-base inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent-green/50 disabled:opacity-50 disabled:cursor-not-allowed active-press uppercase tracking-wide";
     
     return (
         <button
