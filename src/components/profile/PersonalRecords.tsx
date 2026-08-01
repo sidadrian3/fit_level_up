@@ -19,7 +19,7 @@ export function PersonalRecords({ className = "" }: PersonalRecordsProps) {
     });
 
     return (
-        <Card className={`flex flex-col gap-6 ${className}`}>
+        <Card className={`flex flex-col gap-6 ${className} mt-4`}>
             <div className="flex items-center gap-2">
                 <Trophy className="text-accent-orange" size={24} />
                 <h2 className="text-xl font-semibold tracking-tight text-foreground">Personal Records</h2>
