@@ -187,6 +187,10 @@ POST /api/workouts
 - Custom exercises (create, reuse across workouts)
 - Full CRUD for workouts and runs (create, list with pagination, edit, delete)
 - Profile page with personal records
+- **UI & UX Overhaul (Modern Athletic Style):**
+  - Transitioned from generic SaaS design to a high-contrast, gamified athletic HUD aesthetic.
+  - Implemented strict CSS token hierarchy (OLED blacks, vibrant accents) and globally optimized fonts (Barlow Condensed / Barlow).
+  - Adopted tactile `.active-press` spring-physics animations for all interactive surfaces.
 - **Interactive Human Anatomy UI:**
   - 7-Day Heatmap (Dashboard widget) to visualize trained vs neglected muscles
   - Live Session "Pump" Tracker (Workout Form) with dynamic SVG highlighting
