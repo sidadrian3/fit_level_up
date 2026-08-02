@@ -7,123 +7,128 @@ import { formatDate, formatDuration } from "@/lib/utils";
 import type { Workout, Exercise } from "@/lib/types";
 
 export interface WorkoutCardProps {
-    workout: Workout;
-    className?: string;
-    onDelete?: (id: string) => void;
-    onUpdate?: (id: string) => void;
+  workout: Workout;
+  className?: string;
+  onDelete?: (id: string) => void;
+  onUpdate?: (id: string) => void;
 }
 
 function getPrimaryFocus(exercises: Exercise[]): string {
-    if (!exercises || exercises.length === 0) return "Mixed Workout";
-    
-    const counts: Record<string, number> = {};
-    let maxCount = 0;
-    let focus = "";
+  if (!exercises || exercises.length === 0) return "Mixed Workout";
 
-    for (const ex of exercises) {
-        if (!ex.targetMuscle) continue;
-        counts[ex.targetMuscle] = (counts[ex.targetMuscle] || 0) + 1;
-        if (counts[ex.targetMuscle] > maxCount) {
-            maxCount = counts[ex.targetMuscle];
-            focus = ex.targetMuscle;
-        }
+  const counts: Record<string, number> = {};
+  let maxCount = 0;
+  let focus = "";
+
+  for (const ex of exercises) {
+    if (!ex.targetMuscle) continue;
+    counts[ex.targetMuscle] = (counts[ex.targetMuscle] || 0) + 1;
+    if (counts[ex.targetMuscle] > maxCount) {
+      maxCount = counts[ex.targetMuscle];
+      focus = ex.targetMuscle;
     }
-    
-    return focus ? `${focus} Day` : "Mixed Workout";
+  }
+
+  return focus ? `${focus} Day` : "Mixed Workout";
 }
 
 /**
  * Displays a single workout in a rich card layout.
  * Shows title, dynamically inferred focus, exercise breakdown (accordion), and stats footer.
  */
-export function WorkoutCard({ workout, className = "", onDelete, onUpdate }: WorkoutCardProps) {
-    const primaryFocus = getPrimaryFocus(workout.exercises);
-    const [isExpanded, setIsExpanded] = useState(false);
+export function WorkoutCard({
+  workout,
+  className = "",
+  onDelete,
+  onUpdate,
+}: WorkoutCardProps) {
+  const primaryFocus = getPrimaryFocus(workout.exercises);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-    return (
-        <Card
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`flex flex-col gap-4 cursor-pointer hover:border-accent-green/30 active-press transition-default ${className}`}
-        >
-            {/* Header: icon + title + focus */}
-            <div className="flex items-center gap-3">
-                <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-accent-blue/10 text-accent-blue"
-                >
-                    <Dumbbell size={20} />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">
-                        {workout.title}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-accent-blue">
-                            {primaryFocus}
-                        </span>
-                        <span className="text-muted text-[10px]">•</span>
-                        <span className="text-xs text-muted font-medium">{workout.exercises.length} exercises</span>
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        className="p-2 text-muted hover:text-foreground hover:bg-background rounded-lg transition-colors shrink-0"
-                        aria-label="Update workout"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdate?.(workout.id);
-                        }}
-                    >
-                        <Edit size={18} />
-                    </button>
-                    <button
-                        className="p-2 text-muted hover:text-foreground hover:bg-background rounded-lg transition-colors shrink-0"
-                        aria-label="Delete workout"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete?.(workout.id);
-                        }}
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                    <div className={`p-2 text-muted flex items-center justify-center transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>
-                        <ChevronDown size={18} />
-                    </div>
-                </div>
+  return (
+    <Card
+      onClick={() => setIsExpanded(!isExpanded)}
+      className={`flex flex-col gap-4 cursor-pointer hover:border-accent-green/30 active-press transition-default ${className}`}
+    >
+      {/* Header: icon + title + focus */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-accent-blue/10 text-accent-blue">
+          <Dumbbell size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground truncate">
+            {workout.title}
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-accent-blue">
+              {primaryFocus}
+            </span>
+            <span className="text-muted text-[10px]">•</span>
+            <span className="text-xs text-muted font-medium">
+              {workout.exercises.length} exercises
+            </span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="p-2 text-muted hover:text-foreground hover:bg-background rounded-lg transition-colors shrink-0"
+            aria-label="Update workout"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdate?.(workout.id);
+            }}
+          >
+            <Edit size={18} />
+          </button>
+          <button
+            className="p-2 text-muted hover:text-foreground hover:bg-background rounded-lg transition-colors shrink-0"
+            aria-label="Delete workout"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(workout.id);
+            }}
+          >
+            <Trash2 size={18} />
+          </button>
+          <div
+            className={`p-2 text-muted flex items-center justify-center transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+          >
+            <ChevronDown size={18} />
+          </div>
+        </div>
+      </div>
+
+      {/* Exercise list (Accordion) */}
+      {isExpanded && (
+        <div className="space-y-1.5 animate-in slide-in-from-top-2 fade-in duration-200">
+          {workout.exercises.map((exercise, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between text-sm px-3 py-1.5 rounded-lg bg-background"
+            >
+              <span className="text-foreground font-medium truncate">
+                {exercise.name}
+              </span>
+              <span className="text-muted whitespace-nowrap ml-3">
+                {exercise.sets} × {exercise.reps}
+                {exercise.weight !== null ? ` @ ${exercise.weight} kg` : " BW"}
+              </span>
             </div>
+          ))}
+        </div>
+      )}
 
-            {/* Exercise list (Accordion) */}
-            {isExpanded && (
-                <div className="space-y-1.5 animate-in slide-in-from-top-2 fade-in duration-200">
-                    {workout.exercises.map((exercise, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center justify-between text-sm px-3 py-1.5 rounded-lg bg-background"
-                        >
-                            <span className="text-foreground font-medium truncate">
-                                {exercise.name}
-                            </span>
-                            <span className="text-muted whitespace-nowrap ml-3">
-                                {exercise.sets} × {exercise.reps}
-                                {exercise.weight !== null
-                                    ? ` @ ${exercise.weight} kg`
-                                    : " BW"}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Footer: duration, date, XP */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-                <div className="flex items-center gap-3 text-xs text-muted font-medium">
-                    <span>{formatDuration(workout.duration)}</span>
-                    <span>•</span>
-                    <span>{formatDate(workout.date)}</span>
-                </div>
-                <span className="text-sm font-semibold text-accent-green">
-                    +{workout.xpEarned} XP
-                </span>
-            </div>
-        </Card>
-    );
+      {/* Footer: duration, date, XP */}
+      <div className="flex items-center justify-between pt-2 border-t border-border">
+        <div className="flex items-center gap-3 text-xs text-muted font-medium">
+          <span>{formatDuration(workout.duration)}</span>
+          <span>•</span>
+          <span>{formatDate(workout.date)}</span>
+        </div>
+        <span className="text-sm font-semibold text-accent-green">
+          +{workout.xpEarned} XP
+        </span>
+      </div>
+    </Card>
+  );
 }
