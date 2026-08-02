@@ -144,3 +144,9 @@ export async function getTotalDistanceInRange(userId: string, startDate: string,
         ? Math.round(distanceResult[0].totalDistance * 10) / 10
         : 0;
 }
+
+export async function getRunByIdempotencyKey(userId: string, key: string): Promise<Run | null> {
+    const collection = await getCollection<RunDoc>("runsCollection");
+    const doc = await collection.findOne({ userId, idempotencyKey: key });
+    return doc ? toRun(doc) : null;
+}

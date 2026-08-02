@@ -2,7 +2,7 @@ import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
-import { insertRun } from "@/lib/data/runs-db";
+import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
 import { evaluateRun } from "@/lib/domain/run-evaluator";
 import clientPromise from "@/lib/mongodb";
 import { after } from "next/server";
@@ -53,8 +53,10 @@ export async function logRun(
         });
     } catch (error: unknown) {
         const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
-        if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
-            console.log("Duplicate run request ignored safely.");
+        if (err.code === 11000 && err.keyPattern?.idempotencyKey && input.idempotencyKey) {
+            console.log("Duplicate run request detected. Fetching existing...");
+            const existing = await getRunByIdempotencyKey(userId, input.idempotencyKey);
+            if (existing) return existing;
             throw new ConflictError("This run was already logged.");
         }
         throw error;
