@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 
-const inter = Inter({
-  variable: "--font-inter",
+const barlow = Barlow({
+  weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
+  variable: "--font-barlow",
+});
+
+const barlowCondensed = Barlow_Condensed({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-barlow-condensed",
 });
 
 export const metadata: Metadata = {
@@ -20,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased tracking-tight`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+    <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable} h-full antialiased tracking-tight`}>
+      <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <QueryProvider>
           {children}
         </QueryProvider>

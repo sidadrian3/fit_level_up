@@ -19,30 +19,32 @@ export function PersonalRecords({ className = "" }: PersonalRecordsProps) {
     });
 
     return (
-        <Card className={`flex flex-col gap-6 ${className}`}>
-            <div className="flex items-center gap-2">
-                <Trophy className="text-accent-orange" size={24} />
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">Personal Records</h2>
+        <Card className={`p-0 overflow-hidden mt-4 ${className}`}>
+            <div className="p-6 border-b border-border bg-background/30">
+                <h2 className="text-3xl font-display font-bold uppercase tracking-tight text-foreground flex items-center gap-3">
+                    <Trophy className="text-accent-orange" size={28} />
+                    Personal Records
+                </h2>
             </div>
 
-            {isLoading && <p className="text-sm text-muted">Loading records...</p>}
-            {isError && <p className="text-sm text-accent-red">Could not load records.</p>}
+            {isLoading && <p className="p-6 text-sm font-bold uppercase tracking-widest text-muted">Loading records...</p>}
+            {isError && <p className="p-6 text-sm font-bold uppercase tracking-widest text-accent-red">Could not load records.</p>}
             
             {!isLoading && !isError && records.length === 0 && (
-                <p className="text-sm text-muted">Log your first workout or run to set your records!</p>
+                <p className="p-6 text-sm font-bold uppercase tracking-widest text-muted">Log your first workout or run to set your records!</p>
             )}
 
             {!isLoading && !isError && records.length > 0 && (
-                <div className="space-y-3">
+                <div className="flex flex-col divide-y divide-border">
                     {records.map((record, idx) => (
                         <div
                             key={idx}
-                            className="flex items-center justify-between p-3 rounded-lg border border-border bg-background hover:border-accent-orange/30 transition-all duration-200"
+                            className="flex items-center justify-between p-6 hover:bg-background/50 transition-colors"
                         >
-                            <span className="text-sm font-medium text-muted">
+                            <span className="text-xs font-bold uppercase tracking-widest text-muted">
                                 {record.label}
                             </span>
-                            <span className="font-semibold text-foreground">
+                            <span className="font-display font-bold text-3xl tracking-tight text-foreground leading-none">
                                 {record.value}
                             </span>
                         </div>

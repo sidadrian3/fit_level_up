@@ -1,25 +1,20 @@
 @import "tailwindcss";
 
-/* These CSS variables define our entire color system.
-   Updated to OLED-friendly Apple-vibe. */
 :root {
   --background: #000000;
   --foreground: #fcfcfc;
-  /* Slightly lighter, elevated slate/zinc for cards to contrast against black */
-  --card: #18181b; 
-  --card-hover: #27272a;
-  --border: #3f3f46;
+  --card: #111111; 
+  --card-hover: #18181b;
+  --border: #27272a;
   --muted: #a1a1aa;
   
-  /* Retaining app accent colors but tweaking to Apple-like vibrance */
-  --accent-green: #d1ff1a; /* Bright Lime Green */
-  --accent-orange: #ff9500; /* iOS Orange */
-  --accent-purple: #af52de; /* iOS Purple */
-  --accent-blue: #007aff;   /* iOS Blue */
-  --accent-red: #ff3b30;    /* iOS Red */
+  --accent-green: #d1ff1a; 
+  --accent-orange: #ff9500; 
+  --accent-purple: #af52de; 
+  --accent-blue: #007aff;   
+  --accent-red: #ff3b30;    
 }
 
-/* @theme inline tells Tailwind to generate utility classes */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -32,9 +27,10 @@
   --color-accent-purple: var(--accent-purple);
   --color-accent-blue: var(--accent-blue);
   --color-accent-red: var(--accent-red);
-  --font-sans: var(--font-inter);
   
-  /* Systematically scale up typography for better readability globally */
+  --font-sans: var(--font-barlow), system-ui, sans-serif;
+  --font-display: var(--font-barlow-condensed), system-ui, sans-serif;
+  
   --text-xs: 0.875rem;
   --text-xs--line-height: 1.25rem;
   --text-sm: 1rem;
@@ -50,46 +46,37 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 @utility glass-panel {
-  background: linear-gradient(145deg, rgba(39, 39, 42, 0.7), rgba(24, 24, 27, 0.8));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-@utility hover-lift {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  &:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+@utility active-press {
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease-out;
+  &:active {
+    transform: scale(0.96);
   }
 }
 
-/* Smooth transitions for interactive elements */
 .transition-default {
   transition: all 0.2s ease-in-out;
 }
 
-/* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: var(--background);
 }
-
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }

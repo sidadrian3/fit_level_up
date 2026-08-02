@@ -32,11 +32,8 @@ export default async function DashboardPage() {
     const dates = allWorkouts.map(w => w.date);
     const activeDays = calcActiveDays(dates);
 
-    // We already have the formatted quests from your service!
-    const quests = allQuests.slice(0, 5);
-
-    // 3. Filter and prepare data for the specific components
-    const dailyQuests = quests.filter(q => q.category === "daily");
+    // Filter for daily quests first, then limit to top 5
+    const dailyQuests = allQuests.filter(q => q.category === "daily").slice(0, 5);
 
     const workoutDiff = stats.weeklyWorkouts - stats.lastWeekWorkouts;
     let workoutTrendPercent = 0;

@@ -330,6 +330,13 @@ There is no complex Role-Based Access Control (RBAC) yet. Authorization is handl
 
 Based on our architectural review and brainstorming session, the following frontend-heavy gamification features are approved for the next development cycle before the Vercel deployment:
 
+### 0. UI/UX Pro Max Overhaul (Modern Athletic) [DONE ✅ ]
+
+A full transition from a generic SaaS look to a high-contrast, gamified athletic aesthetic.
+- **Design Tokens:** Strict semantic CSS variables (`bg-background`, `bg-card`) ensuring perfect light/dark mode parity and OLED blacks.
+- **Typography:** `next/font/google` optimized loading of **Barlow Condensed** (HUD headers/numbers) and **Barlow** (body).
+- **Physical Interactions:** Replaced ad-hoc hover states with a globally consistent `.active-press` utility providing tactile, spring-physics scaling (200ms) on all interactable elements.
+
 ### 1. Interactive Human Anatomy UI [INITIALLY DONE ✅ ]
 
 A visual representation of the human muscular system mapping to the `TargetMuscle` enum (`Chest`, `Back`, `Legs`, etc.). It will be implemented across 3 contexts:

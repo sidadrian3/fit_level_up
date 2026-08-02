@@ -29,11 +29,11 @@ export default async function ProfilePage() {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="xl:col-span-1 space-y-6">
                     <ProfileHeader user={user} stats={stats} />
-                    <PersonalRecords />
                 </div>
 
                 <div className="xl:col-span-2">
                     <AchievementGrid achievements={achievements} />
+                    <PersonalRecords />
                 </div>
             </div>
         </div>

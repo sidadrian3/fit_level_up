@@ -55,8 +55,6 @@ export default function WorkoutsPage() {
                 />
 
                 <div className="xl:col-span-2 space-y-4">
-                    <h2 className="text-lg font-semibold text-foreground">Workout History</h2>
-
                     {isLoading && <p className="text-sm text-muted">Loading...</p>}
                     {isError && <p className="text-sm text-accent-red">Could not load workouts</p>}
 
