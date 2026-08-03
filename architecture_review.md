@@ -373,19 +373,28 @@ A specialized architecture review was conducted to address edge cases around net
 ### 2. Deepen `apiFetch` for Offline Resilience (Strong)
 - **Problem:** `apiFetch` is a shallow wrapper around `fetch()`. A `TypeError: Failed to fetch` (offline) is thrown generically. There is no auto-retry mechanism.
 - **Solution:** Deepen `apiFetch` to distinguish between `NetworkError` (e.g., offline) and `ServerError`. Add an automatic retry gate that only fires for `NetworkError`s on requests that provide an idempotency key.
+- **Status:** ✅ COMPLETED
 
 ### 3. Graceful 409 Conflict Recovery (Strong)
 - **Problem:** When the server correctly catches an idempotency duplicate (MongoDB error 11000), it throws a `ConflictError` which bubbles to the client as a generic red error message. The user thinks it failed, even though it succeeded.
 - **Solution:** Add `findByIdempotencyKey` to the data layer. When `logWorkout` or `logRun` catch a duplicate key, they will fetch the existing entity and return it with a 200 OK (or 409 + body), allowing the frontend to treat it as a seamless success.
+- **Status:** ✅ COMPLETED
 
-### 4. Reliable Background Task Delivery (Worth exploring)
+### 4. Reliable Background Task Delivery (Strong)
 - **Problem:** `after(evaluateAchievements(...))` is fire-and-forget. If the Vercel Function is killed mid-execution, the achievement is lost forever with no dead-letter queue.
 - **Solution:** Keep `after()` for the fast-path, but add a reliable Vercel Cron sweep (`/api/cron/achievements-sweep`) that periodically re-evaluates locked achievements idempotently to ensure zero data loss.
+- **Status:** ✅ COMPLETED
 
-### 5. Atomic Quest Syncing (Worth exploring)
+### 5. Atomic Quest Syncing (Strong)
 - **Problem:** `syncUserQuests` uses a read-then-insert pattern (TOCTOU). Concurrent requests (e.g., logging a workout while claiming a quest) race to `bulkInsert` the same missing quests, causing an unhandled duplicate key crash.
-- **Solution:** Refactor `bulkInsertUserQuestsToDb` to use MongoDB `bulkWrite` with `updateOne(..., { upsert: true })`. This makes the sync operation atomic and safe under high concurrency.
+- **Solution:** Refactor `syncUserQuests` to use MongoDB `bulkWrite` with `updateOne(..., { upsert: true, $setOnInsert })`. This makes the sync operation atomic and safe under high concurrency.
+- **Status:** ✅ COMPLETED
 
-### 6. Abort In-Flight Requests on Unmount (Worth exploring)
+---
+
+## Future Features
+
+### 6. Abort In-Flight Requests on Unmount
 - **Problem:** `useEntityForm` does not cancel requests if the user navigates away. The delayed response triggers a `setState` on an unmounted component (memory leak) and invalidates caches unexpectedly.
 - **Solution:** Thread an `AbortController` through `useEntityForm` and `apiFetch`. Abort the signal during the `useEffect` cleanup phase.
+- **Status:** 🔜 FUTURE

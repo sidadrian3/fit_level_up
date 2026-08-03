@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson 1: Bulletproofing APIs</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #fcfcfc;
+        }
+        h1, h2 { color: #111; }
+        .card {
+            background: white;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #d63200;
+        }
+        pre code {
+            display: block;
+            padding: 1rem;
+            overflow-x: auto;
+            color: #333;
+        }
+        .quiz {
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover { background: #4338ca; }
+    </style>
+</head>
+<body>
+    <h1>Lesson 1: Building Bulletproof APIs</h1>
+    <p>Welcome to your first lesson on Network Resilience! We're going to explore the core concepts we just implemented in the FitLevelUp codebase.</p>
+
+    <div class="card">
+        <h2>Concept 1: The Idempotency Key</h2>
+        <p>Imagine you're buying a TV online. You click "Buy", but your train enters a tunnel and your phone loses signal. You panic and click "Buy" again. Did you just buy two TVs?</p>
+        <p>An <strong>idempotent</strong> operation is one that produces the same result whether you run it once or a thousand times. To achieve this, the client generates a unique ID (an Idempotency Key) <em>before</em> sending the request.</p>
+        <pre><code>// In React:
+const [key] = useState(() => crypto.randomUUID());</code></pre>
+        <p>Because it's in <code>useState</code>, the key stays the exact same even if the component re-renders or the network request retries. The database enforces uniqueness on this key.</p>
+    </div>
+
+    <div class="card">
+        <h2>Concept 2: TOCTOU (Time Of Check To Time Of Use)</h2>
+        <p>A classic concurrency bug happens when you read a value, make a decision, and then write a value. If two requests run at the exact same millisecond, they both read the old value and overwrite each other.</p>
+        <p>The solution? Never read. Let the database do the work atomically.</p>
+        <pre><code>// Bad (TOCTOU Race Condition):
+const exists = await db.find(quest);
+if (!exists) await db.insert(quest);
+
+// Good (Atomic):
+await db.updateOne(quest, { upsert: true, $setOnInsert: quest });</code></pre>
+    </div>
+
+    <div class="card">
+        <h2>Concept 3: Cron Sweepers (The Safety Net)</h2>
+        <p>Serverless functions (like Vercel) are fast, but they have a strict timeout. If you use fire-and-forget background tasks (like <code>after()</code>), they might get killed halfway through.</p>
+        <p>By adding a daily Cron Job that looks at "recently active users" and safely re-evaluates their data, we guarantee that no data is permanently lost due to a server restart.</p>
+    </div>
+
+    <div class="quiz">
+        <h2>Knowledge Check</h2>
+        <p>What should the server return if it catches an idempotency duplicate (Error 11000)?</p>
+        <div id="options">
+            <button onclick="alert('Incorrect! Throwing an error makes the frontend think the request failed, resulting in a bad UX.')">Throw a 500 Server Error</button>
+            <button onclick="alert('Incorrect! While technically a conflict, showing a red error to the user for a successful retry is confusing.')">Throw a 409 Conflict Error</button>
+            <button onclick="alert('Correct! The request actually succeeded previously, so we fetch the existing document and return it as a success!')">Fetch it and return 200 OK</button>
+        </div>
+    </div>
+
+    <h3>Next Steps</h3>
+    <p>We've successfully made our API resilient to network drops and concurrent requests. Read more about <a href="https://stripe.com/docs/api/idempotent_requests" target="_blank">Stripe's implementation of Idempotency</a>, which is the industry gold standard.</p>
+    
+    <p><em>Remember: If you have any questions, you can always ask me!</em></p>
+</body>
+</html>

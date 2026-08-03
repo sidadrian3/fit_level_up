@@ -207,3 +207,10 @@ export async function applyUserActivityInDb(
   return toUser(result);
 }
 
+export async function getRecentlyActiveUsers(sinceDate: Date): Promise<User[]> {
+  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const cursor = collection.find({ lastActivityDate: { $gte: sinceDate } });
+  const docs = await cursor.toArray();
+  return docs.map(toUser);
+}
+
