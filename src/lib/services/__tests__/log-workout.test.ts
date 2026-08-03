@@ -66,7 +66,7 @@ describe('logWorkout Integration Test', () => {
     expect(user!.streak).toBe(1); // Streak started
   });
 
-  it('should enforce idempotency and reject duplicate requests', async () => {
+  it('should enforce idempotency and gracefully return existing workout on duplicate requests', async () => {
     const idempotencyKey = crypto.randomUUID();
     const workoutInput = {
       title: "Evening Run",
@@ -84,8 +84,10 @@ describe('logWorkout Integration Test', () => {
     const userAfterFirst = await usersCol.findOne({ _id: new ObjectId(userId) });
     const xpAfterFirst = userAfterFirst!.xp;
 
-    // 3. Second request with same idempotencyKey should throw our specific error
-    await expect(logWorkout(workoutInput, userId)).rejects.toThrow("This workout was already logged.");
+    // 3. Second request with same idempotencyKey should gracefully return the existing workout
+    const secondWorkout = await logWorkout(workoutInput, userId);
+    expect(secondWorkout.id).toBe(firstWorkout.id);
+    expect(secondWorkout.title).toBe(firstWorkout.title);
 
     // 4. Verify user stats did NOT increment a second time
     const userAfterSecond = await usersCol.findOne({ _id: new ObjectId(userId) });

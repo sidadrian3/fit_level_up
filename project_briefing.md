@@ -73,10 +73,10 @@ Services    ← use-case orchestration (the "what happens when you log a workout
 
 To run the app locally you need **two infrastructure services**:
 
-| Service | How to Run | Required For |
-| ------- | ---------- | ------------ |
-| **MongoDB 7 (Replica Set)** | `docker compose up -d` | Everything — workouts, runs, quests, auth |
-| **Upstash Redis (cloud)** | Set env vars in `.env.local` | SSE real-time friend notifications |
+| Service                     | How to Run                   | Required For                              |
+| --------------------------- | ---------------------------- | ----------------------------------------- |
+| **MongoDB 7 (Replica Set)** | `docker compose up -d`       | Everything — workouts, runs, quests, auth |
+| **Upstash Redis (cloud)**   | Set env vars in `.env.local` | SSE real-time friend notifications        |
 
 **Why can't Redis just be a local Docker container?**  
 The SSE layer uses `@upstash/redis`, which speaks Upstash's **HTTP REST API** — not raw TCP Redis. A standard `redis:alpine` container is not compatible. You must point to a real Upstash endpoint. Free tier is sufficient for local dev.
@@ -270,6 +270,18 @@ This feature has been fully implemented. It serves two purposes:
 1. **Product value:** Users can add friends, see their stats, and compete socially — a huge motivation multiplier for fitness apps.
 2. **Technical showcase:** Demonstrates **real-time updates** using Server-Sent Events (SSE). When your friend accepts a request, you see a toast notification live without refreshing.
 
+### Track C — Network Loss Resilience & Concurrency ✅ COMPLETED
+
+This track was completed to eliminate edge-case bugs that occur during bad network conditions or high concurrency.
+
+**What was built:**
+
+1. **Client-Side Idempotency (`useState`)**: Form components now generate a UUID `idempotencyKey` when they mount, keeping it stable across re-renders.
+2. **API Fetch Retries**: `apiFetch` was upgraded to catch `TypeError` (offline/network drops) and automatically retry idempotent requests up to 2 times using exponential backoff.
+3. **Graceful 409 Conflict Recovery**: If a duplicate request reaches the server (because a previous request succeeded but the response was dropped), MongoDB catches it via a unique index on `idempotencyKey`. The backend now intercepts this `11000` error, looks up the _already created_ document using `findByIdempotencyKey`, and returns it seamlessly as a 200 OK. The frontend has no idea a failure ever occurred!
+4. **Atomic Quest Syncing (TOCTOU fix)**: Eliminated a read-then-write race condition by leveraging MongoDB `bulkWrite` with `updateOne(..., { upsert: true, $setOnInsert })` for quest syncing, letting the database handle deduplication atomically.
+5. **Reliable Background Tasks (Cron)**: Added a daily Vercel Cron sweep (`/api/cron/achievements-sweep`) that re-evaluates achievements for recently active users. This acts as a safety net in case the Next.js `after()` background task is killed prematurely by Vercel's serverless timeout limits.
+
 **What was built:**
 
 #### Data Model
@@ -321,32 +333,31 @@ This feature has been fully implemented. It serves two purposes:
 
 ## Quick Reference: Key Files to Know
 
-| File                                                                                        | What It Does                                                                      |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [log-workout.ts](file:///z:/Projects/fit_level_up/src/lib/services/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.                  |
-| [user-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/user-rules.ts)              | XP leveling, streak calculation — the core game math.                             |
-| [game-config.ts](file:///z:/Projects/fit_level_up/src/lib/config/game-config.ts)            | Every balance constant. Change here to tune the game feel.                        |
-| [user-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/user-db.ts)                      | MongoDB reads/writes for the user document (XP, streak, stamina).                 |
-| [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.                    |
-| [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                     |
-| [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                    |
-| [ensure-indexes.ts](file:///z:/Projects/fit_level_up/src/lib/data/ensure-indexes.ts)        | All MongoDB index definitions. Run at startup.                                    |
-| [friendships-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/friendships-db.ts)        | All MongoDB CRUD for the `friendships` collection.                                |
-| [sse-publisher.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-publisher.ts)             | Redis-backed publisher. Pushes SSE events to per-user queues for serverless compatibility. |
-| [useFriendEvents.ts](file:///z:/Projects/fit_level_up/src/lib/hooks/useFriendEvents.ts)     | Client hook — opens SSE stream and invalidates TanStack Query cache on events.    |
-| [friend-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/friend-rules.ts)          | Pure domain rules: who can send/accept/remove friendships.                        |
-| [records.ts](file:///z:/Projects/fit_level_up/src/lib/utils/records.ts)                     | `calculatePersonalRecords()` — computes top lifts and fastest runs from raw data. |
+| File                                                                                        | What It Does                                                                               |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [log-workout.ts](file:///z:/Projects/fit_level_up/src/lib/services/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.                           |
+| [user-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/user-rules.ts)              | XP leveling, streak calculation — the core game math.                                      |
+| [game-config.ts](file:///z:/Projects/fit_level_up/src/lib/config/game-config.ts)            | Every balance constant. Change here to tune the game feel.                                 |
+| [user-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/user-db.ts)                      | MongoDB reads/writes for the user document (XP, streak, stamina).                          |
+| [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.                             |
+| [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                              |
+| [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                             |
+| [ensure-indexes.ts](file:///z:/Projects/fit_level_up/src/lib/data/ensure-indexes.ts)        | All MongoDB index definitions. Run at startup.                                             |
+| [friendships-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/friendships-db.ts)        | All MongoDB CRUD for the `friendships` collection.                                         |
+| [sse-publisher.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-publisher.ts)           | Redis-backed publisher. Pushes SSE events to per-user queues for serverless compatibility. |
+| [useFriendEvents.ts](file:///z:/Projects/fit_level_up/src/lib/hooks/useFriendEvents.ts)     | Client hook — opens SSE stream and invalidates TanStack Query cache on events.             |
+| [friend-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/friend-rules.ts)          | Pure domain rules: who can send/accept/remove friendships.                                 |
+| [records.ts](file:///z:/Projects/fit_level_up/src/lib/utils/records.ts)                     | `calculatePersonalRecords()` — computes top lifts and fastest runs from raw data.          |
 
 ---
 
 ## Known Issues (Still Open)
 
-| Priority | Issue                                                             | Status    |
-| -------- | ----------------------------------------------------------------- | --------- |
-| 🟢 P3    | Quest template caching                                            | In plan   |
-| ✅ Done  | Centralized API error handling                                    | Completed |
-| ✅ Done  | Friend System + Real-Time SSE                                     | Completed |
-| 🟢 P3    | log-workout-test, stamina and lastStaminaUpdate update test mocks | In plan   |
+| Priority | Issue                          | Status    |
+| -------- | ------------------------------ | --------- |
+| 🟢 P3    | Quest template caching         | In plan   |
+| ✅ Done  | Centralized API error handling | Completed |
+| ✅ Done  | Friend System + Real-Time SSE  | Completed |
 
 |
 

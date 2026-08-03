@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { createRun, updateRun } from "@/lib/data/api-client";
@@ -54,6 +54,8 @@ export function RunForm({
     initialRun?: Run;
     onCancel?: () => void;
 }) {
+    const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+
     const {
         fields,
         setFields,
@@ -71,10 +73,13 @@ export function RunForm({
             duration: run.duration,
             difficulty: run.difficulty,
         }),
-        onCreate: (input) => createRun({ ...input, idempotencyKey: crypto.randomUUID() }),
-        onUpdate: (id, input) => updateRun(id, { ...input, idempotencyKey: crypto.randomUUID() }),
+        onCreate: (input) => createRun({ ...input, idempotencyKey }),
+        onUpdate: (id, input) => updateRun(id, { ...input, idempotencyKey }),
         getId: (run) => run.id,
-        onSuccess: onRunLogged,
+        onSuccess: () => {
+            setIdempotencyKey(crypto.randomUUID());
+            if (onRunLogged) onRunLogged();
+        },
     });
 
     async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {

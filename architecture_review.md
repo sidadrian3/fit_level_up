@@ -359,3 +359,42 @@ A gamified pacing mechanic utilizing the existing `PersonalRecord[]` data.
 - **Live Target:** When logging an exercise (e.g., Bench Press) or a run, the UI fetches and displays the user's historical PR as the "Ghost to beat".
 - **Social Hype:** If the user logs a value that exceeds their ghost, it triggers a confetti/explosion animation locally.
 - **Event Integration:** Hooked into the Upstash Redis SSE system to broadcast a special achievement toast to all friends: _"Adrian just shattered their Bench Press record!"_
+
+---
+
+## 07 — Network Loss Resilience (Deep Edge Cases)
+
+A specialized architecture review was conducted to address edge cases around network timeouts, idempotency, and partial failures (e.g., when a request reaches the server and is committed, but the response is lost before reaching the client). The following 6 candidates were identified and slated for implementation:
+
+### 1. Stable Idempotency Keys at the Seam (Strong)
+- **Problem:** `WorkoutForm` and `RunForm` generate `crypto.randomUUID()` at the call-site on every submit. A network timeout followed by a user retry generates a *new* key, bypassing the database idempotency index and creating duplicate workouts.
+- **Solution:** Allocate the idempotency key in React state (`useState`) when the form mounts. Only reset it upon a successful `201 Created` response. 
+
+### 2. Deepen `apiFetch` for Offline Resilience (Strong)
+- **Problem:** `apiFetch` is a shallow wrapper around `fetch()`. A `TypeError: Failed to fetch` (offline) is thrown generically. There is no auto-retry mechanism.
+- **Solution:** Deepen `apiFetch` to distinguish between `NetworkError` (e.g., offline) and `ServerError`. Add an automatic retry gate that only fires for `NetworkError`s on requests that provide an idempotency key.
+- **Status:** ✅ COMPLETED
+
+### 3. Graceful 409 Conflict Recovery (Strong)
+- **Problem:** When the server correctly catches an idempotency duplicate (MongoDB error 11000), it throws a `ConflictError` which bubbles to the client as a generic red error message. The user thinks it failed, even though it succeeded.
+- **Solution:** Add `findByIdempotencyKey` to the data layer. When `logWorkout` or `logRun` catch a duplicate key, they will fetch the existing entity and return it with a 200 OK (or 409 + body), allowing the frontend to treat it as a seamless success.
+- **Status:** ✅ COMPLETED
+
+### 4. Reliable Background Task Delivery (Strong)
+- **Problem:** `after(evaluateAchievements(...))` is fire-and-forget. If the Vercel Function is killed mid-execution, the achievement is lost forever with no dead-letter queue.
+- **Solution:** Keep `after()` for the fast-path, but add a reliable Vercel Cron sweep (`/api/cron/achievements-sweep`) that periodically re-evaluates locked achievements idempotently to ensure zero data loss.
+- **Status:** ✅ COMPLETED
+
+### 5. Atomic Quest Syncing (Strong)
+- **Problem:** `syncUserQuests` uses a read-then-insert pattern (TOCTOU). Concurrent requests (e.g., logging a workout while claiming a quest) race to `bulkInsert` the same missing quests, causing an unhandled duplicate key crash.
+- **Solution:** Refactor `syncUserQuests` to use MongoDB `bulkWrite` with `updateOne(..., { upsert: true, $setOnInsert })`. This makes the sync operation atomic and safe under high concurrency.
+- **Status:** ✅ COMPLETED
+
+---
+
+## Future Features
+
+### 6. Abort In-Flight Requests on Unmount
+- **Problem:** `useEntityForm` does not cancel requests if the user navigates away. The delayed response triggers a `setState` on an unmounted component (memory leak) and invalidates caches unexpectedly.
+- **Solution:** Thread an `AbortController` through `useEntityForm` and `apiFetch`. Abort the signal during the `useEffect` cleanup phase.
+- **Status:** 🔜 FUTURE

@@ -130,3 +130,9 @@ export async function countWorkoutsInRange(userId: string, startDate: string, en
         date: dateFilter
     });
 }
+
+export async function getWorkoutByIdempotencyKey(userId: string, key: string): Promise<Workout | null> {
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const doc = await collection.findOne({ userId, idempotencyKey: key });
+    return doc ? toWorkout(doc) : null;
+}

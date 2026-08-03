@@ -1,7 +1,7 @@
 // APPLICATION SERVICE — orchestrates domain logic + persistence + side effects
 
 import type { CreateWorkoutInput, Workout } from "@/lib/types";
-import { insertWorkout } from "@/lib/data/workout-db";
+import { insertWorkout, getWorkoutByIdempotencyKey } from "@/lib/data/workout-db";
 import { evaluateWorkout } from "@/lib/domain/workout-evaluator";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
@@ -51,8 +51,10 @@ export async function logWorkout(
         });
     } catch (error: unknown) {
         const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
-        if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
-            console.log("Duplicate workout request ignored safely.");
+        if (err.code === 11000 && err.keyPattern?.idempotencyKey && input.idempotencyKey) {
+            console.log("Duplicate workout request detected. Fetching existing...");
+            const existing = await getWorkoutByIdempotencyKey(userId, input.idempotencyKey);
+            if (existing) return existing;
             throw new ConflictError("This workout was already logged.");
         }
         throw error;
