@@ -1,0 +1,18 @@
+# Single-package repo: the same three checks apply to the whole app.
+set -e
+
+if [ -z "$(git diff --cached --name-only --diff-filter=ACMR -- src tests)" ]; then
+  exit 0
+fi
+
+echo "pre-commit: checking src ..."
+
+# Never --fix here: a hook must not rewrite what is about to be committed.
+if git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' \
+    | xargs -0 -r npx eslint; then :; else
+  echo "pre-commit: lint failed"
+  exit 1
+fi
+
+npm run typecheck || { echo "pre-commit: typecheck failed"; exit 1; }
+npm run test:run || { echo "pre-commit: tests failed"; exit 1; }

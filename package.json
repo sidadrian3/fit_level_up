@@ -7,9 +7,12 @@
     "build": "tsx --env-file-if-exists=.env.local src/scripts/migrate-db.ts && next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "seed": "tsx --env-file=.env.local src/scripts/seed-achievements.ts && tsx --env-file=.env.local src/scripts/seed-quests.ts",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:run": "vitest run",
+    "test:e2e": "playwright test",
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",
@@ -36,7 +39,9 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "husky": "^9.1.7",
     "mongodb-memory-server": "^11.2.0",
+    "playwright": "^1.64.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5",
