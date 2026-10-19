@@ -1,0 +1,106 @@
+# Data Model And API Reference
+
+Every MongoDB collection, every API route and every page in FitLevelUp. The code is the source of truth: collection names come from `getDbConfig()` in `src/lib/data/db-config.ts`, indexes from `src/lib/data/ensure-indexes.ts`, and types from `src/lib/types.ts`. This note is kept in step with them by the Handbook Sync step ([[Developer Handbook]] §7).
+
+---
+
+## 1. Conventions
+
+- Every document that belongs to a person carries a `userId`, and every query filters on it. The `userId` comes from the session (`getAuthUserId()`), never from the request.
+- Dates are stored as BSON `Date` and returned to the browser as ISO strings (`DateString`).
+- Creates that a retry could repeat carry a client-generated `idempotencyKey`, backed by a unique partial index.
+- Collection names are configurable through environment variables; the defaults below are what a fresh setup uses.
+
+## 2. Collections
+
+| Collection | Default name | Holds | Owner field |
+|---|---|---|---|
+| Users | `user` | The Better Auth user plus game state: `level`, `xp`, `xpToNextLevel`, `streak`, `lastActivityDate`, `totalWorkouts`, `totalDistance`, `stamina`, `lastStaminaUpdate`, `avatar` | `_id` |
+| Workouts | `workouts` | A logged gym session: `title`, `exercises[]`, `duration`, `xpEarned`, `date`, `idempotencyKey` | `userId` |
+| Runs | `runs` | A logged run: `distance`, `duration`, `pace`, `difficulty`, `xpEarned`, `date`, `idempotencyKey` | `userId` |
+| Workout templates | `workout_templates` | A saved routine: `name`, `exercises[]`, `createdAt`, `idempotencyKey` | `userId` |
+| Custom exercises | `custom_exercises` | A user-defined exercise: `name`, `targetMuscle` | `userId` |
+| Quest templates | `quest_templates` | The catalogue of quests (`title`, `category`, `metric`, `target`, `xpReward`, `icon`, `isActive`); seeded by `npm run seed` | none (global) |
+| User quests | `user_quests` | One user's instance of a quest for one period: `questTemplateId`, `periodStart`, `periodEnd`, `progress`, `target`, `completed`, `claimed` | `userId` |
+| Achievements | `achievements` | The catalogue of achievements (`id`, `title`, `rarity`, `condition`); seeded by `npm run seed` | none (global) |
+| User achievements | `user_achievements` | Which achievements a user has unlocked: `achievementId`, `unlockedDate` | `userId` |
+| Friendships | `friendships` | `requesterId`, `receiverId`, `status` (`pending` / `accepted` / `declined`), `createdAt` | `requesterId` / `receiverId` |
+
+Better Auth also manages its own `session`, `account` and `verification` collections through its MongoDB adapter. Never write to them directly.
+
+Enumerations in `src/lib/types.ts`: `TargetMuscle` (Chest, Back, Legs, Arms, Core, Cardio, Full Body), `QuestCategory` (daily, weekly, special), `QuestMetric` (workout_count, run_count, run_distance), run `difficulty` (easy, moderate, hard, intense), achievement `rarity` (common, rare, epic, legendary).
+
+## 3. Indexes
+
+Created idempotently by `ensureIndexes()`:
+
+| Collection | Index | Purpose |
+|---|---|---|
+| workouts | `{ userId, date: -1 }` | History and date-range queries |
+| workouts | `{ userId, idempotencyKey }` unique, partial | Duplicate-submit protection |
+| runs | `{ userId, date: -1 }` | History and date-range queries |
+| runs | `{ userId, idempotencyKey }` unique, partial | Duplicate-submit protection |
+| user_quests | `{ userId, questTemplateId, periodStart, periodEnd }` | Exact-match quest sync lookup |
+| user_quests | `{ userId }` | Listing a user's quests |
+| quest_templates | `{ isActive, metric }` | Finding quests a new activity advances |
+| user_achievements | `{ userId }` | Listing unlocked achievements |
+| custom_exercises | `{ userId }` | Listing a user's exercises |
+| friendships | requester + receiver pair; receiver + status; requester + status; status | Friend lists, pending requests, duplicate-request protection |
+| workout_templates | `{ userId }`; `{ userId, idempotencyKey }` unique, partial | Listing, duplicate-submit protection |
+
+## 4. API routes
+
+`Auth` is `getAuthUserId()` (session cookie → `401` if missing). `Rate-limited` routes use the shared sliding window of 20 requests per hour per user (`src/lib/auth/rate-limit.ts`). Errors are shaped by `handleApiError`.
+
+| Route | Methods | Auth | Rate-limited | Purpose |
+|---|---|---|---|---|
+| `/api/auth/[...all]` | all | Better Auth | — | Sign-up, sign-in, sign-out, session |
+| `/api/health` | GET | none | — | Liveness check |
+| `/api/cron/achievements-sweep` | GET | `CRON_SECRET` bearer token | — | Daily reconciliation of locked achievements |
+| `/api/user` | GET | yes | — | The signed-in user's profile and game state |
+| `/api/workouts` | GET, POST | yes | POST | Paginated history (`limit` ≤ 50, `page`); log a workout |
+| `/api/workouts/[id]` | PUT, DELETE | yes | — | Edit or delete one of your workouts |
+| `/api/runs` | GET, POST | yes | POST | Paginated history; log a run |
+| `/api/runs/[id]` | PUT, DELETE | yes | — | Edit or delete one of your runs |
+| `/api/runs/stats` | GET | yes | — | Aggregate run statistics |
+| `/api/workout-templates` | GET, POST | yes | — | List and create templates |
+| `/api/workout-templates/[id]` | DELETE | yes | — | Delete a template |
+| `/api/exercises` | GET, POST | yes | — | List the user's custom exercises (the built-in list is in `src/lib/constants/exercises.ts`); create a custom one |
+| `/api/quests` | GET | yes | — | The user's quests for the current periods |
+| `/api/quests/[id]/claim` | POST | yes | — | Claim a completed quest's XP reward |
+| `/api/achievements` | GET | yes | — | Achievements with the user's unlock state |
+| `/api/stats/dashboard` | GET | yes | — | Weekly counts, distance, lifetime XP |
+| `/api/profile/records` | GET | yes | — | Personal records |
+| `/api/friends` | GET | yes | — | Accepted friends |
+| `/api/friends/request` | POST | yes | yes | Send a friend request |
+| `/api/friends/requests` | GET | yes | — | Pending incoming requests |
+| `/api/friends/[id]/accept` | POST | yes | yes | Accept a request |
+| `/api/friends/[id]/decline` | POST | yes | yes | Decline a request |
+| `/api/friends/[id]` | DELETE | yes | yes | Remove a friend |
+| `/api/friends/events` | GET | yes | — | Server-Sent Events stream of friend events; the connection lasts 60 seconds and the browser reconnects |
+
+## 5. Pages
+
+Route groups: `(landing)` public marketing page, `(auth)` public `/login` and `/signup`, `(app)` signed-in pages. `src/proxy.ts` redirects signed-out visitors away from protected prefixes and signed-in visitors away from the auth pages.
+
+| Page | Protected | Shows |
+|---|---|---|
+| `/` | no | Landing page |
+| `/login`, `/signup` | no (redirects away when signed in) | Email and password authentication |
+| `/dashboard` | yes | XP card, activity tracker, daily quests, recent activity, muscle heatmap |
+| `/workouts` | yes | Workout log form, history, template picker |
+| `/templates/new` | no — `/templates` is not in `protectedRoutes` in `src/proxy.ts`; the page renders for signed-out visitors, though its API calls still require a session | Template builder |
+| `/runs` | yes | Run log form and history |
+| `/quests` | yes | Daily, weekly and special quests with claim buttons |
+| `/friends` | yes | Friends, pending requests, add-friend form |
+| `/profile` | yes | Profile header, achievements grid, personal records |
+
+Navigation links live in `src/lib/constants/navigation.ts`.
+
+## 6. Background and real-time pieces
+
+- **Cron:** `/api/cron/achievements-sweep` runs `sweepLockedAchievements` for every user.
+- **SSE:** services publish events to a per-user Redis list (`sse:{userId}`, 60-second TTL) through `src/lib/sse/sse-publisher.ts`; `/api/friends/events` drains it into the browser, where `FriendEventManager` and the level-up and achievement managers show toasts.
+- **Scripts:** `src/scripts/migrate-db.ts` runs before every build; `seed-quests.ts` and `seed-achievements.ts` fill the catalogues.
+
+[[Guides Index]]
