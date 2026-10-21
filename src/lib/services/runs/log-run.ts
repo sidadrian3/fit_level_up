@@ -42,7 +42,7 @@ export async function logRun(
                 type: "run_created",
                 distance: run.distance,
                 xpEarned: run.xpEarned,
-            }, session);
+            }, { now, timeZone: user.timeZone }, session);
 
             await UserStateService.applyActivity(userId, {
                 xpEarned: run.xpEarned,

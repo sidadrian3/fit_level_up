@@ -40,7 +40,7 @@ export async function logWorkout(
             await updateQuestProgress(userId, {
                 type: "workout_created",
                 xpEarned: workout.xpEarned,
-            }, session);
+            }, { now, timeZone: user.timeZone }, session);
 
             await UserStateService.applyActivity(userId, {
                 xpEarned: workout.xpEarned,

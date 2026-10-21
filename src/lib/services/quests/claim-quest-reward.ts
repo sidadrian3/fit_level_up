@@ -1,4 +1,5 @@
 import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
+import { getUserTimeZoneFromDb } from "@/lib/data/user-db";
 import { validateQuestClaim } from "@/lib/domain/quest-rules";
 import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdFromDb } from "@/lib/data/quests-db";
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
@@ -7,7 +8,7 @@ import type { User } from "@/lib/types";
 import { NotFoundError, ConflictError } from "@/lib/api/errors";
 
 export async function claimQuestReward(userId: string, questId: string): Promise<{ user: User; levelUp: boolean } | undefined> {
-  await syncUserQuests(userId);
+  await syncUserQuests(userId, { now: new Date(), timeZone: await getUserTimeZoneFromDb(userId) });
 
   const quest = await getUserQuestByIdFromDb(questId, userId);
 

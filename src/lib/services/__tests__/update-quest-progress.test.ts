@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import crypto from "crypto";
+import { ObjectId } from "mongodb";
 import { logWorkout } from "../workouts/log-workout";
 import { getUserQuests } from "../quests/get-user-quests";
 import { getCollection } from "@/lib/data/get-collection";
@@ -28,6 +29,7 @@ describe("quest progress through logWorkout", () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     await (await getCollection("userQuestsCollection")).deleteMany({ userId });
     await (await getCollection("questTemplatesCollection")).deleteMany({});
     await (await getCollection("workoutsCollection")).deleteMany({ userId });
@@ -74,5 +76,23 @@ describe("quest progress through logWorkout", () => {
 
     expect(quests).toHaveLength(2);
     expect(await (await getCollection("userQuestsCollection")).countDocuments({ userId })).toBe(2);
+  });
+
+  it("credits the local-day period row", async () => {
+    await seedWorkoutQuestTemplates();
+    await (await getCollection<UserMongoDoc>("usersCollection")).updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { timeZone: "Asia/Manila" } },
+    );
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T23:00:00Z"));
+
+    await logWorkout(workout(), userId);
+
+    const dailyRow = await (await getCollection("userQuestsCollection")).findOne({ userId, target: 1 });
+    expect(dailyRow?.periodStart).toBe("2026-10-21");
+    expect(dailyRow?.progress).toBe(1);
+    const quests = await getUserQuests(userId);
+    expect(quests.find(q => q.target === 1)?.progress).toBe(1);
   });
 });
