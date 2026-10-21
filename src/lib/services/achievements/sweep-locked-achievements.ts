@@ -3,15 +3,14 @@ import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achie
 
 /**
  * Periodically invoked by Vercel Cron.
- * Re-evaluates achievements for users who have been active in the last 24 hours
+ * Re-evaluates achievements for users who have been active in the last 72 hours
  * to ensure that achievements missed due to dropped background tasks are recovered.
  */
 export async function sweepLockedAchievements(): Promise<{ processed: number; errors: number }> {
-    // 1. Fetch users active in the last 24 hours
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const activeUsers = await getRecentlyActiveUsers(yesterday);
+    // lastActivityDate stores a local-day midnight, up to 36 h before the activity (UTC-12)
+    const since = new Date(Date.now() - 72 * 3_600_000);
+
+    const activeUsers = await getRecentlyActiveUsers(since);
     
     let processed = 0;
     let errors = 0;

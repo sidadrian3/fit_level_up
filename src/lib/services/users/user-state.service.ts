@@ -4,12 +4,13 @@ import { calcLevelUp, calcNewStreak, calcDisplayStreak } from "@/lib/domain/user
 import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
 import { after } from "next/server";
+import { toLocalDay } from "@/lib/utils/dates";
 import type { User } from "@/lib/types";
 import { ConflictError, NotFoundError } from "@/lib/api/errors";
 
 export interface ActivityPayload {
     xpEarned: number;
-    activityDate: Date;
+    activityAt: Date;
     staminaCost: number;
     stats: {
         incrementWorkouts?: number;
@@ -29,7 +30,12 @@ export const UserStateService = {
     async getUser(userId: string, session?: ClientSession): Promise<User> {
         const rawUser = await requireUserFromDb(userId, session);
         
-        const displayStreak = calcDisplayStreak(rawUser.streak, rawUser.lastActivityDate);
+        const displayStreak = calcDisplayStreak(
+            rawUser.streak,
+            rawUser.lastActivityDate,
+            new Date(),
+            rawUser.timeZone
+        );
 
         const recoveredStamina = calcRecoveredStamina(
             rawUser.stamina,
@@ -63,11 +69,7 @@ export const UserStateService = {
                     payload.xpEarned
                 );
 
-                const newStreak = calcNewStreak(
-                    user.streak,
-                    user.lastActivityDate ? new Date(user.lastActivityDate) : undefined,
-                    payload.activityDate.toISOString().slice(0, 10)
-                );
+                const newStreak = calcNewStreak(user.streak, user.lastActivityDate, payload.activityAt, user.timeZone);
 
                 const recoveredStamina = calcRecoveredStamina(
                     user.stamina,
@@ -84,7 +86,7 @@ export const UserStateService = {
                         newLevel,
                         newXpToNextLevel,
                         newStreak,
-                        lastActivityDate: payload.activityDate,
+                        lastActivityDate: new Date(`${toLocalDay(payload.activityAt, user.timeZone)}T00:00:00Z`),
                         newStamina: finalStamina,
                         lastStaminaUpdate: new Date(),
                         incrementWorkouts: payload.stats.incrementWorkouts,
