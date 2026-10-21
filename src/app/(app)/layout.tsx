@@ -3,6 +3,7 @@ import { MobileTabs } from "@/components/layout/MobileTabs";
 import { LevelUpManager } from "@/components/notifications/LevelUpManager";
 import { AchievementManager } from "@/components/notifications/AchievementManager";
 import { FriendEventManager } from "@/components/notifications/FriendEventManager";
+import { TimeZoneSync } from "@/components/auth/TimeZoneSync";
 import { UserProvider } from "@/lib/context/UserContext";
 
 export default function AppLayout({
@@ -27,6 +28,7 @@ export default function AppLayout({
         <LevelUpManager />
         <AchievementManager />
         <FriendEventManager />
+        <TimeZoneSync />
       </div>
     </UserProvider>
   );
