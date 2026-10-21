@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { sweepLockedAchievements } from "../achievements/sweep-locked-achievements";
 import { getCollection } from "../../data/get-collection";
 import { UserMongoDoc } from "../../data/user-db";
@@ -6,8 +6,25 @@ import { AchievementDefinitionDoc } from "../../data/achievements-db";
 
 describe("sweepLockedAchievements", () => {
   beforeAll(async () => {
-    // Setup a dummy active user
     const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    await usersCol.deleteMany({});
+
+    await usersCol.insertOne({
+      email: "sixty-hours@example.com",
+      name: "Sixty Hours User",
+      level: 1,
+      xp: 0,
+      xpToNextLevel: 500,
+      streak: 0,
+      totalWorkouts: 0,
+      totalDistance: 0,
+      stamina: 100,
+      lastActivityDate: new Date(Date.now() - 60 * 3_600_000),
+      lastStaminaUpdate: new Date(),
+      createdAt: new Date(),
+    });
+
+    // Setup a dummy active user
     await usersCol.insertOne({
       email: "active@example.com",
       name: "Active User",
@@ -24,8 +41,7 @@ describe("sweepLockedAchievements", () => {
     });
 
     // Setup a dummy inactive user
-    const inactiveDate = new Date();
-    inactiveDate.setDate(inactiveDate.getDate() - 3);
+    const inactiveDate = new Date(Date.now() - 4 * 24 * 3_600_000);
     await usersCol.insertOne({
       email: "inactive@example.com",
       name: "Inactive User",
@@ -55,6 +71,11 @@ describe("sweepLockedAchievements", () => {
     });
   });
 
+  afterAll(async () => {
+    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    await usersCol.deleteMany({});
+  });
+
   afterEach(async () => {
     const userAchievementsCol = await getCollection(
       "userAchievementsCollection",
@@ -65,8 +86,8 @@ describe("sweepLockedAchievements", () => {
   it("should sweep active users and safely evaluate them without throwing", async () => {
     const result = await sweepLockedAchievements();
 
-    // There is at least 1 active user (ours), but parallel tests might add more
-    expect(result.processed).toBeGreaterThanOrEqual(1);
+    // Users active now and 60 hours ago are processed; the one inactive for 4 days is not
+    expect(result.processed).toBe(2);
     expect(result.errors).toBe(0);
   });
 });

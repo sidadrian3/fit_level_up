@@ -1,11 +1,14 @@
 import type { Quest } from "@/lib/types";
+import { toLocalDay } from "@/lib/utils/dates";
+import { getUserTimeZoneFromDb } from "@/lib/data/user-db";
 import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { getUserQuestsForUserFromDb, getQuestTemplatesByIdsFromDb, toQuestView } from "@/lib/data/quests-db";
 
 export async function getUserQuests(userId: string): Promise<Quest[]> {
-  await syncUserQuests(userId);
+  const calendar = { now: new Date(), timeZone: await getUserTimeZoneFromDb(userId) };
+  await syncUserQuests(userId, calendar);
 
-  const userQuests = await getUserQuestsForUserFromDb(userId);
+  const userQuests = await getUserQuestsForUserFromDb(userId, toLocalDay(calendar.now, calendar.timeZone));
 
   if (userQuests.length === 0) {
     return [];

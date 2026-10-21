@@ -15,7 +15,7 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 
 | Collection | Default name | Holds | Owner field |
 |---|---|---|---|
-| Users | `user` | The Better Auth user plus game state: `level`, `xp`, `xpToNextLevel`, `streak`, `lastActivityDate`, `totalWorkouts`, `totalDistance`, `stamina`, `lastStaminaUpdate`, `avatar` | `_id` |
+| Users | `user` | The Better Auth user plus game state: `level`, `xp`, `xpToNextLevel`, `streak`, `lastActivityDate`, `totalWorkouts`, `totalDistance`, `stamina`, `lastStaminaUpdate`, `avatar`, `timeZone` | `_id` |
 | Workouts | `workouts` | A logged gym session: `title`, `exercises[]`, `duration`, `xpEarned`, `date`, `idempotencyKey` | `userId` |
 | Runs | `runs` | A logged run: `distance`, `duration`, `pace`, `difficulty`, `xpEarned`, `date`, `idempotencyKey` | `userId` |
 | Workout templates | `workout_templates` | A saved routine: `name`, `exercises[]`, `createdAt`, `idempotencyKey` | `userId` |
@@ -25,6 +25,8 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 | Achievements | `achievements` | The catalogue of achievements (`id`, `title`, `rarity`, `condition`); seeded by `npm run seed` | none (global) |
 | User achievements | `user_achievements` | Which achievements a user has unlocked: `achievementId`, `unlockedDate` | `userId` |
 | Friendships | `friendships` | One document per unordered pair of users: `requesterId`, `receiverId`, `pairKey` (the two ids sorted and joined with `:`), `status` (`pending` / `accepted` / `declined`), `createdAt`, `updatedAt`. Re-requesting after a decline reopens the same document as `pending` with the new requester and receiver | `requesterId` / `receiverId` |
+
+`user.timeZone` is an optional IANA zone (for example `Asia/Manila`) declared as a Better Auth `additionalFields` entry and validated by `timeZoneSchema`; a missing value reads as `UTC`. `lastActivityDate` is a `Date` at UTC midnight that holds the user's *local* calendar day. Quest `periodStart` and `periodEnd` are local-day strings in the same zone.
 
 Better Auth also manages its own `session`, `account` and `verification` collections through its MongoDB adapter. Never write to them directly.
 
@@ -54,7 +56,7 @@ Created idempotently by `ensureIndexes()`:
 
 | Route | Methods | Auth | Rate-limited | Purpose |
 |---|---|---|---|---|
-| `/api/auth/[...all]` | all | Better Auth | — | Sign-up, sign-in, sign-out, session |
+| `/api/auth/[...all]` | all | Better Auth | — | Sign-up, sign-in, sign-out, session; sign-up and `update-user` accept an optional `timeZone` |
 | `/api/health` | GET | none | — | Liveness check |
 | `/api/cron/achievements-sweep` | GET | `CRON_SECRET` bearer token (always required; `401` otherwise) | — | Daily reconciliation of locked achievements, scheduled in `vercel.json` |
 | `/api/user` | GET | yes | — | The signed-in user's profile and game state |
@@ -99,7 +101,7 @@ Navigation links live in `src/lib/constants/navigation.ts`.
 
 ## 6. Background and real-time pieces
 
-- **Cron:** `/api/cron/achievements-sweep` runs `sweepLockedAchievements` for every recently active user, daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token.
+- **Cron:** `/api/cron/achievements-sweep` runs `sweepLockedAchievements` for every user active in the last 72 hours (a local-day `lastActivityDate` can sit up to 36 hours before the activity), daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token.
 - **SSE:** services publish events to a per-user Redis list (`sse:{userId}`, 60-second TTL) through `src/lib/sse/sse-publisher.ts`; `/api/friends/events` drains it into the browser, where `FriendEventManager` and the level-up and achievement managers show toasts.
 - **Scripts:** `src/scripts/migrate-db.ts` runs before every build (`prepareUniqueIndexes()` removes duplicate rows and backfills `friendships.pairKey`, then `ensureIndexes()` builds the indexes); `seed-quests.ts` and `seed-achievements.ts` fill the catalogues.
 

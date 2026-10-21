@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { TargetMuscle } from "@/lib/types";
+import { isValidTimeZone } from "@/lib/utils/dates";
+
+export const timeZoneSchema = z.string().min(1).max(64).refine(isValidTimeZone, "Invalid time zone");
 
 // ─── Exercise ───
 export const ExerciseSchema = z.object({

@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from "@/lib/config/game-config";
+import { addDays, startOfWeek, toLocalDay } from "@/lib/utils/dates";
 
 export type LevelUpResult = {
   newXp: number;
@@ -44,86 +45,50 @@ export function calcLifetimeXp(level: number, currentXp: number): number {
 
 export function calcNewStreak(
   currentStreak: number | undefined,
-  lastDate: Date | string | undefined,
-  activityDate: string
+  lastActivityDay: string | undefined,
+  now: Date,
+  timeZone: string
 ): number {
-  if (!lastDate) {
-    // First ever activity
-    return 1;
-  }
+  if (!lastActivityDay) return 1;
 
-  const lastDateStr = lastDate instanceof Date ? lastDate.toISOString().slice(0, 10) : lastDate;
+  const today = toLocalDay(now, timeZone);
+  if (addDays(lastActivityDay, 1) === today) return (currentStreak ?? 0) + 1;
+  if (addDays(lastActivityDay, 1) < today) return 1;
 
-  if (lastDateStr === activityDate) {
-    // Already logged activity today — streak unchanged
-    return currentStreak ?? 1;
-  }
-
-  // Check if lastDate was yesterday
-  const last = new Date(lastDateStr + "T00:00:00Z");
-  const current = new Date(activityDate + "T00:00:00Z");
-  const diffMs = current.getTime() - last.getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-  if (diffDays === 1) {
-    // Consecutive day — extend streak
-    return (currentStreak ?? 0) + 1;
-  } else if (diffDays > 1) {
-    // Gap — reset streak
-    return 1;
-  }
-
-  // Same day or past date — don't change
+  // Same day or a past-dated activity leaves the streak unchanged
   return currentStreak ?? 1;
 }
 
 export function calcDisplayStreak(
   rawStreak: number,
-  lastActivityDate: string | Date | undefined,
-  currentDate: Date = new Date()
+  lastActivityDay: string | undefined,
+  now: Date,
+  timeZone: string
 ): number {
-  if (rawStreak <= 0 || !lastActivityDate) {
-    return rawStreak;
-  }
+  if (rawStreak <= 0 || !lastActivityDay) return rawStreak;
 
-  const lastDateStr = lastActivityDate instanceof Date 
-    ? lastActivityDate.toISOString().slice(0, 10) 
-    : lastActivityDate;
-  
-  const today = currentDate.toISOString().slice(0, 10);
-  const yesterday = new Date(currentDate.getTime() - 86400000).toISOString().slice(0, 10);
-
-  if (lastDateStr !== today && lastDateStr !== yesterday) {
-    return 0;
-  }
-
-  return rawStreak;
+  const today = toLocalDay(now, timeZone);
+  const isStreakAlive = lastActivityDay === today || addDays(lastActivityDay, 1) === today;
+  return isStreakAlive ? rawStreak : 0;
 }
 
-/** Calculate which days of the current week (Monday-Sunday) the user was active. */
-export function calcActiveDays(dates: string[]): boolean[] {
+/** Which days of the user's current local week (Monday-Sunday) had activity. */
+export function calcActiveDays(activityInstants: Date[], now: Date, timeZone: string): boolean[] {
   const activeDays = [false, false, false, false, false, false, false];
+  const weekStart = startOfWeek(toLocalDay(now, timeZone));
+  const weekEnd = addDays(weekStart, 7);
 
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday
-  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - daysToMonday);
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7);
-
-  dates.forEach(dateStr => {
-    const d = new Date(dateStr);
-    if (d >= startOfWeek && d < endOfWeek) {
-      const day = d.getDay();
-      const index = day === 0 ? 6 : day - 1;
-      activeDays[index] = true;
+  for (const instant of activityInstants) {
+    const day = toLocalDay(instant, timeZone);
+    if (day >= weekStart && day < weekEnd) {
+      activeDays[dayIndexInWeek(weekStart, day)] = true;
     }
-  });
+  }
 
   return activeDays;
+}
+
+function dayIndexInWeek(weekStart: string, day: string): number {
+  return Math.round((Date.parse(day) - Date.parse(weekStart)) / 86_400_000);
 }
 

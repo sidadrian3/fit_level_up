@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcLevelUp, calcNewStreak, calcDisplayStreak, calcLifetimeXp } from '../user-rules';
+import { calcLevelUp, calcNewStreak, calcDisplayStreak, calcLifetimeXp, calcActiveDays } from '../user-rules';
 
 describe('user-rules', () => {
   describe('calcLevelUp', () => {
@@ -40,48 +40,50 @@ describe('user-rules', () => {
   });
 
   describe('calcNewStreak', () => {
-    it('should start a streak at 1 if no previous activity', () => {
-      expect(calcNewStreak(undefined, undefined, '2024-01-01')).toBe(1);
+    it('starts a streak at 1 with no previous activity', () => {
+      expect(calcNewStreak(undefined, undefined, new Date('2026-10-21T12:00:00Z'), 'UTC')).toBe(1);
     });
 
-    it('should keep streak the same if logging multiple times on the same day', () => {
-      expect(calcNewStreak(5, '2024-01-01', '2024-01-01')).toBe(5);
+    it('extends the streak on the next local day', () => {
+      expect(calcNewStreak(5, '2026-10-20', new Date('2026-10-20T23:00:00Z'), 'Asia/Manila')).toBe(6);
     });
 
-    it('should extend streak if logging on the consecutive day', () => {
-      expect(calcNewStreak(5, '2024-01-01', '2024-01-02')).toBe(6);
+    it('keeps the streak on the same local day', () => {
+      expect(calcNewStreak(5, '2026-10-20', new Date('2026-10-20T23:00:00Z'), 'UTC')).toBe(5);
     });
 
-    it('should reset streak to 1 if there is a gap day', () => {
-      expect(calcNewStreak(5, '2024-01-01', '2024-01-03')).toBe(1);
+    it('extends the streak west of UTC when the local day is behind', () => {
+      expect(calcNewStreak(5, '2026-10-20', new Date('2026-10-22T03:00:00Z'), 'America/New_York')).toBe(6);
     });
 
-    it('should handle Date objects properly', () => {
-      expect(calcNewStreak(5, new Date('2024-01-01T12:00:00Z'), '2024-01-02')).toBe(6);
+    it('resets the streak after a gap day', () => {
+      expect(calcNewStreak(5, '2026-10-18', new Date('2026-10-21T12:00:00Z'), 'UTC')).toBe(1);
+    });
+
+    it('leaves the streak unchanged for a past-dated activity', () => {
+      expect(calcNewStreak(5, '2026-10-20', new Date('2026-10-19T12:00:00Z'), 'UTC')).toBe(5);
     });
   });
 
   describe('calcDisplayStreak', () => {
-    it('should return raw streak if 0 or no last activity date', () => {
-      expect(calcDisplayStreak(0, undefined)).toBe(0);
-      expect(calcDisplayStreak(5, undefined)).toBe(5);
+    it('returns the raw streak when it is 0 or there is no last activity', () => {
+      const now = new Date('2026-10-21T12:00:00Z');
+      expect(calcDisplayStreak(0, undefined, now, 'UTC')).toBe(0);
+      expect(calcDisplayStreak(5, undefined, now, 'UTC')).toBe(5);
     });
 
-    it('should return raw streak if last activity was today', () => {
-      const today = new Date();
-      expect(calcDisplayStreak(5, today, today)).toBe(5);
+    it('keeps the streak when the last activity was today or yesterday', () => {
+      const now = new Date('2026-10-21T12:00:00Z');
+      expect(calcDisplayStreak(5, '2026-10-21', now, 'UTC')).toBe(5);
+      expect(calcDisplayStreak(5, '2026-10-20', now, 'UTC')).toBe(5);
     });
 
-    it('should return raw streak if last activity was yesterday', () => {
-      const today = new Date('2024-01-02T12:00:00Z');
-      const yesterday = new Date('2024-01-01T12:00:00Z');
-      expect(calcDisplayStreak(5, yesterday, today)).toBe(5);
+    it('drops to 0 when two local days have passed', () => {
+      expect(calcDisplayStreak(5, '2026-10-20', new Date('2026-10-21T20:00:00Z'), 'Asia/Manila')).toBe(0);
     });
 
-    it('should return 0 if last activity was before yesterday', () => {
-      const today = new Date('2024-01-03T12:00:00Z');
-      const twoDaysAgo = new Date('2024-01-01T12:00:00Z');
-      expect(calcDisplayStreak(5, twoDaysAgo, today)).toBe(0);
+    it('keeps the streak for the same instant in UTC', () => {
+      expect(calcDisplayStreak(5, '2026-10-20', new Date('2026-10-21T20:00:00Z'), 'UTC')).toBe(5);
     });
   });
 
@@ -90,6 +92,18 @@ describe('user-rules', () => {
       // Level 3 means they completed L1 (500) and L2 (1000) = 1500 XP
       // Plus current XP
       expect(calcLifetimeXp(3, 200)).toBe(1700);
+    });
+  });
+
+  describe('calcActiveDays', () => {
+    it('marks local weekdays of the current local week, Monday first', () => {
+      const now = new Date('2026-10-22T02:00:00Z');
+      const instants = [
+        new Date('2026-10-20T03:00:00Z'),
+        new Date('2026-10-21T15:00:00Z'),
+        new Date('2026-10-19T03:00:00Z'),
+      ];
+      expect(calcActiveDays(instants, now, 'America/New_York')).toEqual([true, false, true, false, false, false, false]);
     });
   });
 });

@@ -133,12 +133,12 @@ export async function insertUserQuestToDb(
 
 export async function getUserQuestsForUserFromDb(
   userId: string,
+  today: string,
   session?: ClientSession,
 ): Promise<UserQuestMongoDoc[]> {
   const collection = await getCollection<UserQuestMongoDoc>(
     "userQuestsCollection",
   );
-  const today = new Date().toISOString().slice(0, 10);
   return collection
     .find(
       {

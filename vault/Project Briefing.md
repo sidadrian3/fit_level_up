@@ -17,7 +17,7 @@ Most fitness apps are boring. They capture data but give you no emotional reward
 - Log gym workouts (exercises, sets, reps, weight, duration)
 - Log runs (distance, duration, difficulty — pace auto-calculated)
 - Watch their XP bar fill up and level up (every level costs `level × 500 XP`)
-- Maintain a daily activity streak (breaks if you skip a day)
+- Maintain a daily activity streak (breaks if you skip a day; a day is the user's own calendar day in their time zone, captured from the browser at signup)
 - Complete daily, weekly, and special quests (e.g. "Do 3 workouts this week")
 - Unlock achievement badges (e.g. "First Run", "Level 10", "30-day streak")
 - View a dashboard with weekly stats and a heatmap of active days
@@ -484,43 +484,38 @@ describe("calcLevelUp", () => {
 describe("calcNewStreak", () => {
   // Case 1: Brand new user logging their first ever activity
   it("should start a streak at 1 if no previous activity", () => {
-    expect(calcNewStreak(undefined, undefined, "2024-01-01")).toBe(1);
-    //                   ↑ no streak    ↑ no last date
+    expect(calcNewStreak(undefined, undefined, new Date("2026-10-21T12:00:00Z"), "UTC")).toBe(1);
+    //                   ↑ no streak    ↑ no last day
     // → streak starts fresh at 1
   });
 
-  // Case 2: User logs twice on the same day — streak shouldn't double count
-  it("should keep streak the same if logging multiple times on the same day", () => {
-    expect(calcNewStreak(5, "2024-01-01", "2024-01-01")).toBe(5);
-    //                    ↑ same date as today
+  // Case 2: User logs twice on the same local day — streak shouldn't double count
+  it("should keep streak the same if logging twice on the same local day", () => {
+    expect(calcNewStreak(5, "2026-10-21", new Date("2026-10-21T12:00:00Z"), "UTC")).toBe(5);
     // → streak stays at 5, not 6
   });
 
-  // Case 3: User logs on back-to-back days — extend the streak
-  it("should extend streak if logging on the consecutive day", () => {
-    expect(calcNewStreak(5, "2024-01-01", "2024-01-02")).toBe(6);
-    //                      ↑ yesterday     ↑ today
+  // Case 3: Back-to-back local days — extend the streak
+  it("should extend streak if logging on the consecutive local day", () => {
+    expect(calcNewStreak(5, "2026-10-20", new Date("2026-10-21T12:00:00Z"), "UTC")).toBe(6);
     // → 5 + 1 = 6
   });
 
   // Case 4: User skipped a day — streak resets back to 1
   it("should reset streak to 1 if there is a gap day", () => {
-    expect(calcNewStreak(5, "2024-01-01", "2024-01-03")).toBe(1);
-    //                      ↑ two days ago — the gap breaks it
-    // → 5 resets to 1
+    expect(calcNewStreak(5, "2026-10-18", new Date("2026-10-21T12:00:00Z"), "UTC")).toBe(1);
   });
 
-  // Case 5: MongoDB stores dates as Date objects — must handle both types
-  it("should handle Date objects properly", () => {
-    expect(
-      calcNewStreak(5, new Date("2024-01-01T12:00:00Z"), "2024-01-02"),
-    ).toBe(6);
-    //                      ↑ a real Date object from the DB
+  // Case 5: The same instant is a different day in a different time zone
+  it("should count the activity on the user's local day", () => {
+    const instant = new Date("2026-10-20T23:00:00Z"); // 07:00 on the 21st in Manila
+    expect(calcNewStreak(5, "2026-10-20", instant, "Asia/Manila")).toBe(6);
+    expect(calcNewStreak(5, "2026-10-20", instant, "UTC")).toBe(5);
   });
 });
 ```
 
-**What this proves:** The streak logic correctly handles all the tricky edge cases — same day, consecutive day, gap, and the MongoDB `Date` vs `string` type ambiguity.
+**What this proves:** The streak logic handles the tricky edge cases — same day, consecutive day, gap, and a late-night or early-morning activity that falls on a different day in the user's time zone than in UTC. The rule gets "now" as an argument, so no test needs a fake clock.
 
 ---
 

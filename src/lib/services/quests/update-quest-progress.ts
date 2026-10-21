@@ -4,13 +4,15 @@ import {
   updateUserQuestProgressInDb,
   getUserQuestsForUserFromDb, getQuestTemplatesByMetricsFromDb
 } from "@/lib/data/quests-db";
-import { ensureUserQuestRows } from "@/lib/services/quests/sync-user-quests";
+import { toLocalDay } from "@/lib/utils/dates";
+import { ensureUserQuestRows, type QuestCalendar } from "@/lib/services/quests/sync-user-quests";
 import { ClientSession } from "mongodb";
 
 // The session is required: read-then-write is only race-free because a conflicting transaction is aborted and retried
 export async function updateQuestProgress(
   userId: string,
   activity: QuestActivity,
+  calendar: QuestCalendar,
   session: ClientSession
 ): Promise<void> {
 
@@ -18,8 +20,8 @@ export async function updateQuestProgress(
   const metrics = updates.map(u => u.metric);
 
   const matchingTemplates = await getQuestTemplatesByMetricsFromDb(metrics, session);
-  await ensureUserQuestRows(userId, matchingTemplates, session);
-  const userQuests = await getUserQuestsForUserFromDb(userId, session);
+  await ensureUserQuestRows(userId, matchingTemplates, calendar, session);
+  const userQuests = await getUserQuestsForUserFromDb(userId, toLocalDay(calendar.now, calendar.timeZone), session);
 
   for (const update of updates) {
     const templatesForUpdate = matchingTemplates.filter(t => t.metric === update.metric);
@@ -29,7 +31,7 @@ export async function updateQuestProgress(
         continue;
       }
 
-      const { periodStart, periodEnd } = getPeriodForCategory(template.category);
+      const { periodStart, periodEnd } = getPeriodForCategory(template.category, calendar.now, calendar.timeZone);
       const questTemplateId = template._id.toString();
 
       const userQuest = userQuests.find(uq =>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
+import { getBrowserTimeZone } from "@/lib/utils/browser-time-zone";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Rocket } from "lucide-react";
@@ -25,6 +26,7 @@ export default function SignupPage() {
             email,
             password,
             name,
+            timeZone: getBrowserTimeZone(),
             image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
         });
 

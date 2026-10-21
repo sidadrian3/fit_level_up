@@ -22,6 +22,7 @@ export async function logWorkout(
     try {
         workoutObj = await session.withTransaction(async () => {
             const user = await UserStateService.getUser(userId, session);
+            const now = new Date();
             
             const evaluation = evaluateWorkout(input, user.stamina);
             // 3. Persistence
@@ -31,7 +32,7 @@ export async function logWorkout(
                 exercises: evaluation.exercises,
                 duration: input.duration,
                 xpEarned: evaluation.finalXpEarned,
-                date: new Date(),
+                date: now,
                 idempotencyKey: input.idempotencyKey,
             }, session);
 
@@ -39,11 +40,11 @@ export async function logWorkout(
             await updateQuestProgress(userId, {
                 type: "workout_created",
                 xpEarned: workout.xpEarned,
-            }, session);
+            }, { now, timeZone: user.timeZone }, session);
 
             await UserStateService.applyActivity(userId, {
                 xpEarned: workout.xpEarned,
-                activityDate: new Date(workout.date),
+                activityAt: now,
                 staminaCost: evaluation.staminaCost,
                 stats: { incrementWorkouts: 1 }
             }, session);

@@ -1,7 +1,6 @@
 import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
-import { calcNewStreak } from "@/lib/domain/user-rules";
 import { parseObjectId } from "@/lib/data/object-id";
 
 export type UserMongoDoc = {
@@ -21,6 +20,7 @@ export type UserMongoDoc = {
   createdAt: Date;
   stamina: number;
   lastStaminaUpdate: Date;
+  timeZone?: string;
   __v?: number;
 };
 
@@ -44,6 +44,7 @@ export function toUser(doc: UserMongoDoc): User {
     lastActivityDate: lastActivityStr,
     stamina: doc.stamina ?? 100,
     lastStaminaUpdate: doc.lastStaminaUpdate ? new Date(doc.lastStaminaUpdate).toISOString() : new Date().toISOString(),
+    timeZone: doc.timeZone ?? "UTC",
     __v: doc.__v ?? 0,
   };
 }
@@ -56,13 +57,12 @@ export async function getUserFromDb(userId: string, session?: ClientSession): Pr
   return userDoc ? toUser(userDoc) : null;
 }
 
-export async function updateUserStreakInDb(userId: string, currentStreak: number): Promise<void> {
+export async function getUserTimeZoneFromDb(userId: string, session?: ClientSession): Promise<string> {
   const collection = await getCollection<UserMongoDoc>("usersCollection");
 
-  await collection.updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { streak: currentStreak } }
-  );
+  const _id = parseObjectId(userId);
+  const userDoc = _id ? await collection.findOne({ _id }, { session, projection: { timeZone: 1 } }) : null;
+  return userDoc?.timeZone ?? "UTC";
 }
 
 export async function updateUserXPInDb(
@@ -119,25 +119,6 @@ export async function updateUserStatsInDb(
   }
 
   await collection.updateOne({ _id: new ObjectId(userId) }, { $inc: incParams }, { session });
-}
-
-export async function updateUserStreakOnActivity(
-  userId: string,
-  activityDate: string,
-  session?: ClientSession
-): Promise<void> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
-
-  const user = await collection.findOne({ _id: new ObjectId(userId) }, { session });
-  if (!user) return;
-
-  const newStreak = calcNewStreak(user.streak, user.lastActivityDate, activityDate);
-
-  await collection.updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { streak: newStreak, lastActivityDate: new Date(activityDate) } },
-    { session }
-  );
 }
 
 export async function updateUserStaminaInDb(

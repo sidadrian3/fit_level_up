@@ -1,11 +1,11 @@
 import { DomainError } from "./domain-error";
 import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
-import { getTodayDateString, getMondayDateString, getSundayDateString } from "@/lib/utils/dates";
+import { toLocalDay, addDays, startOfWeek } from "@/lib/utils/dates";
 
-export function getPeriodForCategory(category: QuestCategory) {
+export function getPeriodForCategory(category: QuestCategory, now: Date, timeZone: string) {
+  const today = toLocalDay(now, timeZone);
+
   if (category === "daily") {
-    const today = getTodayDateString();
-
     return {
       periodStart: today,
       periodEnd: today,
@@ -13,9 +13,11 @@ export function getPeriodForCategory(category: QuestCategory) {
   }
 
   if (category === "weekly") {
+    const monday = startOfWeek(today);
+
     return {
-      periodStart: getMondayDateString(),
-      periodEnd: getSundayDateString(),
+      periodStart: monday,
+      periodEnd: addDays(monday, 6),
     };
   }
 

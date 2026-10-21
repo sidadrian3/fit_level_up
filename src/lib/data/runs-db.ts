@@ -119,20 +119,15 @@ export async function updateRunInDb(
     return toRun(result);
 }
 
-export async function getTotalDistanceInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
+export async function getTotalDistanceInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {
     const collection = await getCollection<RunDoc>("runsCollection");
-
-    const dateFilter: Record<string, Date> = { $gte: new Date(startDate) };
-    if (endDate) {
-        dateFilter.$lte = new Date(endDate);
-    }
 
     const distanceResult = await collection
         .aggregate([
             {
                 $match: {
                     userId,
-                    date: dateFilter
+                    date: { $gte: from, $lt: toExclusive }
                 }
             },
             {

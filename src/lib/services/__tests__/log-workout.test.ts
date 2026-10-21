@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { logWorkout } from '../workouts/log-workout';
 import { getCollection } from '../../data/get-collection';
 import { UserMongoDoc } from '../../data/user-db';
@@ -33,6 +33,7 @@ describe('logWorkout Integration Test', () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     // Clean up workouts between tests
     const workoutsCol = await getCollection("workoutsCollection");
     await workoutsCol.deleteMany({});
@@ -64,6 +65,27 @@ describe('logWorkout Integration Test', () => {
     expect(user!.totalWorkouts).toBe(1); // incremented
     expect(user!.xp).toBe(workout.xpEarned); // XP granted
     expect(user!.streak).toBe(1); // Streak started
+  });
+
+  it("extends the streak on the user's local day", async () => {
+    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    await usersCol.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { timeZone: "Asia/Manila", streak: 3, lastActivityDate: new Date("2026-10-20T00:00:00Z") } }
+    );
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T23:30:00Z"));
+
+    await logWorkout({
+      title: "Late Lift",
+      duration: 30,
+      exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 100 }],
+      idempotencyKey: crypto.randomUUID(),
+    }, userId);
+
+    const user = await usersCol.findOne({ _id: new ObjectId(userId) });
+    expect(user!.streak).toBe(4);
+    expect(user!.lastActivityDate!.toISOString()).toBe("2026-10-21T00:00:00.000Z");
   });
 
   it('should enforce idempotency and gracefully return existing workout on duplicate requests', async () => {

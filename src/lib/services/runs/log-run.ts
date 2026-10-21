@@ -22,6 +22,7 @@ export async function logRun(
     try {
         runObj = await session.withTransaction(async () => {
             const user = await UserStateService.getUser(userId, session);
+            const now = new Date();
             const evaluation =  evaluateRun(input, user.stamina);
 
             // 3. Persistence
@@ -32,7 +33,7 @@ export async function logRun(
                 pace: evaluation.pace,
                 difficulty: input.difficulty,
                 xpEarned: evaluation.finalXpEarned,
-                date: new Date(),
+                date: now,
                 idempotencyKey: input.idempotencyKey,
             }, session);
 
@@ -41,11 +42,11 @@ export async function logRun(
                 type: "run_created",
                 distance: run.distance,
                 xpEarned: run.xpEarned,
-            }, session);
+            }, { now, timeZone: user.timeZone }, session);
 
             await UserStateService.applyActivity(userId, {
                 xpEarned: run.xpEarned,
-                activityDate: new Date(run.date),
+                activityAt: now,
                 staminaCost: evaluation.staminaCost,
                 stats: { incrementDistance: run.distance }
             }, session);
