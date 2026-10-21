@@ -120,18 +120,18 @@ export async function updateWorkoutInDb(
     return toWorkout(result);
 }
 
-export async function countWorkoutsInRange(userId: string, startDate: string, endDate?: string): Promise<number> {
+export async function countWorkoutsInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {
     const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    return collection.countDocuments({ userId, date: { $gte: from, $lt: toExclusive } });
+}
 
-    const dateFilter: Record<string, Date> = { $gte: new Date(startDate) };
-    if (endDate) {
-        dateFilter.$lte = new Date(endDate);
-    }
-
-    return collection.countDocuments({
-        userId,
-        date: dateFilter
-    });
+export async function getWorkoutDatesInRange(userId: string, from: Date, toExclusive: Date): Promise<Date[]> {
+    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const docs = await collection
+        .find({ userId, date: { $gte: from, $lt: toExclusive } })
+        .project<Pick<WorkoutDoc, "date">>({ date: 1 })
+        .toArray();
+    return docs.map(doc => doc.date);
 }
 
 export async function getWorkoutByIdempotencyKey(userId: string, key: string): Promise<Workout | null> {

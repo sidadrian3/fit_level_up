@@ -10,10 +10,11 @@ import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
-import { getAllWorkoutsFromDb } from "@/lib/data/workout-db";
+import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout-db";
 import { getUserQuests } from "@/lib/services/quests/get-user-quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 import { calcActiveDays } from "@/lib/domain/user-rules";
+import { addDays, startOfLocalDay, startOfWeek, toLocalDay } from "@/lib/utils/dates";
 
 
 export default async function DashboardPage() {
@@ -26,11 +27,20 @@ export default async function DashboardPage() {
             getAllWorkoutsFromDb(userId),
             getUserQuests(userId)
         ]);
-    const stats = await getDashboardStats(userId, user);
+
+    const now = new Date();
+    const weekStart = startOfWeek(toLocalDay(now, user.timeZone));
+    const [stats, weekWorkoutDates] = await Promise.all([
+        getDashboardStats(userId, user),
+        getWorkoutDatesInRange(
+            userId,
+            startOfLocalDay(weekStart, user.timeZone),
+            startOfLocalDay(addDays(weekStart, 7), user.timeZone)
+        ),
+    ]);
 
     const recentWorkouts = allWorkouts.slice(0, 3);
-    const dates = allWorkouts.map(w => w.date);
-    const activeDays = calcActiveDays(dates);
+    const activeDays = calcActiveDays(weekWorkoutDates, now, user.timeZone);
 
     // Filter for daily quests first, then limit to top 5
     const dailyQuests = allQuests.filter(q => q.category === "daily").slice(0, 5);

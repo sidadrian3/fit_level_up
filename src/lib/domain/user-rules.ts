@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "@/lib/config/game-config";
-import { addDays, toLocalDay } from "@/lib/utils/dates";
+import { addDays, startOfWeek, toLocalDay } from "@/lib/utils/dates";
 
 export type LevelUpResult = {
   newXp: number;
@@ -72,30 +72,23 @@ export function calcDisplayStreak(
   return isStreakAlive ? rawStreak : 0;
 }
 
-/** Calculate which days of the current week (Monday-Sunday) the user was active. */
-export function calcActiveDays(dates: string[]): boolean[] {
+/** Which days of the user's current local week (Monday-Sunday) had activity. */
+export function calcActiveDays(activityInstants: Date[], now: Date, timeZone: string): boolean[] {
   const activeDays = [false, false, false, false, false, false, false];
+  const weekStart = startOfWeek(toLocalDay(now, timeZone));
+  const weekEnd = addDays(weekStart, 7);
 
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday
-  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - daysToMonday);
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7);
-
-  dates.forEach(dateStr => {
-    const d = new Date(dateStr);
-    if (d >= startOfWeek && d < endOfWeek) {
-      const day = d.getDay();
-      const index = day === 0 ? 6 : day - 1;
-      activeDays[index] = true;
+  for (const instant of activityInstants) {
+    const day = toLocalDay(instant, timeZone);
+    if (day >= weekStart && day < weekEnd) {
+      activeDays[dayIndexInWeek(weekStart, day)] = true;
     }
-  });
+  }
 
   return activeDays;
+}
+
+function dayIndexInWeek(weekStart: string, day: string): number {
+  return Math.round((Date.parse(day) - Date.parse(weekStart)) / 86_400_000);
 }
 
