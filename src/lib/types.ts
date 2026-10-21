@@ -18,6 +18,7 @@ export interface User {
     lastActivityDate?: DateString;
     stamina: number;
     lastStaminaUpdate: DateString;
+    timeZone: string;
     __v?: number;
 }
 

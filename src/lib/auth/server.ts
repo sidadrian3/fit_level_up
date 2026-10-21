@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { client } from "@/lib/mongodb";
 import { env } from "../../env";
+import { timeZoneSchema } from "@/lib/validations/schemas";
 
 const db = client.db(env.MONGODB_DB);
 
@@ -11,5 +12,15 @@ export const auth = betterAuth({
     }),
     emailAndPassword: {
         enabled: true,
+    },
+    user: {
+        additionalFields: {
+            timeZone: {
+                type: "string",
+                required: false,
+                input: true,
+                validator: { input: timeZoneSchema },
+            },
+        },
     },
 });
