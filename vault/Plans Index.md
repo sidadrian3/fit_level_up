@@ -8,3 +8,4 @@ Index of all implementation plans in this vault.
 - [[Seal Data Bypass Plan]] — extract template creation into a service so the API route can no longer reach the data layer directly
 - [[Vercel Deployment Plan]] — env-level Redis validation and a user-facing SSE reconnect indicator
 - [[Architecture Audit Phase 0 Fix Plan]] — fix-forward of audit findings F-1–F-3, F-5–F-7 and F-12–F-14 before the overhaul
+- [[Per-User Time Zone Plan]] — per-user IANA time zone for streaks, quest periods and the dashboard week (audit F-8, step 0.7)

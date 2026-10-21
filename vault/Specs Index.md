@@ -8,6 +8,7 @@ Index of all design specs in this vault.
 - [[Human Anatomy UI Design Spec]] — interactive muscle model mapped to the `TargetMuscle` enum, with recovery and volume feedback
 - [[UI Overhaul Design Spec]] — the "Modern Athletic" direction: OLED blacks, tight density, structured typography, spring-physics interactions
 - [[Vercel Deployment Design Spec]] — fail-fast env validation for Redis variables and a visible reconnecting state when SSE drops
+- [[Per-User Time Zone Design Spec]] — streaks, quest periods and the dashboard week computed in the user's own IANA time zone (audit F-8)
 
 ## Infra / Meta
 
