@@ -47,9 +47,22 @@ architecture_audit.md
 
 # AI agent configurations
 AGENT_GUIDE.md
-CLAUDE.md
 codebase_audit.md
 security_and_production_readiness.md
 workout_templates_anatomy.md
 MISSION.md
-.agents/
+
+# agent skills / config (local tooling, not project code)
+/.agents
+/.claude
+
+# learn-* skill logs (personal, not project code)
+/learning
+
+# Obsidian local session state (churns every open; not vault content)
+/vault/.obsidian/workspace.json
+
+# Playwright MCP scratch output (screenshots, snapshots, console logs)
+.playwright-mcp/
+
+.superpowers/
