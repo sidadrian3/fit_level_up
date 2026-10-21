@@ -234,7 +234,7 @@ POST /api/workouts
 - **Pure Data Mappers:** Ensuring data mappers (like `toUser`) are strictly dumb type translators. Dynamic state assembly (like calculating stamina recovery or zeroing a broken streak) is properly encapsulated behind the `UserStateService` boundary rather than leaking into the data layer.
 - **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.
 - **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
-- **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`) and standardized all 19 API routes to use a centralized `handleApiError` utility, ensuring consistent HTTP status codes across the app.
+- **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, plus `DomainError` from the domain rules) and standardized all 19 API routes to use a centralized `handleApiError` utility, ensuring consistent HTTP status codes across the app.
 
 ### Why was it built this way?
 
