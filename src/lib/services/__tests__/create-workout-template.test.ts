@@ -1,47 +1,59 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import crypto from "crypto";
 import { createWorkoutTemplate } from "../workout-templates/create-workout-template";
-import * as workoutTemplatesDb from "@/lib/data/workout-templates-db";
+import { getCollection } from "@/lib/data/get-collection";
+import { ensureIndexes } from "@/lib/data/ensure-indexes";
 import { TargetMuscle } from "@/lib/types";
 
-vi.mock("@/lib/data/workout-templates-db", () => ({
-    createWorkoutTemplateInDb: vi.fn(),
-}));
+const userId = "template-service-user";
 
-describe("createWorkoutTemplate Service", () => {
-    it("should generate a createdAt timestamp and delegate to the DB adapter", async () => {
-        const mockInput = {
-            name: "Upper Body Power",
-            idempotencyKey: "test-idemp-123",
-            exercises: [
-                {
-                    name: "Bench Press",
-                    targetMuscle: TargetMuscle.Chest,
-                    sets: 3,
-                    reps: 5,
-                    weight: 225
-                }
-            ]
-        };
-        const userId = "test-user-123";
+function buildInput(idempotencyKey: string = crypto.randomUUID()) {
+    return {
+        name: "Upper Body Power",
+        idempotencyKey,
+        exercises: [
+            { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 3, reps: 5, weight: 225 }
+        ],
+    };
+}
 
-        // Mock DB return
-        vi.mocked(workoutTemplatesDb.createWorkoutTemplateInDb).mockResolvedValue({
-            id: "fake-id",
-            userId,
-            ...mockInput,
-            createdAt: new Date().toISOString()
-        });
+describe("createWorkoutTemplate Integration Test", () => {
+    beforeAll(async () => {
+        await ensureIndexes();
+    });
 
-        const result = await createWorkoutTemplate(mockInput, userId);
+    afterEach(async () => {
+        await (await getCollection("workoutTemplatesCollection")).deleteMany({ userId });
+    });
 
-        expect(workoutTemplatesDb.createWorkoutTemplateInDb).toHaveBeenCalledTimes(1);
-        
-        const callArgs = vi.mocked(workoutTemplatesDb.createWorkoutTemplateInDb).mock.calls[0][0];
-        expect(callArgs.userId).toBe(userId);
-        expect(callArgs.name).toBe("Upper Body Power");
-        expect(callArgs.idempotencyKey).toBe("test-idemp-123");
-        expect(callArgs.createdAt).toBeDefined();
-        
-        expect(result.name).toBe("Upper Body Power");
+    it("persists the template with a generated createdAt", async () => {
+        const template = await createWorkoutTemplate(buildInput(), userId);
+
+        expect(template.id).toBeDefined();
+        expect(template.userId).toBe(userId);
+        expect(template.name).toBe("Upper Body Power");
+        expect(Number.isNaN(Date.parse(template.createdAt))).toBe(false);
+    });
+
+    it("returns the existing template when the same idempotency key is retried", async () => {
+        const input = buildInput();
+
+        const first = await createWorkoutTemplate(input, userId);
+        const retry = await createWorkoutTemplate(input, userId);
+
+        expect(retry.id).toBe(first.id);
+        expect(await (await getCollection("workoutTemplatesCollection")).countDocuments({ userId })).toBe(1);
+    });
+
+    it("resolves racing retries to one row without an error", async () => {
+        const input = buildInput();
+
+        const [a, b] = await Promise.all([
+            createWorkoutTemplate(input, userId),
+            createWorkoutTemplate(input, userId),
+        ]);
+
+        expect(a.id).toBe(b.id);
+        expect(await (await getCollection("workoutTemplatesCollection")).countDocuments({ userId })).toBe(1);
     });
 });

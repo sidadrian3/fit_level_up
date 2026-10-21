@@ -4,4 +4,4 @@ Index of completed agentic-workflow pipeline runs in this vault. Each line reads
 
 ## FitLevelUp
 
-No pipeline runs logged yet.
+- [[Architecture Audit Phase 0 Fix]] [quests, achievements, friends, exercises, templates, auth, database, infra] — audit steps 0.1–0.6 fixed in one PR (4xx mapping, id guards, route security, unique keys, quest sync, friend re-request), fix, agentic

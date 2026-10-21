@@ -1,5 +1,7 @@
 import { WorkoutTemplateSchema } from "@/lib/validations/schemas";
-import { createWorkoutTemplateInDb } from "@/lib/data/workout-templates-db";
+import { createWorkoutTemplateInDb, getWorkoutTemplateByIdempotencyKeyFromDb } from "@/lib/data/workout-templates-db";
+import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
+import { ConflictError } from "@/lib/api/errors";
 import { z } from "zod";
 import type { WorkoutTemplate } from "@/lib/types";
 
@@ -7,12 +9,19 @@ export async function createWorkoutTemplate(
     input: z.infer<typeof WorkoutTemplateSchema>,
     userId: string
 ): Promise<WorkoutTemplate>{
-    const template = await createWorkoutTemplateInDb({
-        userId,
-        name: input.name,
-        exercises: input.exercises,
-        idempotencyKey: input.idempotencyKey,
-        createdAt: new Date().toISOString(),
-    });
-    return template;
+    try {
+        return await createWorkoutTemplateInDb({
+            userId,
+            name: input.name,
+            exercises: input.exercises,
+            idempotencyKey: input.idempotencyKey,
+            createdAt: new Date().toISOString(),
+        });
+    } catch (error: unknown) {
+        if (!isDuplicateKeyError(error, "idempotencyKey")) throw error;
+
+        const existing = await getWorkoutTemplateByIdempotencyKeyFromDb(userId, input.idempotencyKey);
+        if (existing) return existing;
+        throw new ConflictError("This template was already created.");
+    }
 }

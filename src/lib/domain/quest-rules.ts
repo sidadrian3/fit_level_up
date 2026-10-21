@@ -1,3 +1,4 @@
+import { DomainError } from "./domain-error";
 import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
 import { getTodayDateString, getMondayDateString, getSundayDateString } from "@/lib/utils/dates";
 
@@ -30,11 +31,11 @@ export function calcNextProgress(currentProgress: number, amountToAdd: number, t
 
 export function validateQuestClaim(quest: { completed: boolean; claimed: boolean }): void {
   if (!quest.completed) {
-    throw new Error("Quest is not completed");
+    throw new DomainError("invalid", "Quest is not completed");
   }
 
   if (quest.claimed) {
-    throw new Error("Quest already claimed");
+    throw new DomainError("conflict", "Quest already claimed");
   }
 }
 

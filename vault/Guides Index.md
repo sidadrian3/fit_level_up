@@ -19,4 +19,4 @@ Index of study guides — walkthroughs of already-built parts of the system, for
 ## Audits and open issues
 
 - [[Architecture Overhaul Audit]] — current system design, data model and defects, each approach weighed on its merits against apartment-system and alternatives neither uses, with the decisions the overhaul needs
-- [[Known Issues]] — two open problems found while documenting the code: an unprotected `/templates` page and a cron route that is open when `CRON_SECRET` is unset
+- [[Known Issues]] — open problems found while documenting the code; currently a declined friend request can be re-sent without limit

@@ -2,6 +2,7 @@ import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
 import { calcNewStreak } from "@/lib/domain/user-rules";
+import { parseObjectId } from "@/lib/data/object-id";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
@@ -47,14 +48,12 @@ export function toUser(doc: UserMongoDoc): User {
   };
 }
 
-export async function getUserFromDb(userId: string, session?: ClientSession): Promise<User> {
+export async function getUserFromDb(userId: string, session?: ClientSession): Promise<User | null> {
   const collection = await getCollection<UserMongoDoc>("usersCollection");
 
-  const userDoc = await collection.findOne({ _id: new ObjectId(userId) }, { session });
-  if (!userDoc) {
-    throw new Error("User not found");
-  }
-  return toUser(userDoc);
+  const _id = parseObjectId(userId);
+  const userDoc = _id ? await collection.findOne({ _id }, { session }) : null;
+  return userDoc ? toUser(userDoc) : null;
 }
 
 export async function updateUserStreakInDb(userId: string, currentStreak: number): Promise<void> {

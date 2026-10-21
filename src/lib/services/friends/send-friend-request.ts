@@ -1,7 +1,8 @@
 import type { Friendship } from "@/lib/types";
 import { validateFriendRequest } from "@/lib/domain/friend-rules";
 import { UserStateService } from "@/lib/services/users/user-state.service";
-import { getFriendshipBetweenFromDb, insertFriendshipInDb } from "@/lib/data/friendships-db";
+import { reopenOrInsertFriendRequestInDb } from "@/lib/data/friendships-db";
+import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
 import { publishToUser } from "@/lib/sse/sse-publisher";
 import { after } from "next/server";
 import { NotFoundError, ConflictError } from "@/lib/api/errors";
@@ -20,25 +21,13 @@ export async function sendFriendRequest(requesterId: string, receiverId: string)
         throw new NotFoundError("Requester not found.");
     }
 
-    const existing = await getFriendshipBetweenFromDb(receiverId, requesterId);
-    if (existing && existing.status !== "declined") {
-        throw new ConflictError("Friend request already sent.");
-    }
-
     let friendshipObj: Friendship;
     try {
-        friendshipObj = await insertFriendshipInDb({
-            requesterId,
-            receiverId,
-            status: "pending",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        });
+        friendshipObj = await reopenOrInsertFriendRequestInDb(requesterId, receiverId, new Date());
     } catch (error: unknown) {
-        const err = error as { code?: number; keyPattern?: { requesterId?: string } };
-        if (err.code === 11000 && err.keyPattern?.requesterId) {
-            console.log("Duplicate friend request ignored safely.");
-            throw new ConflictError("This friend request was already sent.");
+        // Same-direction repeats trip the older (requesterId, receiverId) index before pairKey
+        if (isDuplicateKeyError(error, "pairKey") || isDuplicateKeyError(error, "requesterId")) {
+            throw new ConflictError("Friend request already sent.");
         }
         throw error;
     }

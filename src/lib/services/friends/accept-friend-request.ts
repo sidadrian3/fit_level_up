@@ -3,7 +3,7 @@ import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/da
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { publishToUser } from "@/lib/sse/sse-publisher";
 import { after } from "next/server";
-import { NotFoundError, ConflictError, UnauthorizedError } from "@/lib/api/errors";
+import { NotFoundError, ConflictError, ForbiddenError } from "@/lib/api/errors";
 
 
 export async function acceptFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {
@@ -20,7 +20,7 @@ export async function acceptFriendRequest(targetUserId: string, userId: string):
 
     // 3. Authorize (only the receiver can accept)
     if (friendship.receiverId !== userId) {
-        throw new UnauthorizedError("Not authorized to respond to this request.");
+        throw new ForbiddenError("Not authorized to respond to this request.");
     }
 
     // 4. Update status in database using the fetched friendship's ID

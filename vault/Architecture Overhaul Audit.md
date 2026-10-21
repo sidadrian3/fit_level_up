@@ -2,6 +2,8 @@
 
 An audit of FitLevelUp's current system design, data model and code layout, compared with the `apartment-system` project. Written 2026-10-20 on branch `chore/agent-workflow-setup` (all 99 tests passing, 19 files).
 
+**Status (2026-10-21):** Phase 0 steps 0.1–0.6 are done on branch `fix/architecture-audit-phase-0` (126 tests passing, 27 files). Step 0.7 (per-user time zone, F-8) and F-4 stay open by design. §1–§3 describe the system as audited; §4 marks the findings Phase 0 fixed, and §8.2 carries each step's status. See [[Architecture Audit Phase 0 Fix Plan]] and [[Architecture Audit Phase 0 Fix]].
+
 apartment-system is a **comparison point, not a template**. Each project solves some problems better than the other, and some problems neither solves well. Every choice in §5 and §6 is judged on what it does for FitLevelUp, never on which project already does it.
 
 It has three jobs:
@@ -120,7 +122,7 @@ The four documented layers hold up well in the write paths (`logWorkout`, `logRu
 4. **Derived values are stored.** `xpToNextLevel` is always `level × 500`, and `pace` is always `duration / distance`. Storing them invites drift if `GAME_CONFIG` changes. Compute them, or snapshot them deliberately (apartment's "snapshot" pattern) and say so.
 5. **Embedded exercises block queries.** Personal records, the muscle heatmap and "beat your ghost" all need "max weight per exercise" or "volume per muscle", which today means loading every workout into memory (F-9). An exercise-set table (or at least an indexed `exercises.name` path) turns these into one aggregate query.
 6. **Two concurrency controls on one row.** User updates use both a Mongo transaction *and* an `__v` optimistic-lock retry loop, implemented twice (`UserStateService.applyActivity` and `grantUserXP`). One mechanism is enough. In Postgres an atomic `UPDATE … SET xp = xp + $1` or a row lock replaces both.
-7. **Missing uniqueness guarantees** (detail in F-5): `user_achievements (userId, achievementId)`, `customExercises (userId, name, targetMuscle)`, and friendships per *unordered* pair.
+7. **Missing uniqueness guarantees** *(fixed in Phase 0)* (detail in F-5): `user_achievements (userId, achievementId)`, `customExercises (userId, name, targetMuscle)`, and friendships per *unordered* pair.
 8. **Sentinel strings in date fields.** `"all-time"` in `periodStart`/`periodEnd` only works because `"a" > "2"` in string comparison. Use a nullable period or a separate `category`-driven rule.
 9. **Collection names are configurable but inconsistent.** `env.ts` defaults `MONGODB_CUSTOM_EXERCISES_COLLECTION` to `customExercises` while `db-config.ts` falls back to `custom_exercises`, and `usersCollection` is hard-coded to `"user"`. Ten env vars exist for collection names that never vary by environment.
 10. **No XP history.** There is no record of *why* a user has their XP. A small `xp_ledger` (source type, source id, amount) would make reversals on delete exact, make achievements and lifetime XP queryable, and give the activity feed something to read.
@@ -129,25 +131,25 @@ The four documented layers hold up well in the write paths (`logWorkout`, `logRu
 
 ## 4. Findings
 
-Ranked most severe first. "F-n" ids are referenced from §5.
+Ranked most severe first. "F-n" ids are referenced from §5. Findings marked *Fixed* were resolved in Phase 0; their text describes the defect as audited.
 
 ### Correctness
 
-**F-1. Domain validation errors return 500.** Domain rules throw plain `Error`, which `handleApiError` treats as unhandled. Claiming an incomplete quest (`quest-rules.ts:33`), sending a friend request to yourself (`friend-rules.ts:7`) and an empty workout title after trimming (`workout-rules.ts:8`) all reach the user as `500 Internal Server Error` and are logged as crashes. The same is true of `user-db.ts:55` ("User not found") and of the optimistic-lock exhaustion errors.
+**F-1. Domain validation errors return 500.** *Fixed in step 0.1: a pure `DomainError` in `lib/domain` (mapped to 400 or 409 by `handleApiError`) and `NotFoundError` for a missing user.* Domain rules throw plain `Error`, which `handleApiError` treats as unhandled. Claiming an incomplete quest (`quest-rules.ts:33`), sending a friend request to yourself (`friend-rules.ts:7`) and an empty workout title after trimming (`workout-rules.ts:8`) all reach the user as `500 Internal Server Error` and are logged as crashes. The same is true of `user-db.ts:55` ("User not found") and of the optimistic-lock exhaustion errors.
 
-**F-2. Invalid ids return 500.** `new ObjectId(id)` throws on malformed input in `quests-db.ts:78,114,163,179` and `workout-templates-db.ts:54`, so `POST /api/quests/abc/claim` and `DELETE /api/workout-templates/abc` crash instead of returning 404. Workouts, runs and friendships guard with `ObjectId.isValid`. Quests and templates do not.
+**F-2. Invalid ids return 500.** *Fixed in step 0.2: `parseObjectId` guards every by-id lookup.* `new ObjectId(id)` throws on malformed input in `quests-db.ts:78,114,163,179` and `workout-templates-db.ts:54`, so `POST /api/quests/abc/claim` and `DELETE /api/workout-templates/abc` crash instead of returning 404. Workouts, runs and friendships guard with `ObjectId.isValid`. Quests and templates do not.
 
-**F-3. The quest-sync cooldown never works.** `get-user-quests.ts:7` creates the `syncCooldowns` map *inside* the function, so it is always empty and every `GET /api/quests` (and every dashboard render) runs a full `bulkWrite` upsert.
+**F-3. The quest-sync cooldown never works.** *Fixed in step 0.5: the cooldown is removed; the sync is an idempotent upsert.* `get-user-quests.ts:7` creates the `syncCooldowns` map *inside* the function, so it is always empty and every `GET /api/quests` (and every dashboard render) runs a full `bulkWrite` upsert.
 
-**F-4. Editing or deleting an activity doesn't reconcile game state.** `updateWorkout`/`updateRun` recompute `xpEarned` on the activity but never adjust the user's XP, level, totals or quest progress; deletes go straight to `*-db.ts` from the route. A user can log a 300-minute workout, collect the XP and level-up, then edit it to 1 minute or delete it and keep everything.
+**F-4. Editing or deleting an activity doesn't reconcile game state.** *Open by design: step 3.5.* `updateWorkout`/`updateRun` recompute `xpEarned` on the activity but never adjust the user's XP, level, totals or quest progress; deletes go straight to `*-db.ts` from the route. A user can log a 300-minute workout, collect the XP and level-up, then edit it to 1 minute or delete it and keep everything.
 
-**F-5. Duplicate rows are possible under concurrency.** `evaluateAchievements` can run twice at once (the `after()` fast path and the cron sweep, or two quick activities). With only a non-unique index on `user_achievements.userId` (`ensure-indexes.ts:47`), both inserts succeed and `totalAchievements` counts twice. `createCustomExercise` has the same read-then-insert race with no unique index (`ensure-indexes.ts:74`). `createWorkoutTemplateInDb` checks then inserts, so a racing retry gets a raw duplicate-key 500.
+**F-5. Duplicate rows are possible under concurrency.** *Fixed in step 0.4: unique indexes, upserting unlocks and duplicate-key recovery, with a pre-index cleanup in `prepare-unique-indexes.ts`.* `evaluateAchievements` can run twice at once (the `after()` fast path and the cron sweep, or two quick activities). With only a non-unique index on `user_achievements.userId` (`ensure-indexes.ts:47`), both inserts succeed and `totalAchievements` counts twice. `createCustomExercise` has the same read-then-insert race with no unique index (`ensure-indexes.ts:74`). `createWorkoutTemplateInDb` checks then inserts, so a racing retry gets a raw duplicate-key 500.
 
-**F-6. Quest progress is lost if quests weren't synced this period.** `updateQuestProgress` only updates `user_quests` rows that already exist. Rows are created by `syncUserQuests`, which runs when the quests page or dashboard is viewed. A user who logs a workout on Monday before opening the app gets no weekly-quest credit for it. The reads in `updateQuestProgress` also don't pass the transaction `session`.
+**F-6. Quest progress is lost if quests weren't synced this period.** *Fixed in step 0.5: `updateQuestProgress` upserts the period's rows inside the transaction and requires the session.* `updateQuestProgress` only updates `user_quests` rows that already exist. Rows are created by `syncUserQuests`, which runs when the quests page or dashboard is viewed. A user who logs a workout on Monday before opening the app gets no weekly-quest credit for it. The reads in `updateQuestProgress` also don't pass the transaction `session`.
 
-**F-7. Re-sending a declined friend request fails.** The unique index is on `(requesterId, receiverId)`. After A→B is declined, the service allows a new A→B request, but the insert hits the unique index and returns "already sent". If B later requests A, a second document is created for the same pair.
+**F-7. Re-sending a declined friend request fails.** *Fixed in step 0.6: one document per pair keyed by `pairKey`; a decline can be reopened. Unlimited re-sending is now in [[Known Issues]].* The unique index is on `(requesterId, receiverId)`. After A→B is declined, the service allows a new A→B request, but the insert hits the unique index and returns "already sent". If B later requests A, a second document is created for the same pair.
 
-**F-8. Dates are computed in UTC, with local-time mixing.** Streaks, quest periods and "this week" use `toISOString().slice(0, 10)` (UTC). `getMondayDateString` mixes local `getDay()` with UTC formatting. For a user in the Philippines (UTC+8), a 7 AM workout counts toward *yesterday*, which can break a streak. apartment-system solved the same problem with property-level date helpers (`billing/utils/property-date.ts`). FitLevelUp needs a per-user time zone.
+**F-8. Dates are computed in UTC, with local-time mixing.** *Open: step 0.7.* Streaks, quest periods and "this week" use `toISOString().slice(0, 10)` (UTC). `getMondayDateString` mixes local `getDay()` with UTC formatting. For a user in the Philippines (UTC+8), a 7 AM workout counts toward *yesterday*, which can break a streak. apartment-system solved the same problem with property-level date helpers (`billing/utils/property-date.ts`). FitLevelUp needs a per-user time zone.
 
 ### Performance
 
@@ -163,11 +165,11 @@ Ranked most severe first. "F-n" ids are referenced from §5.
 
 **F-11. Rate limiting is partial and too coarse.** One limiter (20 requests/hour, `rate-limit.ts:6`) is shared by every rate-limited mutation, so a heavy training day plus a few friend actions locks a user out. Several mutations aren't limited at all: `POST /api/exercises`, `POST/DELETE /api/workout-templates`, `POST /api/quests/[id]/claim`, `PUT/DELETE /api/workouts/[id]`, `PUT/DELETE /api/runs/[id]`.
 
-**F-12. One route skips validation.** `POST /api/exercises` (`exercises/route.ts:21`) passes `name` and `targetMuscle` from the raw body into the service. A non-string `name` throws inside `formatExerciseName` (500), and any string is accepted as `targetMuscle`. This breaks the repo's own "every route validates with Zod" rule.
+**F-12. One route skips validation.** *Fixed in step 0.3.* `POST /api/exercises` (`exercises/route.ts:21`) passes `name` and `targetMuscle` from the raw body into the service. A non-string `name` throws inside `formatExerciseName` (500), and any string is accepted as `targetMuscle`. This breaks the repo's own "every route validates with Zod" rule.
 
-**F-13. Wrong status for forbidden actions.** Accepting someone else's request returns `401 Unauthorized` (`accept-friend-request.ts:23`, `decline-…:19`, `remove-friend.ts:12`). It should be `403`, and there is no `ForbiddenError` class.
+**F-13. Wrong status for forbidden actions.** *Fixed in step 0.1: `ForbiddenError` (403).* Accepting someone else's request returns `401 Unauthorized` (`accept-friend-request.ts:23`, `decline-…:19`, `remove-friend.ts:12`). It should be `403`, and there is no `ForbiddenError` class.
 
-**F-14. Already tracked in [[Known Issues]]:** `/templates` isn't in `protectedRoutes`, and the cron route is open when `CRON_SECRET` is unset (`CRON_SECRET` is read from `process.env`, not `env.ts`).
+**F-14. `/templates` was not in `protectedRoutes`, and the cron route was open when `CRON_SECRET` was unset.** *Fixed in step 0.3: `CRON_SECRET` is required in `env.ts`, the cron route always checks the bearer token, and `vercel.json` schedules the sweep.*
 
 ### Structure and maintainability
 
@@ -343,7 +345,7 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 |---|---|
 | New `player_profiles` collection keyed by the better-auth user id; game state leaves better-auth's `user` document | §3.2 #1 |
 | Store `userId` as the same type everywhere (string), and route every by-id lookup through `UserScopedRepository` | §3.2 #2, F-2 |
-| Unique indexes: `user_achievements (userId, achievementId)`, `custom_exercises (userId, nameLower, targetMuscle)`, `friendships (pairKey)` where `pairKey` is the sorted pair | F-5, F-7 |
+| Unique indexes. Done in Phase 0: `user_achievements (userId, achievementId)`, `custom_exercises (userId, name, targetMuscle)` on the canonical formatted name, `friendships (pairKey)` (the two ids sorted and joined with `:`), and `user_quests (userId, questTemplateId, periodStart, periodEnd)`. Step 2.1 moves them into `schema.ts` | F-5, F-7 |
 | `xp_ledger` collection (`userId`, `sourceType`, `sourceId`, `amount`), unique `(sourceType, sourceId)`; profile XP, level and totals recomputed from it on edit/delete (§5.3) | F-4, F-15, §3.2 #10 |
 | `outbox` collection (`type`, `payload`, `createdAt`, `processedAt`), index on unprocessed | F-16, durable side effects (§5.3) |
 | Quest and achievement definitions move to typed constants in code; `quest_templates` and `achievements` collections retire | Seed drift, F-2 on template ids (§5.3) |
@@ -374,7 +376,7 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 | 5 | Quest progress | **In the transaction**, as today |
 | 6 | UI kit | **Keep Modern Athletic** primitives |
 | 7 | Sequencing | **Strangler migration**: build `server/platform/` first, then move one module at a time behind the existing UI |
-| 8 | Existing defects | **Fix forward**: fix F-1 to F-8 on the current code before the migration starts |
+| 8 | Existing defects | **Fix forward**: fix F-1 to F-8 on the current code before the migration starts. Done for F-1 to F-3, F-5 to F-7 and F-12 to F-14 (Phase 0); F-8 is step 0.7 |
 
 ### 7.2 Still open (for the design spec)
 
@@ -407,34 +409,45 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 
 ### 8.2 Steps at a glance
 
-| Step | Pipeline | Delivers | Fixes | Depends on |
-|---|---|---|---|---|
-| **0.1** | `/fix` | Domain and authorization errors map to 4xx | F-1, F-13 | — |
-| **0.2** | `/fix` | Malformed ids return 404 | F-2 | — |
-| **0.3** | `/fix` | Security quick fixes | F-12, F-14 | — |
-| **0.4** | `/fix` | Unique keys for achievements, custom exercises, templates | F-5 | — |
-| **0.5** | `/fix` | Quest sync cooldown and guaranteed sync before progress | F-3, F-6 | — |
-| **0.6** | `/fix` | Friend re-request after decline | F-7 | — |
-| **0.7** | `/feature` | Per-user time zone for streaks and quest periods | F-8 | 0.5 |
-| **1.1** | `/feature` | Architecture Overhaul Design Spec (spec only) | §7.2 | Phase 0 |
-| **2.1** | `/refactor` | `server/platform/` skeleton, `schema.ts`, boundary tooling | §3.2 #9 | 1.1 |
-| **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated | F-12 by construction | 2.1 |
-| **2.3** | `/feature` | Per-user, per-route rate-limit tiers | F-11 | 2.2 |
-| **2.4** | `/feature` | `Idempotency-Key` header replaces body sniffing | F-20 | 2.2 |
-| **2.5** | `/feature` | Transactional outbox + typed event bus | F-16 (infra) | 2.2, 1.1 |
-| **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path, no `__v` | F-15, §3.2 #1 #4 #6 | 2.5 |
-| **3.2** | `/refactor` | Quest and achievement definitions as typed constants | §5.3 | 2.1 |
-| **3.3** | `/refactor` | `quests` module | F-17 (quests) | 3.1, 3.2 |
-| **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records) | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3 |
-| **3.5** | `/feature` | XP ledger; edit and delete reconcile XP, level, totals, quests | **F-4**, §3.2 #3 #10 | 3.4 |
-| **3.6** | `/refactor` | `achievements` module as an outbox listener | F-5 (finish), F-16 | 3.4, 2.5 |
-| **3.7** | `/refactor` | `social` module, transition table, no N+1 | F-9 (friends), F-16 | 2.5 |
-| **3.8** | `/feature` | `notification` module: inbox + real-time delivery | F-10, F-18 (SSE) | 3.6, 3.7 |
-| **4.1** | `/refactor` | `lib/<domain>/hooks` own query keys and invalidation (one PR per domain) | F-19 | Phase 3 |
-| **4.2** | `/refactor` | Page `_components/`, `WorkoutForm` split, shared custom-exercise hook | F-19 | 4.1 |
-| **5.1** | `/refactor` | Delete old `lib/` back-end folders and dead code; sync `AGENTS.md` and vault guides | F-18 | 4.2 |
+| Step | Pipeline | Delivers | Fixes | Depends on | Status |
+|---|---|---|---|---|---|
+| **0.1** | `/fix` | Domain and authorization errors map to 4xx | F-1, F-13 | — | Done |
+| **0.2** | `/fix` | Malformed ids return 404 | F-2 | — | Done |
+| **0.3** | `/fix` | Security quick fixes | F-12, F-14 | — | Done |
+| **0.4** | `/fix` | Unique keys for achievements, custom exercises, templates | F-5 | — | Done |
+| **0.5** | `/fix` | Quest sync cooldown and guaranteed sync before progress | F-3, F-6 | — | Done |
+| **0.6** | `/fix` | Friend re-request after decline | F-7 | — | Done |
+| **0.7** | `/feature` | Per-user time zone for streaks and quest periods | F-8 | 0.5 | Open |
+| **1.1** | `/feature` | Architecture Overhaul Design Spec (spec only) | §7.2 | Phase 0 | Open |
+| **2.1** | `/refactor` | `server/platform/` skeleton, `schema.ts`, boundary tooling | §3.2 #9 | 1.1 | Open |
+| **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated | F-12 by construction | 2.1 | Open |
+| **2.3** | `/feature` | Per-user, per-route rate-limit tiers | F-11 | 2.2 | Open |
+| **2.4** | `/feature` | `Idempotency-Key` header replaces body sniffing | F-20 | 2.2 | Open |
+| **2.5** | `/feature` | Transactional outbox + typed event bus | F-16 (infra) | 2.2, 1.1 | Open |
+| **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path, no `__v` | F-15, §3.2 #1 #4 #6 | 2.5 | Open |
+| **3.2** | `/refactor` | Quest and achievement definitions as typed constants | §5.3 | 2.1 | Open |
+| **3.3** | `/refactor` | `quests` module | F-17 (quests) | 3.1, 3.2 | Open |
+| **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records) | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3 | Open |
+| **3.5** | `/feature` | XP ledger; edit and delete reconcile XP, level, totals, quests | **F-4**, §3.2 #3 #10 | 3.4 | Open |
+| **3.6** | `/refactor` | `achievements` module as an outbox listener | F-5 (finish), F-16 | 3.4, 2.5 | Open |
+| **3.7** | `/refactor` | `social` module, transition table, no N+1 | F-9 (friends), F-16 | 2.5 | Open |
+| **3.8** | `/feature` | `notification` module: inbox + real-time delivery | F-10, F-18 (SSE) | 3.6, 3.7 | Open |
+| **4.1** | `/refactor` | `lib/<domain>/hooks` own query keys and invalidation (one PR per domain) | F-19 | Phase 3 | Open |
+| **4.2** | `/refactor` | Page `_components/`, `WorkoutForm` split, shared custom-exercise hook | F-19 | 4.1 | Open |
+| **5.1** | `/refactor` | Delete old `lib/` back-end folders and dead code; sync `AGENTS.md` and vault guides | F-18 | 4.2 | Open |
 
-Steps 0.1–0.6 are independent and can run in any order. 3.2 can run any time after 2.1. 3.7 can run in parallel with 3.3–3.6.
+Steps 0.1–0.6 were independent and shipped together in one PR. 3.2 can run any time after 2.1. 3.7 can run in parallel with 3.3–3.6.
+
+**Carry-over from Phase 0 into later steps**
+
+- **1.1 and 2.1:** `user_quests` gained a unique index (a migration step not in the original plan), because quest rows are now also created from the write path. Move all four unique indexes into `schema.ts`, and keep `prepare-unique-indexes.ts` (or its successor) running before them.
+- **2.1:** drop the older `(requesterId, receiverId)` friendship index, and remove the matching `requesterId` branch in `sendFriendRequest`, which exists only because that index fires before `pairKey`. Drop the now-redundant `userId`-only indexes on `user_achievements` and `custom_exercises` at the same time.
+- **2.2:** `DomainError` and `ForbiddenError` already exist, so `defineRoute` only needs to map them. `parseObjectId` and `isDuplicateKeyError` (in `lib/data`) move into `platform/database` with the other Mongo helpers.
+- **2.3:** the new rate limit on `POST /api/exercises` hand-formats its 429 like the other routes; the tiers step replaces all of them. The cron bearer comparison is not constant-time.
+- **3.1:** `getUserFromDb` now returns `null` and `UserStateService` throws `NotFoundError`; keep the data layer free of `lib/api` imports.
+- **3.3:** `updateQuestProgress` already requires a session and upserts the period's rows through `ensureUserQuestRows`; the quests module keeps both properties.
+- **3.6:** the unique `(userId, achievementId)` key and the upsert in `insertUserAchievements` already exist.
+- **Known Issues:** a declined friend request can be re-sent without limit; settle it with the `social` module (3.7).
 
 ### 8.3 Kickoff prompts
 
@@ -442,69 +455,7 @@ Paste a prompt as-is to start its step. Each one names the audit section to read
 
 #### Phase 0 — Fix forward on the current code
 
-**0.1 Domain and authorization errors**
-```
-/fix Domain validation errors return 500, and forbidden friend actions return 401
-
-Read vault/Architecture Overhaul Audit.md §4 F-1 and F-13 first.
-Problem: domain rules (quest-rules.ts, friend-rules.ts, workout-rules.ts, run-rules.ts) and user-db.ts throw plain Error, which handleApiError turns into a logged 500. Accepting, declining or removing another user's friendship throws UnauthorizedError (401) instead of 403.
-Expected: a DomainError (or the right AppError subclass) for every rule violation, mapped to 400/404/409; a new ForbiddenError (403) for the friend services; "User not found" becomes 404. Domain files stay pure (no imports from lib/api if that breaks the layer rule: map at the service boundary instead).
-Done when: route/service tests prove claiming an incomplete quest → 400, self friend request → 400, accepting someone else's request → 403, and no rule violation is logged as "[Unhandled API Error]".
-```
-
-**0.2 Malformed ids**
-```
-/fix Malformed ids crash with 500 instead of returning 404
-
-Read vault/Architecture Overhaul Audit.md §4 F-2 first.
-Problem: new ObjectId(id) throws on malformed input in quests-db.ts (getQuestTemplateByIdFromDb, getUserQuestByIdFromDb, updateUserQuestProgressInDb, markUserQuestClaimedInDb) and workout-templates-db.ts (deleteWorkoutTemplateFromDb). POST /api/quests/abc/claim and DELETE /api/workout-templates/abc return 500.
-Expected: the same ObjectId.isValid guard the workout and run modules use, so these routes return 404. Extract the guard once rather than copying it (it has more than two callers).
-Done when: route tests for both endpoints with id "abc" return 404.
-```
-
-**0.3 Security quick fixes**
-```
-/fix Three security gaps: unvalidated exercise route, unprotected /templates, open cron route
-
-Read vault/Architecture Overhaul Audit.md §4 F-12 and F-14 and vault/checklist/Known Issues.md first.
-Problems:
-1. POST /api/exercises passes the raw body into createCustomExercise with no Zod schema and no rate limit.
-2. /templates is missing from protectedRoutes in src/proxy.ts.
-3. /api/cron/achievements-sweep is open when CRON_SECRET is unset; CRON_SECRET is not in src/env.ts.
-Expected: a CreateCustomExerciseSchema in schemas.ts (name trimmed, 1–100 chars; targetMuscle as the TargetMuscle enum) and the existing RateLimit on the route; /templates added to protectedRoutes; CRON_SECRET required in env.ts and every request without the matching bearer token rejected with 401.
-Done when: route tests cover an invalid exercise body (400) and the cron route without a token (401); Known Issues.md has both sections removed.
-```
-
-**0.4 Duplicate rows under concurrency**
-```
-/fix Concurrent requests can create duplicate achievements, custom exercises and templates
-
-Read vault/Architecture Overhaul Audit.md §4 F-5 first.
-Problem: user_achievements has no unique (userId, achievementId) index, so the after() evaluation and the cron sweep can both insert the same unlock and inflate totalAchievements. custom exercises are checked-then-inserted with no unique index. createWorkoutTemplateInDb checks-then-inserts, so a racing retry gets a raw duplicate-key 500.
-Expected: unique indexes in ensure-indexes.ts on user_achievements (userId, achievementId) and on custom exercises (userId, a normalized lowercase name, targetMuscle); inserts that tolerate duplicate keys (ordered:false insertMany, or upsert); template create recovers from 11000 by returning the existing template, like logWorkout does.
-Migration: existing duplicates must be removed before the unique index can build. Write an idempotent cleanup in src/scripts/ that runs before ensureIndexes in migrate-db.ts.
-Done when: integration tests run two evaluations concurrently and get one unlock, and two concurrent identical creates yield one row and no 500.
-```
-
-**0.5 Quest sync**
-```
-/fix Quest progress is lost when quests weren't synced this period, and the sync cooldown never works
-
-Read vault/Architecture Overhaul Audit.md §4 F-3 and F-6 first.
-Problem: get-user-quests.ts creates syncCooldowns inside the function, so every GET /api/quests runs a full bulkWrite. updateQuestProgress only updates user_quests rows that already exist; rows are created only when the quests page or dashboard is viewed, so a workout logged before then earns no quest progress. Its reads also ignore the transaction session.
-Expected: updateQuestProgress upserts the current period's rows for the affected metrics inside the caller's transaction before applying progress (bulkWrite + $setOnInsert, then $inc capped at target), and every read and write passes the session. Remove the broken cooldown (sync is idempotent and cheap once progress no longer depends on it) unless a measured need remains.
-Done when: an integration test logs a workout for a user with no user_quests rows and sees daily and weekly workout_count progress = 1.
-```
-
-**0.6 Friend re-request**
-```
-/fix A declined friend request can never be re-sent, and reverse requests create a second friendship document
-
-Read vault/Architecture Overhaul Audit.md §4 F-7 first.
-Problem: the unique index is on (requesterId, receiverId). After A→B is declined, sendFriendRequest allows a new A→B request but the insert hits the index and returns "already sent". B→A creates a second document for the same pair.
-Expected: one document per unordered pair, keyed by a pairKey field (the two ids sorted and joined) with a unique index. Re-requesting after a decline resets that document to pending with the new requester and receiver, atomically (findOneAndUpdate with upsert). Backfill pairKey on existing documents, merging duplicates (keep the accepted one, else the newest).
-Done when: integration tests cover decline → re-request (pending again), B→A after A→B declined (same document), and concurrent A→B + B→A (one document).
-```
+Steps 0.1–0.6 are done; their kickoff prompts are retired. The root causes, decisions and per-finding fixes are in [[Architecture Audit Phase 0 Fix Plan]] and [[Architecture Audit Phase 0 Fix]].
 
 **0.7 Per-user time zone**
 ```
@@ -513,6 +464,7 @@ Done when: integration tests cover decline → re-request (pending again), B→A
 Read vault/Architecture Overhaul Audit.md §4 F-8 first. Prior art for date helpers: apartment-system apps/api/src/billing/utils/property-date.ts (a comparison point, not a template).
 Problem: dates are computed as UTC calendar days with toISOString().slice(0, 10), and getMondayDateString mixes local getDay() with UTC formatting. For a UTC+8 user, a 7 AM workout counts toward yesterday and can break a streak.
 Want: a validated IANA timeZone stored per user (captured from the browser via Intl at signup and on login if missing; default UTC). Every calendar-day calculation (calcNewStreak, calcDisplayStreak, quest periods, dashboard week boundaries, active days) takes the time zone and "now" as arguments, so domain rules stop reading the clock.
+Phase 0 note: quest periods are computed in `getPeriodForCategory`, and both `syncUserQuests` and `updateQuestProgress` use it through `ensureUserQuestRows`, so one change covers both.
 Constraints: the user document is owned by better-auth; use its additionalFields or the profile split planned in step 3.1. Decide which in the brainstorm.
 ```
 
@@ -690,7 +642,8 @@ Done when: no import path references the removed folders, and npm run lint, type
 
 - [[Architecture Review]] — the previous review; several of its "resolved" items are re-examined in §4
 - [[Domain Architecture]] · [[Data Model And API Reference]] — the current system in depth
-- [[Known Issues]] — open issues F-14 refers to
+- [[Known Issues]] — open issues; currently the unlimited friend re-request
+- [[Architecture Audit Phase 0 Fix Plan]] · [[Architecture Audit Phase 0 Fix]] — the Phase 0 plan and run log
 - [[UI Overhaul Design Spec]] — the design direction §7.6 would affect
 
 [[Guides Index]]

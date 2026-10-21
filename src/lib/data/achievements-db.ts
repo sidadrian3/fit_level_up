@@ -89,10 +89,20 @@ export async function getUserUnlocks(userId: string): Promise<UserAchievementDoc
     return collection.find({ userId }).toArray();
 }
 
-/** Batch insert newly unlocked achievements */
-export async function insertUserAchievements(docs: UserAchievementDoc[], session?: ClientSession): Promise<void> {
+/** Batch-unlock achievements; returns the ids this call actually inserted (a concurrent evaluation may have won) */
+export async function insertUserAchievements(docs: UserAchievementDoc[], session?: ClientSession): Promise<Set<string>> {
     const collection = await getCollection<UserAchievementDoc>("userAchievementsCollection");
-    await collection.insertMany(docs, { session });
+    const result = await collection.bulkWrite(
+        docs.map((doc) => ({
+            updateOne: {
+                filter: { userId: doc.userId, achievementId: doc.achievementId },
+                update: { $setOnInsert: doc },
+                upsert: true,
+            },
+        })),
+        { session }
+    );
+    return new Set(Object.keys(result.upsertedIds).map((index) => docs[Number(index)].achievementId));
 }
 
 /** Fetch all achievements combined with user unlock status — for display */

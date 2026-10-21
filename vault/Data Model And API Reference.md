@@ -19,12 +19,12 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 | Workouts | `workouts` | A logged gym session: `title`, `exercises[]`, `duration`, `xpEarned`, `date`, `idempotencyKey` | `userId` |
 | Runs | `runs` | A logged run: `distance`, `duration`, `pace`, `difficulty`, `xpEarned`, `date`, `idempotencyKey` | `userId` |
 | Workout templates | `workout_templates` | A saved routine: `name`, `exercises[]`, `createdAt`, `idempotencyKey` | `userId` |
-| Custom exercises | `custom_exercises` | A user-defined exercise: `name`, `targetMuscle` | `userId` |
+| Custom exercises | `custom_exercises` | A user-defined exercise: `name` (stored in canonical title case), `targetMuscle`; unique per user, name and muscle | `userId` |
 | Quest templates | `quest_templates` | The catalogue of quests (`title`, `category`, `metric`, `target`, `xpReward`, `icon`, `isActive`); seeded by `npm run seed` | none (global) |
 | User quests | `user_quests` | One user's instance of a quest for one period: `questTemplateId`, `periodStart`, `periodEnd`, `progress`, `target`, `completed`, `claimed` | `userId` |
 | Achievements | `achievements` | The catalogue of achievements (`id`, `title`, `rarity`, `condition`); seeded by `npm run seed` | none (global) |
 | User achievements | `user_achievements` | Which achievements a user has unlocked: `achievementId`, `unlockedDate` | `userId` |
-| Friendships | `friendships` | `requesterId`, `receiverId`, `status` (`pending` / `accepted` / `declined`), `createdAt` | `requesterId` / `receiverId` |
+| Friendships | `friendships` | One document per unordered pair of users: `requesterId`, `receiverId`, `pairKey` (the two ids sorted and joined with `:`), `status` (`pending` / `accepted` / `declined`), `createdAt`, `updatedAt`. Re-requesting after a decline reopens the same document as `pending` with the new requester and receiver | `requesterId` / `receiverId` |
 
 Better Auth also manages its own `session`, `account` and `verification` collections through its MongoDB adapter. Never write to them directly.
 
@@ -40,23 +40,23 @@ Created idempotently by `ensureIndexes()`:
 | workouts | `{ userId, idempotencyKey }` unique, partial | Duplicate-submit protection |
 | runs | `{ userId, date: -1 }` | History and date-range queries |
 | runs | `{ userId, idempotencyKey }` unique, partial | Duplicate-submit protection |
-| user_quests | `{ userId, questTemplateId, periodStart, periodEnd }` | Exact-match quest sync lookup |
+| user_quests | `{ userId, questTemplateId, periodStart, periodEnd }` unique | One row per user, quest and period; exact-match sync lookup |
 | user_quests | `{ userId }` | Listing a user's quests |
 | quest_templates | `{ isActive, metric }` | Finding quests a new activity advances |
-| user_achievements | `{ userId }` | Listing unlocked achievements |
-| custom_exercises | `{ userId }` | Listing a user's exercises |
-| friendships | requester + receiver pair; receiver + status; requester + status; status | Friend lists, pending requests, duplicate-request protection |
+| user_achievements | `{ userId }`; `{ userId, achievementId }` unique | Listing unlocked achievements; an achievement unlocks once per user |
+| custom_exercises | `{ userId }`; `{ userId, name, targetMuscle }` unique | Listing a user's exercises; duplicate protection |
+| friendships | `{ pairKey }` unique; requester + receiver pair (unique); receiver + status; requester + status; status | One document per pair; friend lists and pending requests |
 | workout_templates | `{ userId }`; `{ userId, idempotencyKey }` unique, partial | Listing, duplicate-submit protection |
 
 ## 4. API routes
 
-`Auth` is `getAuthUserId()` (session cookie → `401` if missing). `Rate-limited` routes use the shared sliding window of 20 requests per hour per user (`src/lib/auth/rate-limit.ts`). Errors are shaped by `handleApiError`.
+`Auth` is `getAuthUserId()` (session cookie → `401` if missing). `Rate-limited` routes use the shared sliding window of 20 requests per hour per user (`src/lib/auth/rate-limit.ts`). Errors are shaped by `handleApiError`: `AppError` subclasses keep their status (`ForbiddenError` is `403`), a `DomainError` from a domain rule becomes `400` (`invalid`) or `409` (`conflict`), `ZodError` becomes `400`, and anything else is a logged `500`. A malformed id in a path is `404`.
 
 | Route | Methods | Auth | Rate-limited | Purpose |
 |---|---|---|---|---|
 | `/api/auth/[...all]` | all | Better Auth | — | Sign-up, sign-in, sign-out, session |
 | `/api/health` | GET | none | — | Liveness check |
-| `/api/cron/achievements-sweep` | GET | `CRON_SECRET` bearer token | — | Daily reconciliation of locked achievements |
+| `/api/cron/achievements-sweep` | GET | `CRON_SECRET` bearer token (always required; `401` otherwise) | — | Daily reconciliation of locked achievements, scheduled in `vercel.json` |
 | `/api/user` | GET | yes | — | The signed-in user's profile and game state |
 | `/api/workouts` | GET, POST | yes | POST | Paginated history (`limit` ≤ 50, `page`); log a workout |
 | `/api/workouts/[id]` | PUT, DELETE | yes | — | Edit or delete one of your workouts |
@@ -65,7 +65,7 @@ Created idempotently by `ensureIndexes()`:
 | `/api/runs/stats` | GET | yes | — | Aggregate run statistics |
 | `/api/workout-templates` | GET, POST | yes | — | List and create templates |
 | `/api/workout-templates/[id]` | DELETE | yes | — | Delete a template |
-| `/api/exercises` | GET, POST | yes | — | List the user's custom exercises (the built-in list is in `src/lib/constants/exercises.ts`); create a custom one |
+| `/api/exercises` | GET, POST | yes | POST | List the user's custom exercises (the built-in list is in `src/lib/constants/exercises.ts`); create a custom one |
 | `/api/quests` | GET | yes | — | The user's quests for the current periods |
 | `/api/quests/[id]/claim` | POST | yes | — | Claim a completed quest's XP reward |
 | `/api/achievements` | GET | yes | — | Achievements with the user's unlock state |
@@ -89,7 +89,7 @@ Route groups: `(landing)` public marketing page, `(auth)` public `/login` and `/
 | `/login`, `/signup` | no (redirects away when signed in) | Email and password authentication |
 | `/dashboard` | yes | XP card, activity tracker, daily quests, recent activity, muscle heatmap |
 | `/workouts` | yes | Workout log form, history, template picker |
-| `/templates/new` | no — `/templates` is not in `protectedRoutes` in `src/proxy.ts`; the page renders for signed-out visitors, though its API calls still require a session | Template builder |
+| `/templates/new` | yes | Template builder |
 | `/runs` | yes | Run log form and history |
 | `/quests` | yes | Daily, weekly and special quests with claim buttons |
 | `/friends` | yes | Friends, pending requests, add-friend form |
@@ -99,8 +99,8 @@ Navigation links live in `src/lib/constants/navigation.ts`.
 
 ## 6. Background and real-time pieces
 
-- **Cron:** `/api/cron/achievements-sweep` runs `sweepLockedAchievements` for every user.
+- **Cron:** `/api/cron/achievements-sweep` runs `sweepLockedAchievements` for every recently active user, daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token.
 - **SSE:** services publish events to a per-user Redis list (`sse:{userId}`, 60-second TTL) through `src/lib/sse/sse-publisher.ts`; `/api/friends/events` drains it into the browser, where `FriendEventManager` and the level-up and achievement managers show toasts.
-- **Scripts:** `src/scripts/migrate-db.ts` runs before every build; `seed-quests.ts` and `seed-achievements.ts` fill the catalogues.
+- **Scripts:** `src/scripts/migrate-db.ts` runs before every build (`prepareUniqueIndexes()` removes duplicate rows and backfills `friendships.pairKey`, then `ensureIndexes()` builds the indexes); `seed-quests.ts` and `seed-achievements.ts` fill the catalogues.
 
 [[Guides Index]]

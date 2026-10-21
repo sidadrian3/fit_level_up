@@ -113,6 +113,8 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
 
 The Domain layer is where the "game mechanics" live. It contains pure, synchronous functions that take inputs and calculate outputs. Because this layer has **no side effects** and doesn't touch the database, it is extremely fast and easy to write unit tests for.
 
+When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/lib/domain/domain-error.ts`. Its `kind` is `invalid` or `conflict`, and `handleApiError` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from `lib/api`.
+
 **Example Snippet (`src/lib/domain/workout-evaluator.ts`):**
 ```typescript
 export function evaluateWorkout(input: CreateWorkoutInput, currentStamina: number) {
@@ -138,7 +140,7 @@ export function evaluateWorkout(input: CreateWorkoutInput, currentStamina: numbe
 ### 4. Data (Persistence Layer)
 **Location:** `src/lib/data/...`
 
-The Data layer is the only place that talks directly to MongoDB. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
+The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`object-id.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (`mongo-errors.ts`) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or return the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
 
 **Example Snippet (`src/lib/data/workout-db.ts`):**
 ```typescript

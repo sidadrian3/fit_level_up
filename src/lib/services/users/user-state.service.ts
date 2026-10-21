@@ -5,6 +5,7 @@ import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
 import { after } from "next/server";
 import type { User } from "@/lib/types";
+import { ConflictError, NotFoundError } from "@/lib/api/errors";
 
 export interface ActivityPayload {
     xpEarned: number;
@@ -16,9 +17,17 @@ export interface ActivityPayload {
     };
 }
 
+async function requireUserFromDb(userId: string, session?: ClientSession): Promise<User> {
+    const user = await getUserFromDb(userId, session);
+    if (!user) {
+        throw new NotFoundError("User not found");
+    }
+    return user;
+}
+
 export const UserStateService = {
     async getUser(userId: string, session?: ClientSession): Promise<User> {
-        const rawUser = await getUserFromDb(userId, session);
+        const rawUser = await requireUserFromDb(userId, session);
         
         const displayStreak = calcDisplayStreak(rawUser.streak, rawUser.lastActivityDate);
 
@@ -44,7 +53,7 @@ export const UserStateService = {
         while (retries > 0) {
             try {
                 // 1. Fetch current state
-                const user = await getUserFromDb(userId, session);
+                const user = await requireUserFromDb(userId, session);
 
                 // 2. Pure domain calculations
                 const { newXp, newLevel, newXpToNextLevel, levelUp } = calcLevelUp(
@@ -102,7 +111,7 @@ export const UserStateService = {
                         throw error;
                     }
                     retries--;
-                    if (retries === 0) throw new Error("Failed to apply activity due to high contention");
+                    if (retries === 0) throw new ConflictError("Failed to apply activity due to high contention");
                     continue;
                 }
                 throw error;

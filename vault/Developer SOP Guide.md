@@ -29,7 +29,7 @@ Validated at startup by `src/env.ts` (a missing required variable fails the buil
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limiter and SSE queues |
 | `BETTER_AUTH_SECRET` | Session signing (at least 10 characters) |
 | `NEXT_PUBLIC_BETTER_AUTH_URL` | Public base URL of the app |
-| `CRON_SECRET` | Optional bearer token guarding `/api/cron/*` |
+| `CRON_SECRET` | Required (at least 16 characters); bearer token guarding `/api/cron/*`. Set it in Vercel for production and preview, or the build fails |
 | `UI_CHECK_EMAIL`, `UI_CHECK_PASSWORD` | A throwaway dev account used by `scripts/ui-check.mjs` |
 
 ## 4. Everyday commands
@@ -75,7 +75,7 @@ Known lint debt: `npm run lint` currently reports errors in files unrelated to n
 
 1. Update the type in `src/lib/types.ts` and the document type in the `-db.ts` file.
 2. Add an index to `src/lib/data/ensure-indexes.ts` for any new query shape.
-3. Existing documents will not have the new field: read it with a default (see `toUser`), or backfill it with a script. `src/scripts/migrate-db.ts` currently only runs `ensureIndexes()`; it runs on every build.
+3. Existing documents will not have the new field: read it with a default (see `toUser`), or backfill it with a script. `src/scripts/migrate-db.ts` runs `prepareUniqueIndexes()` (de-duplication and backfills that a new unique index needs) and then `ensureIndexes()`; it runs on every build. A new unique index needs its de-duplication step in `src/scripts/prepare-unique-indexes.ts` first.
 4. Update [[Data Model And API Reference]] §2–§3.
 
 ## 9. Testing

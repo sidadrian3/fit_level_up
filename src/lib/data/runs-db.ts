@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { Run } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
+import { parseObjectId } from "@/lib/data/object-id";
 import { ClientSession } from "mongodb";
 
 type RunDoc = {
@@ -73,12 +74,13 @@ export async function insertRun(
 }
 
 export async function deleteRunFromDb(id: string, userId: string): Promise<boolean> {
-    if (!ObjectId.isValid(id)) {
+    const _id = parseObjectId(id);
+    if (!_id) {
         return false;
     }
     const collection = await getCollection<RunDoc>("runsCollection");
 
-    const result = await collection.deleteOne({ _id: new ObjectId(id), userId });
+    const result = await collection.deleteOne({ _id, userId });
     return result.deletedCount === 1;
 }
 
@@ -87,13 +89,14 @@ export async function updateRunInDb(
     fields: { distance: number; duration: number; pace: number; difficulty: Run["difficulty"]; xpEarned: number },
     userId: string
 ): Promise<Run | null> {
-    if (!ObjectId.isValid(id)) {
+    const _id = parseObjectId(id);
+    if (!_id) {
         return null;
     }
 
     const collection = await getCollection<RunDoc>("runsCollection");
 
-    const existing = await collection.findOne({ _id: new ObjectId(id), userId });
+    const existing = await collection.findOne({ _id, userId });
     if (!existing) {
         return null;
     }
@@ -104,7 +107,7 @@ export async function updateRunInDb(
     };
 
     const result = await collection.findOneAndUpdate(
-        { _id: new ObjectId(id), userId },
+        { _id, userId },
         { $set: updateDoc },
         { returnDocument: "after" }
     );

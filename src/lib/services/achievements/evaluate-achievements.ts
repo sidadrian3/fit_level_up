@@ -51,10 +51,12 @@ export async function evaluateAchievements(
     }
   }
 
-  if (newlyUnlockedDocs.length > 0) {
-    await insertUserAchievements(newlyUnlockedDocs, session);
-    console.log(`User ${userId} unlocked ${newlyUnlockedDocs.length} new achievements!`);
+  if (newlyUnlockedDocs.length === 0) {
+    return [];
   }
 
-  return newlyUnlockedAchievements;
+  const insertedIds = await insertUserAchievements(newlyUnlockedDocs, session);
+  console.log(`User ${userId} unlocked ${insertedIds.size} new achievements!`);
+
+  return newlyUnlockedAchievements.filter((achievement) => insertedIds.has(achievement.id));
 }

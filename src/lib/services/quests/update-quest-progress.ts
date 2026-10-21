@@ -4,22 +4,22 @@ import {
   updateUserQuestProgressInDb,
   getUserQuestsForUserFromDb, getQuestTemplatesByMetricsFromDb
 } from "@/lib/data/quests-db";
+import { ensureUserQuestRows } from "@/lib/services/quests/sync-user-quests";
 import { ClientSession } from "mongodb";
 
+// The session is required: read-then-write is only race-free because a conflicting transaction is aborted and retried
 export async function updateQuestProgress(
   userId: string,
   activity: QuestActivity,
-  session?: ClientSession
+  session: ClientSession
 ): Promise<void> {
 
   const updates = getQuestProgressUpdates(activity);
   const metrics = updates.map(u => u.metric);
 
-  // BATCH: Get all templates matching ANY of the metrics
-  const matchingTemplates = await getQuestTemplatesByMetricsFromDb(metrics);
-  // BATCH: Get all user quests for this user
-  const userQuests = await getUserQuestsForUserFromDb(userId);
-
+  const matchingTemplates = await getQuestTemplatesByMetricsFromDb(metrics, session);
+  await ensureUserQuestRows(userId, matchingTemplates, session);
+  const userQuests = await getUserQuestsForUserFromDb(userId, session);
 
   for (const update of updates) {
     const templatesForUpdate = matchingTemplates.filter(t => t.metric === update.metric);
@@ -38,20 +38,14 @@ export async function updateQuestProgress(
         uq.periodEnd === periodEnd
       );
 
-      if (!userQuest) {
-        continue;
-      }
-
-      if (userQuest.completed) {
+      if (!userQuest?._id || userQuest.completed) {
         continue;
       }
 
       const nextProgress = calcNextProgress(userQuest.progress, update.amount, userQuest.target);
       const isCompleted = nextProgress >= userQuest.target;
 
-      if (userQuest._id) {
-        await updateUserQuestProgressInDb(userQuest._id.toString(), nextProgress, isCompleted, session);
-      }
+      await updateUserQuestProgressInDb(userQuest._id, userId, nextProgress, isCompleted, session);
     }
   }
 }

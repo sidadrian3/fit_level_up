@@ -2,29 +2,21 @@ import {
   getActiveQuestTemplatesFromDb,
   bulkUpsertUserQuestsToDb,
 } from "@/lib/data/quests-db";
+import type { QuestTemplateMongoDoc } from "@/lib/data/quests-db";
 import { getPeriodForCategory } from "@/lib/domain/quest-rules";
+import type { ClientSession } from "mongodb";
 
-export async function syncUserQuests(userId: string): Promise<void> {
-  const activeTemplates = await getActiveQuestTemplatesFromDb();
+// Idempotent: $setOnInsert never touches a row that already exists
+export async function ensureUserQuestRows(
+  userId: string,
+  templates: QuestTemplateMongoDoc[],
+  session?: ClientSession
+): Promise<void> {
+  const rows = templates.flatMap((template) => {
+    if (!template._id) return [];
+    const { periodStart, periodEnd } = getPeriodForCategory(template.category);
 
-  // Group templates by category to determine their period
-  const periodMap = new Map<
-    string,
-    { periodStart: string; periodEnd: string }
-  >();
-  for (const template of activeTemplates) {
-    if (!periodMap.has(template.category)) {
-      periodMap.set(template.category, getPeriodForCategory(template.category));
-    }
-  }
-
-  // Figure out the quests that should exist for this period
-  const questsToUpsert = [];
-  for (const template of activeTemplates) {
-    if (!template._id) continue;
-    const { periodStart, periodEnd } = periodMap.get(template.category)!;
-
-    questsToUpsert.push({
+    return [{
       userId,
       questTemplateId: template._id.toString(),
       progress: 0,
@@ -33,11 +25,12 @@ export async function syncUserQuests(userId: string): Promise<void> {
       claimed: false,
       periodStart,
       periodEnd,
-    });
-  }
+    }];
+  });
 
-  // BATCH: Upsert all quests in one atomic operation (no duplicates due to $setOnInsert)
-  if (questsToUpsert.length > 0) {
-    await bulkUpsertUserQuestsToDb(questsToUpsert);
-  }
+  await bulkUpsertUserQuestsToDb(rows, session);
+}
+
+export async function syncUserQuests(userId: string): Promise<void> {
+  await ensureUserQuestRows(userId, await getActiveQuestTemplatesFromDb());
 }
