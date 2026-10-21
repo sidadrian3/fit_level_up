@@ -1,14 +1,15 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { GAME_CONFIG } from "@/lib/config/game-config";
+import { DomainError } from "./domain-error";
 
 
 export function validateRunInput(input: CreateRunInput): void {
     if (input.distance <= 0) {
-        throw new Error("Distance must be greater than 0");
+        throw new DomainError("invalid", "Distance must be greater than 0");
     }
 
     if (input.duration <= 0) {
-        throw new Error("Duration must be greater than 0");
+        throw new DomainError("invalid", "Duration must be greater than 0");
     }
 
 }

@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AppError } from "./errors";
+import { DomainError, type DomainErrorKind } from "@/lib/domain/domain-error";
+
+const DOMAIN_ERROR_STATUS: Record<DomainErrorKind, number> = {
+  invalid: 400,
+  conflict: 409,
+};
 
 export function handleApiError(err: unknown): NextResponse {
   if (err instanceof AppError) {
     return NextResponse.json({ error: err.message }, { status: err.statusCode });
+  }
+
+  if (err instanceof DomainError) {
+    return NextResponse.json({ error: err.message }, { status: DOMAIN_ERROR_STATUS[err.kind] });
   }
 
   if (err instanceof z.ZodError) {

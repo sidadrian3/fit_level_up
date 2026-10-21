@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import type { Exercise, Workout } from "@/lib/types";
 import { ClientSession } from "mongodb";
 import { getCollection } from "@/lib/data/get-collection";
+import { parseObjectId } from "@/lib/data/object-id";
 type WorkoutDoc = {
     _id?: ObjectId;
     userId: string;
@@ -72,13 +73,14 @@ export async function insertWorkout(
 }
 
 export async function deleteWorkoutFromDb(id: string, userId: string): Promise<boolean> {
-    if (!ObjectId.isValid(id)) {
+    const _id = parseObjectId(id);
+    if (!_id) {
         return false;
     }
 
     const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
-    const result = await collection.deleteOne({ _id: new ObjectId(id), userId });
+    const result = await collection.deleteOne({ _id, userId });
     return result.deletedCount === 1;
 }
 
@@ -87,14 +89,15 @@ export async function updateWorkoutInDb(
     fields: { title: string; exercises: Exercise[]; duration: number; xpEarned: number },
     userId: string
 ): Promise<Workout | null> {
-    if (!ObjectId.isValid(id)) {
+    const _id = parseObjectId(id);
+    if (!_id) {
         return null;
     }
 
     const collection = await getCollection<WorkoutDoc>("workoutsCollection");
 
     // Fetch original to preserve date
-    const existing = await collection.findOne({ _id: new ObjectId(id), userId });
+    const existing = await collection.findOne({ _id, userId });
     if (!existing) {
         return null;
     }
@@ -105,7 +108,7 @@ export async function updateWorkoutInDb(
     };
 
     const result = await collection.findOneAndUpdate(
-        { _id: new ObjectId(id), userId },
+        { _id, userId },
         { $set: updatedDoc },
         { returnDocument: "after" }
     );

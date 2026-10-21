@@ -2,6 +2,8 @@ import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
 import { calcNewStreak } from "@/lib/domain/user-rules";
+import { parseObjectId } from "@/lib/data/object-id";
+import { NotFoundError } from "@/lib/api/errors";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
@@ -50,9 +52,10 @@ export function toUser(doc: UserMongoDoc): User {
 export async function getUserFromDb(userId: string, session?: ClientSession): Promise<User> {
   const collection = await getCollection<UserMongoDoc>("usersCollection");
 
-  const userDoc = await collection.findOne({ _id: new ObjectId(userId) }, { session });
+  const _id = parseObjectId(userId);
+  const userDoc = _id ? await collection.findOne({ _id }, { session }) : null;
   if (!userDoc) {
-    throw new Error("User not found");
+    throw new NotFoundError("User not found");
   }
   return toUser(userDoc);
 }

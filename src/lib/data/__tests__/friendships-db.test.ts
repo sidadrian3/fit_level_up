@@ -20,11 +20,6 @@ describe('friendships-db Data Layer Test', () => {
     beforeAll(async () => {
         await ensureIndexes();
         const col = await getCollection("friendshipsCollection");
-        try {
-            await col.createIndex({ requesterId: 1, receiverId: 1 }, { unique: true, name: "idx_friendships_requester_receiver" });
-        } catch (e) {
-            // ignore if exists
-        }
         await col.deleteMany({});
     });
 
@@ -58,23 +53,23 @@ describe('friendships-db Data Layer Test', () => {
         })).rejects.toThrowError(/11000/);
     });
 
-    it('Reverse pair (B->A) after (A->B) succeeded - new insert succeeds (re-request allowed)', async () => {
-        const doc = await insertFriendshipInDb({
+    it('should throw code 11000 on the reverse pair (B->A) - one document per unordered pair', async () => {
+        await expect(insertFriendshipInDb({
             requesterId: userB,
             receiverId: userA,
             status: "pending",
             createdAt: new Date(),
             updatedAt: new Date()
-        });
-        expect(doc.id).toBeDefined();
+        })).rejects.toThrowError(/11000/);
     });
 
     it('getFriendshipBetween should find in both directions (A->B and B->A lookup)', async () => {
         const doc = await getFriendshipBetweenFromDb(userA, userB);
         expect(doc).toBeDefined();
-        // Since we did A->B and then B->A, sort {createdAt: -1} will return B->A
-        expect(doc?.requesterId).toBe(userB);
-        expect(doc?.receiverId).toBe(userA);
+        expect(doc?.requesterId).toBe(userA);
+        expect(doc?.receiverId).toBe(userB);
+        const reverse = await getFriendshipBetweenFromDb(userB, userA);
+        expect(reverse?.id).toBe(doc?.id);
     });
 
     it('getFriendshipBetween should return null when no friendship exists', async () => {
@@ -120,12 +115,21 @@ describe('friendships-db Data Layer Test', () => {
     });
 
     it('getPendingIncomingRequests should return only incoming and pending', async () => {
-        const bRequests = await getPendingIncomingRequestsFromDb(userB);
-        expect(bRequests.length).toBe(1);
-        expect(bRequests[0].requesterId).toBe(userA);
+        const pending = await insertFriendshipInDb({
+            requesterId: "user-D",
+            receiverId: userB,
+            status: "pending",
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
 
-        const aRequests = await getPendingIncomingRequestsFromDb(userA);
-        expect(aRequests.length).toBe(0);
+        const bRequests = await getPendingIncomingRequestsFromDb(userB);
+        expect(bRequests.map(r => r.requesterId)).toEqual(["user-D"]);
+
+        const dRequests = await getPendingIncomingRequestsFromDb("user-D");
+        expect(dRequests.length).toBe(0);
+
+        await deleteFriendshipInDb(pending.id, userB);
     });
 
     it('deleteFriendship should allow Requester to delete', async () => {

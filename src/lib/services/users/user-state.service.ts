@@ -5,6 +5,7 @@ import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
 import { after } from "next/server";
 import type { User } from "@/lib/types";
+import { ConflictError } from "@/lib/api/errors";
 
 export interface ActivityPayload {
     xpEarned: number;
@@ -102,7 +103,7 @@ export const UserStateService = {
                         throw error;
                     }
                     retries--;
-                    if (retries === 0) throw new Error("Failed to apply activity due to high contention");
+                    if (retries === 0) throw new ConflictError("Failed to apply activity due to high contention");
                     continue;
                 }
                 throw error;

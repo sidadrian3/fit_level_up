@@ -23,10 +23,10 @@ export async function ensureIndexes(): Promise<void> {
             { name: "idx_runs_userId_date" }
         ),
 
-        // User Quests: covers the exact-match sync lookup
+        // User Quests: one row per user, quest and period; also covers the exact-match sync lookup
         db.collection(config.userQuestsCollection).createIndex(
             { userId: 1, questTemplateId: 1, periodStart: 1, periodEnd: 1 },
-            { name: "idx_userQuests_sync_lookup" }
+            { name: "idx_userQuests_sync_lookup", unique: true }
         ),
 
         // User Quests: covers { userId } for getUserQuestsForUserFromDb
@@ -45,6 +45,12 @@ export async function ensureIndexes(): Promise<void> {
         db.collection(config.userAchievementsCollection).createIndex(
             { userId: 1 },
             { name: "idx_userAchievements_userId" }
+        ),
+
+        // User Achievements: an achievement unlocks once per user
+        db.collection(config.userAchievementsCollection).createIndex(
+            { userId: 1, achievementId: 1 },
+            { name: "idx_userAchievements_unique", unique: true }
         ),
 
         // Workouts: covers { idempotencyKey } queries
@@ -74,6 +80,17 @@ export async function ensureIndexes(): Promise<void> {
             { name: "idx_customExercises_userId" }
         ),
 
+        // Custom Exercises: names are stored formatted, so exact match is the duplicate rule
+        db.collection(config.customExercisesCollection).createIndex(
+            { userId: 1, name: 1, targetMuscle: 1 },
+            { name: "idx_customExercises_unique", unique: true }
+        ),
+
+        // Friendships: one document per unordered pair of users
+        db.collection(config.friendshipsCollection).createIndex(
+            { pairKey: 1 },
+            { name: "idx_friendships_pairKey", unique: true }
+        ),
         // Friendships 4 indexes
         db.collection(config.friendshipsCollection).createIndex(
             { requesterId: 1, receiverId: 1},

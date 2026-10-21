@@ -5,6 +5,7 @@ import { UserStateService } from "@/lib/services/users/user-state.service";
 import { calcLevelUp } from "@/lib/domain/user-rules";
 import { ClientSession } from "mongodb";
 import { after } from "next/server";
+import { ConflictError } from "@/lib/api/errors";
 
 
 export async function grantUserXP(userId: string, amount: number, session?: ClientSession): Promise<{ user: User; levelUp: boolean }> {
@@ -47,7 +48,7 @@ export async function grantUserXP(userId: string, amount: number, session?: Clie
           throw error;
         }
         retries--;
-        if (retries === 0) throw new Error("Failed to grant XP due to high contention");
+        if (retries === 0) throw new ConflictError("Failed to grant XP due to high contention");
         continue;
       }
       throw error;

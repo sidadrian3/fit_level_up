@@ -35,9 +35,3 @@ export async function createCustomExerciseFromDb(doc: Omit<CustomExerciseDoc, "_
     return { ...doc, _id: result.insertedId };
 
 }
-
-export async function getCustomExerciseByNameFromDb(userId: string, exerciseName: string, muscle: TargetMuscle): Promise<CustomExerciseDoc | null> {
-    const collection = await getCollection<CustomExerciseDoc>("customExercisesCollection");
-    const doc = await collection.findOne({ userId, name: exerciseName, targetMuscle: muscle });
-    return doc;
-}

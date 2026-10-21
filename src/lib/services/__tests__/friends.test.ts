@@ -9,6 +9,8 @@ import { declineFriendRequest } from '../friends/decline-friend-request';
 import { getFriends } from '../friends/get-friends';
 import { getFriendRequests } from '../friends/get-friend-requests';
 import { removeFriend } from '../friends/remove-friend';
+import { DomainError } from '@/lib/domain/domain-error';
+import { ConflictError, ForbiddenError } from '@/lib/api/errors';
 
 
 describe('friends Service Layer Test', () => {
@@ -59,24 +61,58 @@ describe('friends Service Layer Test', () => {
         });
 
         it('Throws for self-request', async () => {
-            await expect(sendFriendRequest(userA.id, userA.id)).rejects.toThrow("Cannot send a friend request to yourself");
+            const error = await sendFriendRequest(userA.id, userA.id).catch((e: unknown) => e);
+            expect(error).toBeInstanceOf(DomainError);
+            expect((error as DomainError).kind).toBe("invalid");
+            expect((error as DomainError).message).toBe("Cannot send a friend request to yourself");
         });
 
         it('Throws "Friend request already sent" on duplicate', async () => {
             await sendFriendRequest(userA.id, userB.id);
-            await expect(sendFriendRequest(userA.id, userB.id)).rejects.toThrow("Friend request already sent");
+            await expect(sendFriendRequest(userA.id, userB.id)).rejects.toThrow(ConflictError);
+            await expect(sendFriendRequest(userB.id, userA.id)).rejects.toThrow("Friend request already sent");
         });
 
         it('Throws "User not found" for unknown receiverId', async () => {
             await expect(sendFriendRequest(userA.id, "507f1f77bcf86cd799439011")).rejects.toThrow("User not found");
         });
 
-        it('Re-request after decline creates a new document successfully', async () => {
-            const req = await sendFriendRequest(userA.id, userB.id);
-            await declineFriendRequest(userA.id, userB.id); 
+        it('Re-request by the same sender after decline reopens the request as pending', async () => {
+            const first = await sendFriendRequest(userA.id, userB.id);
+            await declineFriendRequest(userA.id, userB.id);
 
-            const req2 = await sendFriendRequest(userB.id, userA.id); 
-            expect(req2.status).toBe("pending");
+            const again = await sendFriendRequest(userA.id, userB.id);
+
+            expect(again.status).toBe("pending");
+            expect(again.id).toBe(first.id);
+            expect(again.requesterId).toBe(userA.id);
+        });
+
+        it('Request from the other side after decline reuses the same document with the direction flipped', async () => {
+            const first = await sendFriendRequest(userA.id, userB.id);
+            await declineFriendRequest(userA.id, userB.id);
+
+            const flipped = await sendFriendRequest(userB.id, userA.id);
+
+            expect(flipped.id).toBe(first.id);
+            expect(flipped.requesterId).toBe(userB.id);
+            expect(flipped.receiverId).toBe(userA.id);
+            expect(flipped.status).toBe("pending");
+            const col = await getCollection("friendshipsCollection");
+            expect(await col.countDocuments({})).toBe(1);
+        });
+
+        it('Concurrent requests from both sides create exactly one friendship', async () => {
+            const results = await Promise.allSettled([
+                sendFriendRequest(userA.id, userB.id),
+                sendFriendRequest(userB.id, userA.id),
+            ]);
+
+            expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+            const rejected = results.find(r => r.status === 'rejected') as PromiseRejectedResult;
+            expect(rejected.reason).toBeInstanceOf(ConflictError);
+            const col = await getCollection("friendshipsCollection");
+            expect(await col.countDocuments({})).toBe(1);
         });
     });
 
@@ -101,7 +137,7 @@ describe('friends Service Layer Test', () => {
 
         it('Throws when requester tries to accept their own request', async () => {
             const req = await sendFriendRequest(userA.id, userB.id);
-            await expect(acceptFriendRequest(userB.id, userA.id)).rejects.toThrow("Not authorized");
+            await expect(acceptFriendRequest(userB.id, userA.id)).rejects.toThrow(ForbiddenError);
         });
 
         it('Throws conflict when already accepted', async () => {
@@ -127,7 +163,7 @@ describe('friends Service Layer Test', () => {
 
         it('Throws when requester tries to decline their own request', async () => {
             const req = await sendFriendRequest(userA.id, userB.id);
-            await expect(declineFriendRequest(userB.id, userA.id)).rejects.toThrow("Not authorized");
+            await expect(declineFriendRequest(userB.id, userA.id)).rejects.toThrow(ForbiddenError);
         });
     });
 

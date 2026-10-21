@@ -1,10 +1,16 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { createCustomExercise } from '../exercises/create-custom-exercise';
 import { getCollection } from '../../data/get-collection';
+import { ensureIndexes } from '../../data/ensure-indexes';
+import { ConflictError } from '@/lib/api/errors';
 import { TargetMuscle } from '../../types';
 
 describe('createCustomExercise Integration Test', () => {
     const userId = "test-user-id-123";
+
+    beforeAll(async () => {
+        await ensureIndexes();
+    });
 
     afterEach(async () => {
         // Clean up custom exercises between tests
@@ -41,5 +47,26 @@ describe('createCustomExercise Integration Test', () => {
         const allExercises = await exercisesCol.find({ userId }).toArray();
         expect(allExercises.length).toBe(1);
         expect(allExercises[0].name).toBe("Bulgarian Split Squat");
+    });
+
+    it('should treat repeated whitespace as the same exercise name', async () => {
+        await createCustomExercise(userId, "Cable   Fly", TargetMuscle.Chest);
+
+        await expect(
+            createCustomExercise(userId, "cable fly", TargetMuscle.Chest)
+        ).rejects.toThrow(ConflictError);
+    });
+
+    it('should create one row when identical requests race', async () => {
+        const results = await Promise.allSettled([
+            createCustomExercise(userId, "Foo Lift", TargetMuscle.Chest),
+            createCustomExercise(userId, "foo lift", TargetMuscle.Chest),
+        ]);
+
+        expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+        const rejected = results.find(r => r.status === 'rejected') as PromiseRejectedResult;
+        expect(rejected.reason).toBeInstanceOf(ConflictError);
+        const exercisesCol = await getCollection("customExercisesCollection");
+        expect(await exercisesCol.countDocuments({ userId })).toBe(1);
     });
 });

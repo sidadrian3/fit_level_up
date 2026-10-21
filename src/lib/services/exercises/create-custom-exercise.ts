@@ -1,29 +1,24 @@
 import { TargetMuscle, CustomExercise } from "@/lib/types";
-import { getCustomExerciseByNameFromDb, createCustomExerciseFromDb } from "@/lib/data/custom-exercises-db";
+import { createCustomExerciseFromDb } from "@/lib/data/custom-exercises-db";
+import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
 import { formatExerciseName } from "@/lib/domain/exercise-rules";
 import { ConflictError } from "@/lib/api/errors";
 
 export async function createCustomExercise(userId: string, rawName: string, targetMuscle: TargetMuscle): Promise<CustomExercise> {
     const name = formatExerciseName(rawName);
 
-    // 1. Domain Validation: Check for duplicates
-    const existing = await getCustomExerciseByNameFromDb(userId, name, targetMuscle);
-    if (existing) {
-        throw new ConflictError("You already created an exercise with this name for this muscle group.");
+    try {
+        const doc = await createCustomExerciseFromDb({ userId, name, targetMuscle });
+        return {
+            id: doc._id!.toString(),
+            userId: doc.userId,
+            name: doc.name,
+            targetMuscle: doc.targetMuscle,
+        };
+    } catch (error: unknown) {
+        if (isDuplicateKeyError(error, "name")) {
+            throw new ConflictError("You already created an exercise with this name for this muscle group.");
+        }
+        throw error;
     }
-
-    // 2. Persistence
-    const doc = await createCustomExerciseFromDb({
-        userId,
-        name,
-        targetMuscle
-    });
-
-    // 3. Map back to domain model
-    return {
-        id: doc._id!.toString(),
-        userId: doc.userId,
-        name: doc.name,
-        targetMuscle: doc.targetMuscle,
-    };
 }

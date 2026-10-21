@@ -4,6 +4,7 @@ import { ensureIndexes } from '../ensure-indexes';
 import { 
     getWorkoutTemplatesFromDb, 
     createWorkoutTemplateInDb, 
+    getWorkoutTemplateByIdempotencyKeyFromDb,
     deleteWorkoutTemplateFromDb,
     WorkoutTemplateMongoDoc
 } from '../workout-templates-db';
@@ -45,26 +46,22 @@ describe("workout-templates-db Data Layer Test", () => {
         expect(template.exercises).toHaveLength(1);
     });
 
-    it("should enforce idempotency for templates", async () => {
-        const idempotencyKey = crypto.randomUUID();
+    it("should reject a second template with the same idempotency key and find the first by that key", async () => {
         const input = {
             userId,
             name: "Leg Day",
             exercises: [
                 { name: "Squat", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }
             ],
-            idempotencyKey,
+            idempotencyKey: crypto.randomUUID(),
             createdAt: new Date().toISOString()
         };
 
         const first = await createWorkoutTemplateInDb(input);
-        const second = await createWorkoutTemplateInDb(input);
 
-        expect(first.id).toBeDefined();
-        expect(first.id).toBe(second.id); // Same document returned
-
-        const docs = await getWorkoutTemplatesFromDb(userId);
-        expect(docs).toHaveLength(1); // No duplicates created
+        await expect(createWorkoutTemplateInDb(input)).rejects.toThrowError(/11000/);
+        const found = await getWorkoutTemplateByIdempotencyKeyFromDb(userId, input.idempotencyKey);
+        expect(found?.id).toBe(first.id);
     });
 
     it("should retrieve all templates for a user", async () => {

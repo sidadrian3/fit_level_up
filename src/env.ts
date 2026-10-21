@@ -18,6 +18,7 @@ export const env = createEnv({
         UPSTASH_REDIS_REST_URL: z.string().url(),
         UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
         BETTER_AUTH_SECRET: z.string().min(10),
+        CRON_SECRET: z.string().min(16),
     },
     client: {
         NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url(),

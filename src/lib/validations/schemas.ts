@@ -31,6 +31,11 @@ export const SendFriendRequestSchema = z.object({
   receiverId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid User ID format"),
 });
 
+export const CreateCustomExerciseSchema = z.object({
+  name: z.string().trim().min(1, "Exercise name is required").max(100),
+  targetMuscle: z.enum(TargetMuscle),
+});
+
 export const WorkoutTemplateSchema = z.object({
   name: z.string().min(1, "Template name is required"),
   exercises: z.array(ExerciseSchema).min(1, "At least one exercise is required"),
