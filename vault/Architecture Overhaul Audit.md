@@ -2,7 +2,7 @@
 
 An audit of FitLevelUp's current system design, data model and code layout, compared with the `apartment-system` project. Written 2026-10-20 on branch `chore/agent-workflow-setup` (all 99 tests passing, 19 files).
 
-**Status (2026-10-21):** Phase 0 steps 0.1–0.6 are done on branch `fix/architecture-audit-phase-0` (126 tests passing, 27 files). Step 0.7 (per-user time zone, F-8) and F-4 stay open by design. §1–§3 describe the system as audited; §4 marks the findings Phase 0 fixed, and §8.2 carries each step's status. See [[Architecture Audit Phase 0 Fix Plan]] and [[Architecture Audit Phase 0 Fix]].
+**Status (2026-10-21):** Phase 0 steps 0.1–0.6 are done on branch `fix/architecture-audit-phase-0` (126 tests passing, 27 files), and step 0.7 (per-user time zone, F-8) is done on branch `feat/per-user-time-zone` (147 tests passing, 31 files). F-4 stays open by design. §1–§3 describe the system as audited; §4 marks the findings Phase 0 fixed, and §8.2 carries each step's status. See [[Architecture Audit Phase 0 Fix Plan]] and [[Architecture Audit Phase 0 Fix]].
 
 apartment-system is a **comparison point, not a template**. Each project solves some problems better than the other, and some problems neither solves well. Every choice in §5 and §6 is judged on what it does for FitLevelUp, never on which project already does it.
 
@@ -149,7 +149,7 @@ Ranked most severe first. "F-n" ids are referenced from §5. Findings marked *Fi
 
 **F-7. Re-sending a declined friend request fails.** *Fixed in step 0.6: one document per pair keyed by `pairKey`; a decline can be reopened. Unlimited re-sending is now in [[Known Issues]].* The unique index is on `(requesterId, receiverId)`. After A→B is declined, the service allows a new A→B request, but the insert hits the unique index and returns "already sent". If B later requests A, a second document is created for the same pair.
 
-**F-8. Dates are computed in UTC, with local-time mixing.** *Open: step 0.7.* Streaks, quest periods and "this week" use `toISOString().slice(0, 10)` (UTC). `getMondayDateString` mixes local `getDay()` with UTC formatting. For a user in the Philippines (UTC+8), a 7 AM workout counts toward *yesterday*, which can break a streak. apartment-system solved the same problem with property-level date helpers (`billing/utils/property-date.ts`). FitLevelUp needs a per-user time zone.
+**F-8. Dates are computed in UTC, with local-time mixing.** *Fixed in step 0.7: `user.timeZone` (a Better Auth `additionalFields` entry) and `now`/`timeZone` arguments on every calendar-day rule. Activity-card dates still show the UTC day; step 3.4 owns that.* Streaks, quest periods and "this week" use `toISOString().slice(0, 10)` (UTC). `getMondayDateString` mixes local `getDay()` with UTC formatting. For a user in the Philippines (UTC+8), a 7 AM workout counts toward *yesterday*, which can break a streak. apartment-system solved the same problem with property-level date helpers (`billing/utils/property-date.ts`). FitLevelUp needs a per-user time zone.
 
 ### Performance
 
@@ -352,7 +352,7 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 | Drop `__v`; user-row updates are atomic `$inc`/`$set` inside the transaction | §3.2 #6 |
 | Compute `xpToNextLevel` and `pace` instead of storing them | §3.2 #4 |
 | `user_quests.periodStart` null for all-time, no `"all-time"` sentinel | §3.2 #8 |
-| `timeZone` on the player profile; streaks and quest periods computed in it | F-8 |
+| `timeZone` per user; streaks and quest periods computed in it. Step 0.7 stores it on the Better Auth `user` document; step 3.1 decides whether it moves to the player profile or stays as an account setting (see [[Per-User Time Zone Design Spec]]) | F-8 |
 | A `notifications` collection (inbox) written by the notification listeners; SSE or polling reads from it, so offline users don't lose events | F-10 |
 | Drop the ten collection-name env vars; names live in `schema.ts` | §3.2 #9 |
 | Embedded `exercises[]` stays, with a multikey index on `exercises.nameLower` for personal records | §3.2 #5 |
@@ -376,7 +376,7 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 | 5 | Quest progress | **In the transaction**, as today |
 | 6 | UI kit | **Keep Modern Athletic** primitives |
 | 7 | Sequencing | **Strangler migration**: build `server/platform/` first, then move one module at a time behind the existing UI |
-| 8 | Existing defects | **Fix forward**: fix F-1 to F-8 on the current code before the migration starts. Done for F-1 to F-3, F-5 to F-7 and F-12 to F-14 (Phase 0); F-8 is step 0.7 |
+| 8 | Existing defects | **Fix forward**: fix F-1 to F-8 on the current code before the migration starts. Done for F-1 to F-3, F-5 to F-8 and F-12 to F-14 (Phase 0) |
 
 ### 7.2 Still open (for the design spec)
 
@@ -417,7 +417,7 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 | **0.4** | `/fix` | Unique keys for achievements, custom exercises, templates | F-5 | — | Done |
 | **0.5** | `/fix` | Quest sync cooldown and guaranteed sync before progress | F-3, F-6 | — | Done |
 | **0.6** | `/fix` | Friend re-request after decline | F-7 | — | Done |
-| **0.7** | `/feature` | Per-user time zone for streaks and quest periods | F-8 | 0.5 | Open |
+| **0.7** | `/feature` | Per-user time zone for streaks and quest periods | F-8 | 0.5 | Done |
 | **1.1** | `/feature` | Architecture Overhaul Design Spec (spec only) | §7.2 | Phase 0 | Open |
 | **2.1** | `/refactor` | `server/platform/` skeleton, `schema.ts`, boundary tooling | §3.2 #9 | 1.1 | Open |
 | **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated | F-12 by construction | 2.1 | Open |
@@ -444,6 +444,7 @@ Steps 0.1–0.6 were independent and shipped together in one PR. 3.2 can run any
 - **2.1:** drop the older `(requesterId, receiverId)` friendship index, and remove the matching `requesterId` branch in `sendFriendRequest`, which exists only because that index fires before `pairKey`. Drop the now-redundant `userId`-only indexes on `user_achievements` and `custom_exercises` at the same time.
 - **2.2:** `DomainError` and `ForbiddenError` already exist, so `defineRoute` only needs to map them. `parseObjectId` and `isDuplicateKeyError` (in `lib/data`) move into `platform/database` with the other Mongo helpers.
 - **2.3:** the new rate limit on `POST /api/exercises` hand-formats its 429 like the other routes; the tiers step replaces all of them. The cron bearer comparison is not constant-time.
+- **3.1:** `user.timeZone` lives on the Better Auth `user` document (an `additionalFields` entry written at signup and by `TimeZoneSync`). Decide first whether it is an account setting that stays there (recommended: nothing in 3.1 touches it) or game state that moves; if it moves, the backfill copies it, the `additionalFields` entry goes, and the two client writers switch to a profile write.
 - **3.1:** `getUserFromDb` now returns `null` and `UserStateService` throws `NotFoundError`; keep the data layer free of `lib/api` imports.
 - **3.3:** `updateQuestProgress` already requires a session and upserts the period's rows through `ensureUserQuestRows`; the quests module keeps both properties.
 - **3.6:** the unique `(userId, achievementId)` key and the upsert in `insertUserAchievements` already exist.
