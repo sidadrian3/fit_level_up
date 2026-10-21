@@ -2,7 +2,7 @@
 
 An audit of FitLevelUp's current system design, data model and code layout, compared with the `apartment-system` project. Written 2026-10-20 on branch `chore/agent-workflow-setup` (all 99 tests passing, 19 files).
 
-**Status (2026-10-21):** Phase 0 steps 0.1–0.6 are done on branch `fix/architecture-audit-phase-0` (126 tests passing, 27 files), and step 0.7 (per-user time zone, F-8) is done on branch `feat/per-user-time-zone` (147 tests passing, 31 files). F-4 stays open by design. §1–§3 describe the system as audited; §4 marks the findings Phase 0 fixed, and §8.2 carries each step's status. See [[Architecture Audit Phase 0 Fix Plan]] and [[Architecture Audit Phase 0 Fix]].
+**Status (2026-10-21):** Phase 0 steps 0.1–0.6 are done on branch `fix/architecture-audit-phase-0` (126 tests passing, 27 files), and step 0.7 (per-user time zone, F-8) is done on branch `feat/per-user-time-zone` (147 tests passing, 31 files). F-4 stays open by design. Step 1.1 is done: [[Architecture Overhaul Design Spec]] settles §7.2 and amends parts of §6. §1–§3 describe the system as audited; §4 marks the findings Phase 0 fixed, and §8.2 carries each step's status. See [[Architecture Audit Phase 0 Fix Plan]] and [[Architecture Audit Phase 0 Fix]].
 
 apartment-system is a **comparison point, not a template**. Each project solves some problems better than the other, and some problems neither solves well. Every choice in §5 and §6 is judged on what it does for FitLevelUp, never on which project already does it.
 
@@ -252,6 +252,8 @@ Roles and multiple portals, property scoping, the admin audit log (`@LogActivity
 
 ## 6. Target shape
 
+**Amended by [[Architecture Overhaul Design Spec]] (2026-10-22), which wins where they differ:** Zod input schemas and wire types live in a new isomorphic `src/shared/`, not under `src/server/` (D8, C1); routes import `defineRoute` from the composition root `src/server/runtime.ts` (C9); `timeZone` stays on the better-auth `user` document (D7); the profile stores `totalXp` and `lastActivityDay` (C6); real-time delivery is polling, not SSE (D1).
+
 Decided 2026-10-20 (see §7): stay **one Next.js package on Vercel**, keep **MongoDB**, **better-auth** and the **Modern Athletic** UI. The shape below combines the winners from §5: FitLevelUp's strengths kept, apartment-system's better patterns adopted, and the §5.3 options where neither was best.
 
 The main risk of one package is that boundaries hold only by convention, and §2.2 shows that convention already slips. So every boundary below is enforced by a tool: a route wrapper, the `server-only` package, ESLint import rules and a dependency-cycle check in CI.
@@ -379,7 +381,9 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 | 7   | Sequencing       | **Strangler migration**: build `server/platform/` first, then move one module at a time behind the existing UI                              |
 | 8   | Existing defects | **Fix forward**: fix F-1 to F-8 on the current code before the migration starts. Done for F-1 to F-3, F-5 to F-8 and F-12 to F-14 (Phase 0) |
 
-### 7.2 Still open (for the design spec)
+### 7.2 Settled by the design spec (2026-10-22)
+
+All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox, not SSE (D1); Upstash with `standard`/`expensive` tiers keyed by user and route (D2); ESLint for file rules plus dependency-cruiser for graph rules (D3); the order below, unchanged, with step scopes adjusted (D4); numbered idempotent migrations at build, expand-only until 5.1 (D5); outbox, ledger and game content in code all adopted (D6). The questions as originally posed:
 
 1. **Real-time delivery on serverless.** Keep SSE but read from the `notifications` inbox instead of the Redis queue, or replace SSE with React Query polling of `GET /api/notifications?since=`? Polling removes Upstash from the notification path entirely.
 2. **Rate-limit backend.** Upstash stays (serverless has no shared memory), but with per-tier limits (`standard`, `expensive`) keyed by user and route instead of one 20/hour bucket.
@@ -419,25 +423,27 @@ The `defineRoute` wrapper reverses Candidate B in [[Architecture Review]], which
 | **0.5** | `/fix`      | Quest sync cooldown and guaranteed sync before progress                             | F-3, F-6                              | —          | Done   |
 | **0.6** | `/fix`      | Friend re-request after decline                                                     | F-7                                   | —          | Done   |
 | **0.7** | `/feature`  | Per-user time zone for streaks and quest periods                                    | F-8                                   | 0.5        | Done   |
-| **1.1** | `/feature`  | Architecture Overhaul Design Spec (spec only)                                       | §7.2                                  | Phase 0    | Open   |
-| **2.1** | `/refactor` | `server/platform/` skeleton, `schema.ts`, boundary tooling                          | §3.2 #9                               | 1.1        | Open   |
+| **1.1** | `/feature`  | Architecture Overhaul Design Spec (spec only)                                       | §7.2                                  | Phase 0    | Done   |
+| **2.1** | `/refactor` | `server/platform/` skeleton, `src/shared/`, `schema.ts`, migration runner, boundary tooling | §3.2 #9                               | 1.1        | Open   |
 | **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated                   | F-12 by construction                  | 2.1        | Open   |
 | **2.3** | `/feature`  | Per-user, per-route rate-limit tiers                                                | F-11                                  | 2.2        | Open   |
 | **2.4** | `/feature`  | `Idempotency-Key` header replaces body sniffing                                     | F-20                                  | 2.2        | Open   |
-| **2.5** | `/feature`  | Transactional outbox + typed event bus                                              | F-16 (infra)                          | 2.2, 1.1   | Open   |
-| **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path, no `__v`                | F-15, §3.2 #1 #4 #6                   | 2.5        | Open   |
+| **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Open   |
+| **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path writing `xp_ledger`, no `__v` | F-15, §3.2 #1 #4 #6                   | 2.5        | Open   |
 | **3.2** | `/refactor` | Quest and achievement definitions as typed constants                                | §5.3                                  | 2.1        | Open   |
 | **3.3** | `/refactor` | `quests` module                                                                     | F-17 (quests)                         | 3.1, 3.2   | Open   |
 | **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records)                   | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3   | Open   |
-| **3.5** | `/feature`  | XP ledger; edit and delete reconcile XP, level, totals, quests                      | **F-4**, §3.2 #3 #10                  | 3.4        | Open   |
+| **3.5** | `/feature`  | Ledger backfill; edit and delete reconcile XP, level, totals, quests                | **F-4**, §3.2 #3 #10                  | 3.4        | Open   |
 | **3.6** | `/refactor` | `achievements` module as an outbox listener                                         | F-5 (finish), F-16                    | 3.4, 2.5   | Open   |
 | **3.7** | `/refactor` | `social` module, transition table, no N+1                                           | F-9 (friends), F-16                   | 2.5        | Open   |
-| **3.8** | `/feature`  | `notification` module: inbox + real-time delivery                                   | F-10, F-18 (SSE)                      | 3.6, 3.7   | Open   |
+| **3.8** | `/feature`  | `notification` module: inbox + polling delivery (SSE retires)                       | F-10, F-18 (SSE)                      | 3.6, 3.7   | Open   |
 | **4.1** | `/refactor` | `lib/<domain>/hooks` own query keys and invalidation (one PR per domain)            | F-19                                  | Phase 3    | Open   |
 | **4.2** | `/refactor` | Page `_components/`, `WorkoutForm` split, shared custom-exercise hook               | F-19                                  | 4.1        | Open   |
 | **5.1** | `/refactor` | Delete old `lib/` back-end folders and dead code; sync `AGENTS.md` and vault guides | F-18                                  | 4.2        | Open   |
 
 Steps 0.1–0.6 were independent and shipped together in one PR; 0.7 followed on its own branch. 3.2 can run any time after 2.1. 3.7 can run in parallel with 3.3–3.6.
+
+The design spec (step 1.1) kept this order and changed the scope of 2.1, 2.2, 2.5, 3.1, 3.5 and 3.8; see its D4. Its kickoff prompts below name the spec sections each step implements.
 
 **Carry-over from Phase 0 into later steps**
 
@@ -461,15 +467,7 @@ Steps 0.1–0.7 are done; their kickoff prompts are retired. The root causes, de
 
 #### Phase 1 — Design
 
-**1.1 Architecture Overhaul Design Spec**
-
-```
-/feature Architecture Overhaul Design Spec — spec only, no implementation
-
-Read vault/Architecture Overhaul Audit.md in full first; §5–§8 are the input. apartment-system is a comparison point, not a template: justify every choice on its merits.
-Goal: write vault/specs/Architecture Overhaul Design Spec.md that settles every §7.2 open question (real-time delivery on serverless, rate-limit backend, boundary tool, module order, data migration, and the three §5.3 proposals: transactional outbox, XP ledger as source of truth, game content in code) and fixes the contracts later steps build on: the defineRoute() options, the UserScopedRepository<T> interface, the event and outbox document shapes, and the schema.ts layout.
-Stop after Step 3 (spec) and the readiness check. Steps 2.1 onward in §8 implement it; update §8 of the audit if the spec changes the order.
-```
+Step 1.1 is done; its kickoff prompt is retired. The result is [[Architecture Overhaul Design Spec]].
 
 #### Phase 2 — Platform
 
@@ -478,8 +476,8 @@ Stop after Step 3 (spec) and the readiness check. Steps 2.1 onward in §8 implem
 ```
 /refactor Create src/server/platform with schema.ts and enforce module boundaries with tooling
 
-Read vault/Architecture Overhaul Audit.md §6.1, §6.2 and vault/specs/Architecture Overhaul Design Spec.md first.
-Scope: create src/server/platform/{database,config,auth}; move the Mongo client, get-collection, ensure-indexes (as schema.ts: document types + indexes + $jsonSchema validators), env.ts, game-config.ts and the better-auth config into it (the config carries the `user.timeZone` additionalFields entry validated by `timeZoneSchema`, and `src/lib/auth/client.ts` infers its type from it); drop the ten collection-name env vars. Add server-only to everything under src/server, the import-boundary lint rules and the dependency-cycle check in CI, as chosen in the spec.
+Read vault/Architecture Overhaul Audit.md §6.1, §6.2 and vault/specs/Architecture Overhaul Design Spec.md (D3, D5, D8, C1, C8) first.
+Scope: create src/server/platform/{env,config,domain,database,auth} and src/shared/{contracts,time} (Zod schemas, wire types and calendar helpers that forms and routes share); move the Mongo client, get-collection, ensure-indexes (as schema.ts: document types + indexes + $jsonSchema validators), env.ts, game-config.ts and the better-auth config into it (the config carries the `user.timeZone` additionalFields entry validated by `timeZoneSchema`, and `src/lib/auth/client.ts` infers its type from it); drop the ten collection-name env vars and rename customExercises to custom_exercises (check the production name first). Replace migrate-db's fixed steps with the numbered migration runner and schema_migrations (prepare-unique-indexes becomes migration 001), and confirm preview deploys don't migrate the production database. Add server-only to every index.ts under src/server (aliased to an empty module in Vitest), the ESLint rules E1–E2 and the dependency-cruiser rules G1–G7, run from npm run lint.
 Preserved behaviour: no route, page or response changes. Existing lib/ code imports the moved files from their new location.
 Done when: npm run lint, typecheck and test:run pass, and CI fails on a deliberate deep import across modules (proved once, then reverted).
 ```
@@ -490,7 +488,7 @@ Done when: npm run lint, typecheck and test:run pass, and CI fails on a delibera
 /refactor Replace per-route try/catch and hand-written auth with defineRoute(), and add UserScopedRepository<T>
 
 Read vault/Architecture Overhaul Audit.md §6.2 and the defineRoute and UserScopedRepository contracts in vault/specs/Architecture Overhaul Design Spec.md first.
-Scope: implement defineRoute({ auth, body, query, throttle }) in src/server/platform/http (auth, Zod parse, error mapping including DomainError, ForbiddenError and invalid ids) and UserScopedRepository<T> in platform/database. Migrate every src/app/api/**/route.ts to defineRoute; keep throttle on exactly the routes rate-limited today (tiers come in 2.3). Add a route-table test that fails when a mutation lacks validation or a throttle setting.
+Scope: implement createDefineRoute (spec C2: name, auth, body, query, params, throttle, status; error mapping including DomainError, ForbiddenError, malformed JSON and invalid ids; constant-time cron bearer check) in src/server/platform/http, wire it in src/server/runtime.ts (C9), and implement userScopedRepository<T> (C3) in platform/database. Migrate every src/app/api/**/route.ts to defineRoute imported from @/server/runtime; keep throttle on exactly the routes rate-limited today (tiers come in 2.3). Add a route-table test that fails when a mutation lacks validation or a throttle setting.
 Preserved behaviour: every status code and response body stays the same, except routes that today return 500 for bad input.
 Done when: no route.ts contains try/catch or calls getAuthUserId directly, and the existing route tests pass unchanged.
 ```
@@ -502,7 +500,7 @@ Done when: no route.ts contains try/catch or calls getAuthUserId directly, and t
 
 Read vault/Architecture Overhaul Audit.md §4 F-11 and §5.3, and the rate-limit decision in vault/specs/Architecture Overhaul Design Spec.md first.
 Problem: one 20-per-hour Upstash bucket is shared by every limited mutation, and several mutations (exercises, templates, quest claim, workout and run PUT/DELETE) aren't limited.
-Want: "standard" and "expensive" tiers keyed by userId + route, values in game-config or a platform constant, applied through defineRoute({ throttle }). A 429 carries Retry-After. The route-table test from 2.2 requires a tier on every mutation.
+Want: the tiers in spec D2 (standard 30/min, expensive 10/h for friend requests) keyed by route name + userId, RATE_LIMIT_TIERS in platform/config, applied through defineRoute({ throttle }); a limiter outage lets requests through. A 429 carries Retry-After. The route-table test from 2.2 requires a tier on every mutation.
 ```
 
 **2.4 Idempotency-Key header**
@@ -520,8 +518,8 @@ Want: defineRoute reads an Idempotency-Key header on create routes (workouts, ru
 ```
 /feature Transactional outbox and typed event bus for side effects
 
-Read vault/Architecture Overhaul Audit.md §5.3 (side effects row) and §6.3, and the outbox decision in vault/specs/Architecture Overhaul Design Spec.md first.
-Want: src/server/platform/events with a typed emit(event, session) that writes an outbox document in the caller's transaction, an after() dispatcher that runs the registered listeners right after commit, and a Vercel Cron sweep that retries unprocessed or failed entries with backoff. Listeners must be idempotent; the outbox records attempts and last error.
+Read vault/Architecture Overhaul Audit.md §5.3 (side effects row) and §6.3, and spec D6a, C4, C5 and C9 in vault/specs/Architecture Overhaul Design Spec.md first.
+Want: src/server/platform/events with EventMap, emit(type, payload, { session }) writing one outbox document in the caller's transaction, and a dispatcher built from the listener table in runtime.ts. A request delivers only the events it emitted (by id) plus up to 3 overdue rows; a request that emitted nothing does no outbox work. /api/cron/outbox-sweep replaces /api/cron/achievements-sweep in vercel.json. Listeners are idempotent; rows track completedListeners, attempts, lastError and go dead after 8 attempts. Ship npm run outbox (--dead, --requeue <id>).
 Migrate the two existing after() side effects (level-up fan-out, achievement evaluation) onto it, so the achievements-specific sweep becomes the generic one.
 Done when: an integration test kills dispatch after commit and shows the sweep delivers the event exactly once.
 ```
@@ -534,10 +532,10 @@ Done when: an integration test kills dispatch after commit and shows the sweep d
 /refactor Move user game state into a progression module and a player_profiles collection
 
 Read vault/Architecture Overhaul Audit.md §3.2 (#1, #4, #6), §4 F-15 and §6.2–§6.4 first.
-Scope: src/server/progression/ owns XP, level, streak, stamina and totals. Game state moves off better-auth's user document into player_profiles (keyed by the user id), with an idempotent backfill script. grantUserXP and UserStateService.applyActivity merge into one path; the __v retry loops go, replaced by atomic $inc/$set inside the caller's transaction; xpToNextLevel is computed, not stored. Level-up emits progression.leveled-up through the outbox.
-Time zone: user.timeZone (a better-auth additionalFields entry, written at signup and by TimeZoneSync) is not game state; decide first whether it stays on the user document as an account setting (recommended, so nothing here touches it) or moves into the profile. Progression's streak rules already take now and the user's time zone (calcNewStreak, calcDisplayStreak), and lastActivityDate holds the user's local day as a UTC-midnight Date: keep that meaning in the backfill, or store it as a YYYY-MM-DD string and update toUser and the sweep lookback together.
+Scope: src/server/progression/ owns XP, level, streak, stamina and totals. Game state moves off better-auth's user document into player_profiles (spec C6: _id is the user id, totalXp cached, level computed), with an idempotent backfill migration; profiles for new users are upserted on first touch. grantUserXP and UserStateService.applyActivity merge into one path behind recordActivity and grantXp, which take a source and write an xp_ledger row from day one; the __v retry loops go, replaced by atomic $inc/$set inside the caller's transaction; xpToNextLevel is computed, not stored. Level-up emits progression.leveled-up through the outbox.
+Time zone: user.timeZone stays on the better-auth user document as an account setting (spec D7); progression reads it through getUserTimeZone in platform/auth. Progression's streak rules already take now and the user's time zone (calcNewStreak, calcDisplayStreak). lastActivityDate (the user's local day as a UTC-midnight Date) becomes lastActivityDay, a YYYY-MM-DD string, in the backfill.
 Preserved behaviour: every XP, level, streak and stamina outcome in the existing tests; the /api/user response shape.
-Done when: no code outside progression/ reads or writes game fields, and the user document holds only auth fields after the backfill.
+Done when: no code outside progression/ reads or writes game fields. The old game fields stay on the user document until the 5.1 cleanup migration (expand-only, spec D5).
 ```
 
 **3.2 Game content in code**
@@ -577,7 +575,7 @@ Preserved behaviour: responses and XP outcomes (edit and delete reconciliation i
 
 Read vault/Architecture Overhaul Audit.md §4 F-4, §3.2 #3 and #10, §5.3 (XP ledger row) and the ledger decision in vault/specs/Architecture Overhaul Design Spec.md first.
 Problem: today a user can log a 300-minute workout, collect the XP and level-up, then edit it to 1 minute or delete it and keep everything.
-Want: an xp_ledger (userId, sourceType, sourceId, amount; unique on source) written for every grant (activities and quest claims). Edit replaces the source's entry, delete removes it, and progression recomputes XP, level and totals from the ledger, including levelling down. Quest progress for the affected period is recomputed too, with the period derived from the activity's own date in the user's time zone (getPeriodForCategory). Backfill the ledger from existing activities and claimed quests.
+Want: xp_ledger rows already exist for every grant since step 3.1 (spec C6). Add replaceSourceXp and revokeSource: edit replaces the source's entry, delete removes it, and progression recomputes totalXp from the ledger sum, so level follows, including levelling down; workout and distance totals change by the exact delta training passes. Emit activity.reverted. Quest progress for the affected period is recomputed too, with the period derived from the activity's own date in the user's time zone (getPeriodForCategory). Backfill the ledger from existing activities and claimed quests.
 Edge cases to settle in the brainstorm: achievements already unlocked (keep them?), quest rewards already claimed for progress that no longer holds, and a level-down notification (probably none).
 ```
 
@@ -604,11 +602,11 @@ Preserved behaviour: friend API responses and sort order.
 **3.8 notification**
 
 ```
-/feature Persistent notification inbox with real-time delivery
+/feature Persistent notification inbox with polling delivery
 
-Read vault/Architecture Overhaul Audit.md §4 F-10 and F-18 and the real-time decision in vault/specs/Architecture Overhaul Design Spec.md first.
+Read vault/Architecture Overhaul Audit.md §4 F-10 and F-18 and spec D1 and C7 in vault/specs/Architecture Overhaul Design Spec.md first.
 Problem: notifications live in a Redis list with a 60-second TTL, polled every 5 seconds per open tab, so offline users lose them and each tab makes ~17k Upstash calls a day.
-Want: src/server/notification as listener-only (imported by no module), writing a notifications collection for friend requests and accepts, friend level-ups and achievement unlocks. Delivery and read state as the spec decided (SSE reading the inbox, or polling GET /api/notifications?since=), PATCH to mark read, and an unread bell in the UI using the Modern Athletic primitives. Retire the Redis SSE queue and the deprecated sse-registry with its tests.
+Want: src/server/notification as listener-only (imported by no module), writing a notifications collection for friend requests and accepts, friend level-ups and achievement unlocks. Delivery by React Query polling of GET /api/notifications?since= every 30 s while the tab is visible, on focus and after the user's own mutations; PATCH /api/notifications/read; and an unread bell in the UI using the Modern Athletic primitives. Retire /api/friends/events, the Redis SSE queue and the deprecated sse-registry with its tests.
 ```
 
 #### Phase 4 — Front end
