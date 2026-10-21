@@ -45,7 +45,7 @@ export async function updateQuestProgress(
       const nextProgress = calcNextProgress(userQuest.progress, update.amount, userQuest.target);
       const isCompleted = nextProgress >= userQuest.target;
 
-      await updateUserQuestProgressInDb(userQuest._id, nextProgress, isCompleted, session);
+      await updateUserQuestProgressInDb(userQuest._id, userId, nextProgress, isCompleted, session);
     }
   }
 }

@@ -212,7 +212,7 @@ POST /api/workouts
 - Strict 4-layer architecture (domain/service/data separation fully enforced)
 - MongoDB transactions wrapping all multi-step writes (`logWorkout`, `logRun`, `claimQuestReward`)
 - Idempotency keys on workout and run creation (prevents duplicate submissions on network retry)
-- Proper MongoDB indexes on all hot-path queries (including a unique compound index on `(requesterId, receiverId)` for friendships)
+- Proper MongoDB indexes on all hot-path queries (including unique indexes that keep friendships to one document per pair and prevent duplicate achievement unlocks, custom exercises and quest rows)
 - Zod validation on every API endpoint
 - Type-safe environment variables (validated at startup — server won't start with missing env vars)
 - Unit tests (Vitest + in-memory MongoDB) covering domain rules, data layer, service layer, and SSE registry
@@ -643,28 +643,10 @@ describe("custom-exercises-db Data Layer Test", () => {
     // @ts-expect-error: intentionally checking runtime field doesn't exist
     expect(exercises[0]._id).toBeUndefined(); // ← MongoDB _id must be hidden ✅
   });
-
-  // TEST: Can we look up a specific document by name + muscle group?
-  it("should find a single document, and return null when not found", async () => {
-    const found = await getCustomExerciseByNameFromDb(
-      userId,
-      "DB Test Exercise",
-      TargetMuscle.Core,
-    );
-    expect(found).toBeDefined();
-    expect(found?.name).toBe("DB Test Exercise");
-
-    const missing = await getCustomExerciseByNameFromDb(
-      userId,
-      "Non Existent",
-      TargetMuscle.Core,
-    );
-    expect(missing).toBeNull(); // Must return null, not throw
-  });
 });
 ```
 
-**What this proves:** The data layer correctly handles the MongoDB `_id` → `id` conversion, and the not-found case returns `null` gracefully instead of throwing.
+**What this proves:** The data layer correctly handles the MongoDB `_id` → `id` conversion and never leaks the internal `_id`.
 
 ---
 

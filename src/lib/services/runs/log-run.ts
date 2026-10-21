@@ -6,6 +6,7 @@ import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
 import { evaluateRun } from "@/lib/domain/run-evaluator";
 import clientPromise from "@/lib/mongodb";
 import { after } from "next/server";
+import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
 import { ConflictError } from "@/lib/api/errors";
 
 export async function logRun(
@@ -52,8 +53,7 @@ export async function logRun(
             return run;
         });
     } catch (error: unknown) {
-        const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
-        if (err.code === 11000 && err.keyPattern?.idempotencyKey && input.idempotencyKey) {
+        if (isDuplicateKeyError(error, "idempotencyKey")) {
             console.log("Duplicate run request detected. Fetching existing...");
             const existing = await getRunByIdempotencyKey(userId, input.idempotencyKey);
             if (existing) return existing;

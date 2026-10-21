@@ -157,12 +157,13 @@ export async function getQuestTemplatesByIdsFromDb(
     "questTemplatesCollection",
   );
   return collection
-    .find({ _id: { $in: ids.map((id) => new ObjectId(id)) } })
+    .find({ _id: { $in: ids.flatMap((id) => parseObjectId(id) ?? []) } })
     .toArray();
 }
 
 export async function updateUserQuestProgressInDb(
   id: ObjectId,
+  userId: string,
   progress: number,
   completed: boolean,
   session?: ClientSession,
@@ -171,7 +172,7 @@ export async function updateUserQuestProgressInDb(
     "userQuestsCollection",
   );
   await collection.updateOne(
-    { _id: id },
+    { _id: id, userId },
     {
       $set: { progress, completed },
     },
@@ -181,13 +182,14 @@ export async function updateUserQuestProgressInDb(
 
 export async function markUserQuestClaimedInDb(
   id: ObjectId,
+  userId: string,
   session?: ClientSession,
 ): Promise<number> {
   const collection = await getCollection<UserQuestMongoDoc>(
     "userQuestsCollection",
   );
   const result = await collection.updateOne(
-    { _id: id, claimed: false },
+    { _id: id, userId, claimed: false },
     {
       $set: { claimed: true },
     },

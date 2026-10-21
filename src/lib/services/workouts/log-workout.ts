@@ -8,6 +8,7 @@ import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import clientPromise from "@/lib/mongodb";
 import { after } from "next/server";
+import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
 import { ConflictError } from "@/lib/api/errors";
 
 export async function logWorkout(
@@ -50,8 +51,7 @@ export async function logWorkout(
             return workout;
         });
     } catch (error: unknown) {
-        const err = error as { code?: number; keyPattern?: { idempotencyKey?: number } };
-        if (err.code === 11000 && err.keyPattern?.idempotencyKey && input.idempotencyKey) {
+        if (isDuplicateKeyError(error, "idempotencyKey")) {
             console.log("Duplicate workout request detected. Fetching existing...");
             const existing = await getWorkoutByIdempotencyKey(userId, input.idempotencyKey);
             if (existing) return existing;

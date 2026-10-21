@@ -3,7 +3,6 @@ import type { User } from "@/lib/types";
 import { getCollection } from "@/lib/data/get-collection";
 import { calcNewStreak } from "@/lib/domain/user-rules";
 import { parseObjectId } from "@/lib/data/object-id";
-import { NotFoundError } from "@/lib/api/errors";
 
 export type UserMongoDoc = {
   _id?: ObjectId;
@@ -49,15 +48,12 @@ export function toUser(doc: UserMongoDoc): User {
   };
 }
 
-export async function getUserFromDb(userId: string, session?: ClientSession): Promise<User> {
+export async function getUserFromDb(userId: string, session?: ClientSession): Promise<User | null> {
   const collection = await getCollection<UserMongoDoc>("usersCollection");
 
   const _id = parseObjectId(userId);
   const userDoc = _id ? await collection.findOne({ _id }, { session }) : null;
-  if (!userDoc) {
-    throw new NotFoundError("User not found");
-  }
-  return toUser(userDoc);
+  return userDoc ? toUser(userDoc) : null;
 }
 
 export async function updateUserStreakInDb(userId: string, currentStreak: number): Promise<void> {

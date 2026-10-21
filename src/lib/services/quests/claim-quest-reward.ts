@@ -25,7 +25,7 @@ export async function claimQuestReward(userId: string, questId: string): Promise
     try {
       return await session.withTransaction(async () => {
         // Update in DB
-        const modifiedCount = await markUserQuestClaimedInDb(quest._id!, session);
+        const modifiedCount = await markUserQuestClaimedInDb(quest._id!, userId, session);
 
         if (modifiedCount === 0) {
           throw new ConflictError("Quest already claimed");

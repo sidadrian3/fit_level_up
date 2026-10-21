@@ -55,6 +55,7 @@ Every root cause below was confirmed by a throwaway repro test that drove the re
 - [ ] Remove the broken cooldown; `getUserQuests` always syncs, since the sync is an idempotent upsert.
 - [ ] Extract the row upsert from `syncUserQuests` so `updateQuestProgress` can upsert the current period's rows for the affected metrics before applying progress.
 - [ ] `updateQuestProgress` takes a required `session` and passes it to every read and write.
+- [ ] Added during implementation (not in the original plan): `user_quests (userId, questTemplateId, periodStart, periodEnd)` becomes unique, because upserting rows from the write path races with the read-path sync and could create duplicate rows. The migration script dedupes existing rows (keep a claimed row, else the highest progress) and drops the old non-unique index of the same name so it can be rebuilt unique.
 - [ ] Integration test: a user with no `user_quests` rows logs a workout and gets daily and weekly `workout_count` progress of 1.
 
 ### 6. Friend re-request (F-7)
