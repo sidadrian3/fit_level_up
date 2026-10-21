@@ -14,7 +14,7 @@ import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout
 import { getUserQuests } from "@/lib/services/quests/get-user-quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 import { calcActiveDays } from "@/lib/domain/user-rules";
-import { addDays, startOfLocalDay, startOfWeek, toLocalDay } from "@/lib/utils/dates";
+import { weekInstants } from "@/lib/utils/dates";
 
 
 export default async function DashboardPage() {
@@ -29,14 +29,10 @@ export default async function DashboardPage() {
         ]);
 
     const now = new Date();
-    const weekStart = startOfWeek(toLocalDay(now, user.timeZone));
+    const { thisWeekFrom, nextWeekFrom } = weekInstants(now, user.timeZone);
     const [stats, weekWorkoutDates] = await Promise.all([
-        getDashboardStats(userId, user),
-        getWorkoutDatesInRange(
-            userId,
-            startOfLocalDay(weekStart, user.timeZone),
-            startOfLocalDay(addDays(weekStart, 7), user.timeZone)
-        ),
+        getDashboardStats(userId, user, now),
+        getWorkoutDatesInRange(userId, thisWeekFrom, nextWeekFrom),
     ]);
 
     const recentWorkouts = allWorkouts.slice(0, 3);

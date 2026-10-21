@@ -72,3 +72,12 @@ export function startOfLocalDay(day: string, timeZone: string): Date {
 
   return new Date(t);
 }
+
+export function weekInstants(now: Date, timeZone: string): { lastWeekFrom: Date; thisWeekFrom: Date; nextWeekFrom: Date } {
+  const weekStart = startOfWeek(toLocalDay(now, timeZone));
+  return {
+    lastWeekFrom: startOfLocalDay(addDays(weekStart, -7), timeZone),
+    thisWeekFrom: startOfLocalDay(weekStart, timeZone),
+    nextWeekFrom: startOfLocalDay(addDays(weekStart, 7), timeZone),
+  };
+}
