@@ -4,7 +4,7 @@ import {
   updateUserQuestProgressInDb,
   getUserQuestsForUserFromDb, getQuestTemplatesByMetricsFromDb
 } from "@/lib/data/quests-db";
-import { toLocalDay } from "@/lib/utils/dates";
+import { toLocalDay } from "@/shared/time/calendar";
 import { ensureUserQuestRows, type QuestCalendar } from "@/lib/services/quests/sync-user-quests";
 import { ClientSession } from "mongodb";
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { deleteRunFromDb } from "@/lib/data/runs-db";
 import { updateRun } from "@/lib/services/runs/update-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { CreateRunSchema } from "@/lib/validations/schemas";
+import { CreateRunSchema } from "@/shared/contracts/run";
 import { z } from "zod";
 import { handleApiError } from "@/lib/api/handle-api-error";
 

@@ -1,4 +1,8 @@
 import { PersonalRecord } from "./utils";
+import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
+
+export { TargetMuscle };
+export type { Exercise };
 
 /** Type alias for ISO date strings — makes refactoring to Date objects easier later */
 export type DateString = string;
@@ -20,24 +24,6 @@ export interface User {
     lastStaminaUpdate: DateString;
     timeZone: string;
     __v?: number;
-}
-
-export enum TargetMuscle {
-    Chest = "Chest",
-    Back = "Back",
-    Legs = "Legs",
-    Arms = "Arms",
-    Core = "Core",
-    Cardio = "Cardio",
-    FullBody = "Full Body"
-}
-
-export interface Exercise {
-    name: string;
-    targetMuscle: TargetMuscle;
-    sets: number;
-    reps: number;
-    weight: number | null; // null for bodyweight exercises
 }
 
 export interface CustomExercise {

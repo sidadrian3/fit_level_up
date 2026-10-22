@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getPaginatedRunsFromDb } from "@/lib/data/runs-db";
 import { logRun } from "@/lib/services/runs/log-run";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { CreateRunSchema } from "@/lib/validations/schemas";
+import { CreateRunSchema } from "@/shared/contracts/run";
 import { z } from "zod";
 import { RateLimit } from "@/lib/auth/rate-limit";
 import { handleApiError } from "@/lib/api/handle-api-error";

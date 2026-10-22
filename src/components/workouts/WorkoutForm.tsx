@@ -7,7 +7,7 @@ import { createWorkout, updateWorkout, fetchCustomExercises, createCustomExercis
 import { Workout, Exercise, TargetMuscle, CustomExercise } from "@/lib/types";
 import { Plus, Trash2, X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
-import { CreateWorkoutSchema } from "@/lib/validations/schemas";
+import { CreateWorkoutSchema } from "@/shared/contracts/workout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";

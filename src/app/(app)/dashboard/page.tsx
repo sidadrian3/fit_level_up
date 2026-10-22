@@ -14,7 +14,7 @@ import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout
 import { getUserQuests } from "@/lib/services/quests/get-user-quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 import { calcActiveDays } from "@/lib/domain/user-rules";
-import { weekInstants } from "@/lib/utils/dates";
+import { weekInstants } from "@/shared/time/calendar";
 
 
 export default async function DashboardPage() {

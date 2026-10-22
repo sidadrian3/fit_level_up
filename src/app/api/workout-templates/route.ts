@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { handleApiError } from "@/lib/api/handle-api-error";
-import { WorkoutTemplateSchema } from "@/lib/validations/schemas";
+import { WorkoutTemplateSchema } from "@/shared/contracts/template";
 import { getWorkoutTemplatesFromDb} from "@/lib/data/workout-templates-db";
 import { createWorkoutTemplate } from "@/lib/services/workout-templates/create-workout-template";
 

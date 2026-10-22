@@ -4,7 +4,7 @@ import { calcLevelUp, calcNewStreak, calcDisplayStreak } from "@/lib/domain/user
 import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
 import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
 import { after } from "next/server";
-import { toLocalDay } from "@/lib/utils/dates";
+import { toLocalDay } from "@/shared/time/calendar";
 import type { User } from "@/lib/types";
 import { ConflictError, NotFoundError } from "@/lib/api/errors";
 

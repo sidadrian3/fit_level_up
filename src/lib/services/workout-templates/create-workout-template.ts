@@ -1,4 +1,4 @@
-import { WorkoutTemplateSchema } from "@/lib/validations/schemas";
+import { WorkoutTemplateSchema } from "@/shared/contracts/template";
 import { createWorkoutTemplateInDb, getWorkoutTemplateByIdempotencyKeyFromDb } from "@/lib/data/workout-templates-db";
 import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
 import { ConflictError } from "@/lib/api/errors";

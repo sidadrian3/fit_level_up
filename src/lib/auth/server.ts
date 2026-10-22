@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { client } from "@/lib/mongodb";
 import { env } from "../../env";
-import { timeZoneSchema } from "@/lib/validations/schemas";
+import { timeZoneSchema } from "@/shared/contracts/user";
 
 const db = client.db(env.MONGODB_DB);
 
