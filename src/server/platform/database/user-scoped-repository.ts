@@ -63,9 +63,22 @@ export interface UserScopedRepository<T extends UserOwnedDoc> {
 function assertUpdateKeepsOwner(update: Document): void {
     const touchesOwner = Object.entries(update).some(([key, value]) => {
         if (!key.startsWith("$")) return key === "userId";
-        return typeof value === "object" && value !== null && "userId" in value;
+        if (typeof value !== "object" || value === null) return false;
+        return "userId" in value || Object.values(value).includes("userId");
     });
     if (touchesOwner) throw new Error("An update must not change userId");
+}
+
+const UNSCOPED_STAGES = new Set(["$lookup", "$graphLookup", "$unionWith", "$out", "$merge"]);
+
+function containsUnscopedStage(node: unknown): boolean {
+    if (Array.isArray(node)) return node.some(containsUnscopedStage);
+    if (typeof node !== "object" || node === null) return false;
+    return Object.entries(node).some(([key, value]) => UNSCOPED_STAGES.has(key) || containsUnscopedStage(value));
+}
+
+function assertValidPage(page: number): void {
+    if (!Number.isInteger(page) || page < 1) throw new Error("page must be an integer of at least 1");
 }
 
 function assertValidLimit(limit: number): void {
@@ -122,6 +135,7 @@ export function userScopedRepository<T extends UserOwnedDoc>(collectionKey: Coll
         findOne,
         find,
         async paginate(userId, filter, { page, limit, sort, session }) {
+            assertValidPage(page);
             const findPage = () => find(userId, filter, { limit, sort, skip: (page - 1) * limit, session });
             const countAll = () => count(userId, filter, { session });
             if (session) {
@@ -162,6 +176,7 @@ export function userScopedRepository<T extends UserOwnedDoc>(collectionKey: Coll
             return (await col.findOneAndDelete(filter, options ?? {})) as T | null;
         },
         async aggregate<R extends Document>(userId: string, pipeline: Document[], options?: SessionOption) {
+            if (containsUnscopedStage(pipeline)) throw new Error("aggregate must not use a stage that reads or writes other documents");
             const col = await collection();
             return col.aggregate<R>([{ $match: { userId } }, ...pipeline], options).toArray();
         },

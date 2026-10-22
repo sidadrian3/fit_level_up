@@ -145,5 +145,24 @@ describe("userScopedRepository", () => {
             repo.updateOne(alice, {}, { $setOnInsert: { userId: bob } }, { upsert: true }),
         ).rejects.toThrow(/userId/);
     });
+
+    it("rejects renaming a field onto userId", async () => {
+        const created = await repo.insertOne(alice, templateInput("Mine"));
+
+        await expect(
+            repo.updateById(alice, created._id.toString(), { $rename: { name: "userId" } }),
+        ).rejects.toThrow(/userId/);
+    });
+
+    it("rejects aggregate stages that read or write outside the caller's documents", async () => {
+        await expect(repo.aggregate(alice, [{ $unionWith: "user" }])).rejects.toThrow(/stage/);
+        await expect(repo.aggregate(alice, [{ $lookup: { from: "user", pipeline: [], as: "x" } }])).rejects.toThrow(/stage/);
+        await expect(repo.aggregate(alice, [{ $out: "stolen" }])).rejects.toThrow(/stage/);
+        await expect(repo.aggregate(alice, [{ $facet: { leak: [{ $unionWith: "user" }] } }])).rejects.toThrow(/stage/);
+    });
+
+    it("paginate rejects a page below one", async () => {
+        await expect(repo.paginate(alice, {}, { page: 0, limit: 5, sort: { _id: 1 } })).rejects.toThrow(/page/);
+    });
 });
 

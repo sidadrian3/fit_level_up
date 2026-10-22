@@ -37,15 +37,17 @@ async function loadRoutes(): Promise<RegisteredRoute[]> {
 describe("route table", () => {
   it("every route is built with defineRoute and obeys its auth tier's rules", async () => {
     const violations: string[] = [];
-    for (const { label, method, handler } of await loadRoutes()) {
+    const routes = await loadRoutes();
+    expect(routes.length).toBeGreaterThan(0);
+    for (const { label, method, handler } of routes) {
       const definition = handler.definition;
       if (!definition) {
         violations.push(`${label}: missing .definition`);
         continue;
       }
       if (definition.auth === "user" && MUTATING_METHODS.has(method)) {
-        if (!("body" in definition)) violations.push(`${label}: user mutation must state "body"`);
-        if (!("throttle" in definition)) violations.push(`${label}: user mutation must state "throttle"`);
+        if (definition.body === undefined) violations.push(`${label}: user mutation must state "body" (a schema or null)`);
+        if (definition.throttle === undefined) violations.push(`${label}: user mutation must state "throttle" (a tier or null)`);
       }
       if (definition.auth !== "user" && definition.throttle != null) {
         violations.push(`${label}: ${definition.auth} route must not set a throttle`);

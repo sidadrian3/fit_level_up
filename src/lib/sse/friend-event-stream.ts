@@ -1,5 +1,7 @@
 import { consumeNextEvent } from "./sse-publisher";
 
+const POLL_INTERVAL_MS = 5000;
+
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -16,11 +18,9 @@ export function streamFriendEvents(userId: string): Response {
                         const event = await consumeNextEvent(userId);
 
                         if (event) {
-                            // Real event from Redis queue — forward to browser
                             const data = `data: ${JSON.stringify(event)}\n\n`;
                             controller.enqueue(encoder.encode(data));
                         } else {
-                            // No event pending — send heartbeat ping to keep connection alive
                             const ping = `data: ${JSON.stringify({
                                 type: "ping",
                                 payload: { actorId: "", actorName: "", timestamp: new Date().toISOString() }
@@ -28,12 +28,12 @@ export function streamFriendEvents(userId: string): Response {
                             controller.enqueue(encoder.encode(ping));
                         }
                     } catch {
-                        // Stream may have been closed by the client
+                        // enqueue throws once the client has closed the stream
                         running = false;
                         break;
                     }
 
-                    await sleep(5000); // Poll every 5 seconds
+                    await sleep(POLL_INTERVAL_MS);
                 }
             };
 
