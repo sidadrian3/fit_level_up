@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb";
-import { getCollection, type WorkoutTemplateDoc } from "@/server/platform/database";
-import { parseObjectId } from "@/lib/data/object-id";
+import { getCollection, parseObjectId, type WorkoutTemplateDoc } from "@/server/platform/database";
 import type { WorkoutTemplate, Exercise } from "@/lib/types";
 
 function toWorkoutTemplate(doc: WorkoutTemplateDoc): WorkoutTemplate {

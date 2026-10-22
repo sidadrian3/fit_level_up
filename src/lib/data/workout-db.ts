@@ -1,8 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { Exercise, Workout } from "@/lib/types";
 import { ClientSession } from "mongodb";
-import { getCollection, type WorkoutDoc } from "@/server/platform/database";
-import { parseObjectId } from "@/lib/data/object-id";
+import { getCollection, parseObjectId, type WorkoutDoc } from "@/server/platform/database";
 function toWorkout(doc: WorkoutDoc): Workout {
     if (!doc._id) {
         throw new Error("Workout document is missing _id");

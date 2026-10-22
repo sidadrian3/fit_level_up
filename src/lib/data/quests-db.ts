@@ -1,7 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { Quest, QuestCategory, QuestMetric } from "@/lib/types";
-import { getCollection, type UserQuestDoc } from "@/server/platform/database";
-import { parseObjectId } from "@/lib/data/object-id";
+import { getCollection, parseObjectId, type UserQuestDoc } from "@/server/platform/database";
 import { ClientSession } from "mongodb";
 
 export type QuestTemplateMongoDoc = {

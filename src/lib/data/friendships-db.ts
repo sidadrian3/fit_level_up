@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb";
-import { getCollection, type FriendshipDoc } from "@/server/platform/database";
-import { parseObjectId } from "@/lib/data/object-id";
+import { getCollection, parseObjectId, type FriendshipDoc } from "@/server/platform/database";
 import { buildFriendshipPairKey } from "@/lib/domain/friend-rules";
 import type { Friendship, FriendshipStatus } from "@/lib/types";
 

@@ -1,6 +1,6 @@
 import { WorkoutTemplateSchema } from "@/shared/contracts/template";
 import { createWorkoutTemplateInDb, getWorkoutTemplateByIdempotencyKeyFromDb } from "@/lib/data/workout-templates-db";
-import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
+import { isDuplicateKeyError } from "@/server/platform/database";
 import { ConflictError } from "@/lib/api/errors";
 import { z } from "zod";
 import type { WorkoutTemplate } from "@/lib/types";

@@ -2,6 +2,7 @@ import "server-only";
 
 export { client, clientPromise } from "./client";
 export { collectionExists, getCollection, getDb } from "./get-collection";
+export { isDuplicateKeyError, parseObjectId } from "./mongo-utils";
 export { applySchema } from "./apply-schema";
 export { COLLECTIONS } from "./schema";
 export type {

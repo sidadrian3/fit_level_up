@@ -1,6 +1,6 @@
 import { TargetMuscle, CustomExercise } from "@/lib/types";
 import { createCustomExerciseFromDb } from "@/lib/data/custom-exercises-db";
-import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
+import { isDuplicateKeyError } from "@/server/platform/database";
 import { formatExerciseName } from "@/lib/domain/exercise-rules";
 import { ConflictError } from "@/lib/api/errors";
 

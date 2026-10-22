@@ -6,9 +6,8 @@ import { evaluateWorkout } from "@/lib/domain/workout-evaluator";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
-import { clientPromise } from "@/server/platform/database";
+import { clientPromise, isDuplicateKeyError } from "@/server/platform/database";
 import { after } from "next/server";
-import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
 import { ConflictError } from "@/lib/api/errors";
 
 export async function logWorkout(

@@ -2,7 +2,7 @@ import type { Friendship } from "@/lib/types";
 import { validateFriendRequest } from "@/lib/domain/friend-rules";
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { reopenOrInsertFriendRequestInDb } from "@/lib/data/friendships-db";
-import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
+import { isDuplicateKeyError } from "@/server/platform/database";
 import { publishToUser } from "@/lib/sse/sse-publisher";
 import { after } from "next/server";
 import { NotFoundError, ConflictError } from "@/lib/api/errors";
