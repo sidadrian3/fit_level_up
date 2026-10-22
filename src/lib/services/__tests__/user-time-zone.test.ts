@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { ObjectId } from "mongodb";
 import crypto from "crypto";
-import { auth } from "@/lib/auth/server";
+import { auth } from "@/server/platform/auth";
 import { getCollection, type UserDoc } from "@/server/platform/database";
 import { getUserFromDb, getUserTimeZoneFromDb } from "@/lib/data/user-db";
 
