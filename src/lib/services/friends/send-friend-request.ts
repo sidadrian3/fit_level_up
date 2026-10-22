@@ -25,8 +25,7 @@ export async function sendFriendRequest(requesterId: string, receiverId: string)
     try {
         friendshipObj = await reopenOrInsertFriendRequestInDb(requesterId, receiverId, new Date());
     } catch (error: unknown) {
-        // Same-direction repeats trip the older (requesterId, receiverId) index before pairKey
-        if (isDuplicateKeyError(error, "pairKey") || isDuplicateKeyError(error, "requesterId")) {
+        if (isDuplicateKeyError(error, "pairKey")) {
             throw new ConflictError("Friend request already sent.");
         }
         throw error;

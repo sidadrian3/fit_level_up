@@ -205,7 +205,6 @@ export const SCHEMA: Record<
     },
     userAchievements: {
         indexes: [
-            { key: { userId: 1 }, name: "idx_userAchievements_userId" },
             {
                 key: { userId: 1, achievementId: 1 },
                 name: "idx_userAchievements_unique",
@@ -219,7 +218,6 @@ export const SCHEMA: Record<
     },
     customExercises: {
         indexes: [
-            { key: { userId: 1 }, name: "idx_customExercises_userId" },
             {
                 key: { userId: 1, name: 1, targetMuscle: 1 },
                 name: "idx_customExercises_unique",
@@ -234,11 +232,6 @@ export const SCHEMA: Record<
     friendships: {
         indexes: [
             { key: { pairKey: 1 }, name: "idx_friendships_pairKey", unique: true },
-            {
-                key: { requesterId: 1, receiverId: 1 },
-                name: "idx_friendships_requester_receiver",
-                unique: true,
-            },
             { key: { receiverId: 1, status: 1 }, name: "idx_friendships_receiver_status" },
             { key: { requesterId: 1, status: 1 }, name: "idx_friendships_requester_status" },
             {
@@ -270,4 +263,11 @@ export const SCHEMA: Record<
     },
 };
 
-export const RETIRED_INDEXES: { collection: CollectionKey; name: string }[] = [];
+export const RETIRED_INDEXES: { collection: CollectionKey; name: string }[] = [
+    // retired in 2.1: superseded by pairKey
+    { collection: "friendships", name: "idx_friendships_requester_receiver" },
+    // retired in 2.1: prefix of a unique index
+    { collection: "userAchievements", name: "idx_userAchievements_userId" },
+    // retired in 2.1: prefix of a unique index
+    { collection: "customExercises", name: "idx_customExercises_userId" },
+];

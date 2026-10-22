@@ -43,3 +43,25 @@ describe("applySchema validators", () => {
         expect(info.options?.validator).toBeDefined();
     });
 });
+
+describe("applySchema retired indexes", () => {
+    const retired = [
+        { collection: "friendships", name: "idx_friendships_requester_receiver", key: { requesterId: 1, receiverId: 1 }, unique: true },
+        { collection: "user_achievements", name: "idx_userAchievements_userId", key: { userId: 1 }, unique: false },
+        { collection: "custom_exercises", name: "idx_customExercises_userId", key: { userId: 1 }, unique: false },
+    ] as const;
+
+    it("drops the retired indexes when they exist and tolerates their absence", async () => {
+        const db = await getDb();
+        for (const { collection, name, key, unique } of retired) {
+            await db.collection(collection).createIndex({ ...key }, { name, unique });
+        }
+
+        await applySchema(db);
+        await applySchema(db);
+
+        for (const { collection, name } of retired) {
+            expect(await db.collection(collection).indexExists(name)).toBe(false);
+        }
+    });
+});
