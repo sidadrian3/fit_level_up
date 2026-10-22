@@ -1,53 +1,23 @@
-import { NextResponse } from "next/server";
 import { deleteWorkoutFromDb } from "@/lib/data/workout-db";
 import { updateWorkout } from "@/lib/services/workouts/update-workout";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { CreateWorkoutSchema } from "@/shared/contracts/workout";
-import { z } from "zod";
-import { handleApiError } from "@/lib/api/handle-api-error";
+import { NotFoundError, idParams } from "@/server/platform/http";
+import { defineRoute } from "@/server/runtime";
 
-export async function PUT(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
-    try {
-        const userId = await getAuthUserId();
-        const { id } = await params;
-        const body = await request.json();
-        const parsed = CreateWorkoutSchema.parse(body);
-        const result = await updateWorkout(id, parsed, userId);
+export const PUT = defineRoute(
+  { name: "workouts.update", auth: "user", throttle: null, body: CreateWorkoutSchema, params: idParams },
+  async ({ userId, body, params }) => {
+    const result = await updateWorkout(params.id, body, userId);
+    if (!result) throw new NotFoundError("Workout not found or invalid ID");
+    return result;
+  }
+);
 
-        if (!result) {
-            return NextResponse.json(
-                { error: "Workout not found or invalid ID" },
-                { status: 404 }
-            );
-        }
-
-        return NextResponse.json(result, { status: 200 });
-    } catch (err) {
-        return handleApiError(err);
-    }
-}
-
-export async function DELETE(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
-    try {
-        const userId = await getAuthUserId();
-        const { id } = await params;
-        const success = await deleteWorkoutFromDb(id, userId);
-
-        if (!success) {
-            return NextResponse.json(
-                { error: "Workout not found or invalid ID" },
-                { status: 404 }
-            );
-        }
-
-        return NextResponse.json({ success: true }, { status: 200 });
-    } catch (err) {
-        return handleApiError(err);
-    }
-}
+export const DELETE = defineRoute(
+  { name: "workouts.delete", auth: "user", throttle: null, body: null, params: idParams },
+  async ({ userId, params }) => {
+    const deleted = await deleteWorkoutFromDb(params.id, userId);
+    if (!deleted) throw new NotFoundError("Workout not found or invalid ID");
+    return { success: true };
+  }
+);
