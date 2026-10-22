@@ -12,6 +12,7 @@ export default defineConfig({
     },
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'server-only': path.resolve(__dirname, './tests/stubs/server-only.ts'),
     },
     globalSetup: './vitest.global-setup.ts',
     setupFiles: ['./vitest.setup.ts'],

@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx --env-file-if-exists=.env.local src/scripts/migrate-db.ts && next build",
+    "build": "tsx --conditions=react-server --env-file-if-exists=.env.local src/scripts/migrate-db.ts && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx --env-file=.env.local src/scripts/seed-achievements.ts && tsx --env-file=.env.local src/scripts/seed-quests.ts",
+    "seed": "tsx --conditions=react-server --env-file=.env.local src/scripts/seed-achievements.ts && tsx --conditions=react-server --env-file=.env.local src/scripts/seed-quests.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
@@ -27,6 +27,7 @@
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -36,6 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/ui": "^4.1.9",
+    "dependency-cruiser": "^18.7.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
