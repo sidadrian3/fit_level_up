@@ -9,3 +9,4 @@ Index of all implementation plans in this vault.
 - [[Vercel Deployment Plan]] — env-level Redis validation and a user-facing SSE reconnect indicator
 - [[Architecture Audit Phase 0 Fix Plan]] — fix-forward of audit findings F-1–F-3, F-5–F-7 and F-12–F-14 before the overhaul
 - [[Per-User Time Zone Plan]] — per-user IANA time zone for streaks, quest periods and the dashboard week (audit F-8, step 0.7)
+- [[Platform Skeleton Plan]] — audit step 2.1: src/server/platform, src/shared, schema.ts with validators, migration runner and boundary tooling
