@@ -61,13 +61,14 @@ describe("002-prepare-unique-indexes", () => {
       { ...period, progress: 3, completed: true, claimed: false },
     ]);
     const friendships = await getCollection("friendships");
+    // bypassDocumentValidation: simulates pre-validator friendships that have no pairKey
     await friendships.insertMany([
       { requesterId: "u1", receiverId: "u2", status: "declined", createdAt: later, updatedAt: later },
       { requesterId: "u2", receiverId: "u1", status: "accepted", createdAt: earlier, updatedAt: earlier },
       { requesterId: "u3", receiverId: "u4", status: "declined", createdAt: earlier, updatedAt: earlier },
       { requesterId: "u4", receiverId: "u3", status: "pending", createdAt: later, updatedAt: later },
       { requesterId: "u5", receiverId: "u6", status: "pending", createdAt: later, updatedAt: later },
-    ]);
+    ], { bypassDocumentValidation: true });
 
     await prepareUniqueIndexesMigration.up(await getDb());
     await applySchema(await getDb());
@@ -87,7 +88,11 @@ describe("002-prepare-unique-indexes", () => {
 
   it("is safe to run twice", async () => {
     const friendships = await getCollection("friendships");
-    await friendships.insertOne({ requesterId: "u1", receiverId: "u2", status: "pending", createdAt: later, updatedAt: later });
+    // bypassDocumentValidation: simulates a pre-validator friendship that has no pairKey
+    await friendships.insertOne(
+      { requesterId: "u1", receiverId: "u2", status: "pending", createdAt: later, updatedAt: later },
+      { bypassDocumentValidation: true }
+    );
 
     await prepareUniqueIndexesMigration.up(await getDb());
     await applySchema(await getDb());

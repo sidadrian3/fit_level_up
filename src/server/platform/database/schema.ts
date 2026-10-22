@@ -1,5 +1,5 @@
-import type { IndexDescription, ObjectId } from "mongodb";
-import type { Exercise, TargetMuscle } from "@/shared/contracts/exercise";
+import type { Document, IndexDescription, ObjectId } from "mongodb";
+import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 
 export const COLLECTIONS = {
     user: "user",
@@ -112,7 +112,21 @@ export type UserDoc = {
 
 type SchemaCollection = {
     indexes: (IndexDescription & { name: string })[];
+    validator?: { $jsonSchema: Document };
 };
+
+const string = { bsonType: "string" } as const;
+const number = { bsonType: "number" } as const;
+const bool = { bsonType: "bool" } as const;
+const date = { bsonType: "date" } as const;
+const array = { bsonType: "array" } as const;
+
+const objectSchema = (
+    properties: Record<string, Document>,
+    required: readonly string[]
+) => ({
+    $jsonSchema: { bsonType: "object", required: [...required], properties },
+});
 
 const idempotencyIndex = (name: string) => ({
     key: { userId: 1, idempotencyKey: 1 },
@@ -137,12 +151,29 @@ export const SCHEMA: Record<
             { key: { userId: 1, date: -1 }, name: "idx_workouts_userId_date" },
             idempotencyIndex("idx_workouts_idempotencyKey"),
         ],
+        validator: objectSchema(
+            { userId: string, title: string, exercises: array, duration: number, xpEarned: number, date, idempotencyKey: string },
+            ["userId", "title", "exercises", "duration", "xpEarned", "date"]
+        ),
     },
     runs: {
         indexes: [
             { key: { userId: 1, date: -1 }, name: "idx_runs_userId_date" },
             idempotencyIndex("idx_runs_idempotencyKey"),
         ],
+        validator: objectSchema(
+            {
+                userId: string,
+                distance: number,
+                duration: number,
+                pace: number,
+                xpEarned: number,
+                difficulty: { enum: ["easy", "moderate", "hard", "intense"] },
+                date,
+                idempotencyKey: string,
+            },
+            ["userId", "distance", "duration", "pace", "xpEarned", "difficulty", "date"]
+        ),
     },
     questTemplates: {
         indexes: [
@@ -158,6 +189,19 @@ export const SCHEMA: Record<
             },
             { key: { userId: 1 }, name: "idx_userQuests_userId" },
         ],
+        validator: objectSchema(
+            {
+                userId: string,
+                questTemplateId: string,
+                periodStart: string,
+                periodEnd: string,
+                progress: number,
+                target: number,
+                completed: bool,
+                claimed: bool,
+            },
+            ["userId", "questTemplateId", "periodStart", "periodEnd", "progress", "target", "completed", "claimed"]
+        ),
     },
     userAchievements: {
         indexes: [
@@ -168,6 +212,10 @@ export const SCHEMA: Record<
                 unique: true,
             },
         ],
+        validator: objectSchema(
+            { userId: string, achievementId: string, unlockedDate: string },
+            ["userId", "achievementId", "unlockedDate"]
+        ),
     },
     customExercises: {
         indexes: [
@@ -178,6 +226,10 @@ export const SCHEMA: Record<
                 unique: true,
             },
         ],
+        validator: objectSchema(
+            { userId: string, name: string, targetMuscle: { enum: Object.values(TargetMuscle) } },
+            ["userId", "name", "targetMuscle"]
+        ),
     },
     friendships: {
         indexes: [
@@ -194,12 +246,27 @@ export const SCHEMA: Record<
                 name: "idx_friendships_status",
             },
         ],
+        validator: objectSchema(
+            {
+                requesterId: string,
+                receiverId: string,
+                pairKey: string,
+                status: { enum: ["pending", "accepted", "declined"] },
+                createdAt: date,
+                updatedAt: date,
+            },
+            ["requesterId", "receiverId", "pairKey", "status", "createdAt", "updatedAt"]
+        ),
     },
     workoutTemplates: {
         indexes: [
             { key: { userId: 1 }, name: "idx_workoutTemplates_userId" },
             idempotencyIndex("idx_workoutTemplates_idempotencyKey"),
         ],
+        validator: objectSchema(
+            { userId: string, name: string, idempotencyKey: string, createdAt: string, exercises: array },
+            ["userId", "name", "idempotencyKey", "createdAt", "exercises"]
+        ),
     },
 };
 

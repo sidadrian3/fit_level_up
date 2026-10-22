@@ -21,15 +21,17 @@ describe('getDashboardStats Integration Test', () => {
     vi.setSystemTime(new Date("2026-10-22T02:00:00Z"));
 
     const workouts = await getCollection("workouts");
+    const workoutBase = { userId, exercises: [], duration: 30, xpEarned: 100 };
     await workouts.insertMany([
-      { userId, title: "Sunday", date: new Date("2026-10-19T03:00:00Z") },
-      { userId, title: "Monday", date: new Date("2026-10-20T03:00:00Z") },
-      { userId, title: "Last Monday", date: new Date("2026-10-12T05:00:00Z") },
+      { ...workoutBase, title: "Sunday", date: new Date("2026-10-19T03:00:00Z") },
+      { ...workoutBase, title: "Monday", date: new Date("2026-10-20T03:00:00Z") },
+      { ...workoutBase, title: "Last Monday", date: new Date("2026-10-12T05:00:00Z") },
     ]);
     const runs = await getCollection("runs");
+    const runBase = { userId, duration: 30, pace: 6, xpEarned: 50, difficulty: "easy" };
     await runs.insertMany([
-      { userId, distance: 5, date: new Date("2026-10-20T12:00:00Z") },
-      { userId, distance: 3, date: new Date("2026-10-19T03:00:00Z") },
+      { ...runBase, distance: 5, date: new Date("2026-10-20T12:00:00Z") },
+      { ...runBase, distance: 3, date: new Date("2026-10-19T03:00:00Z") },
     ]);
 
     const stats = await getDashboardStats(userId, user);

@@ -6,10 +6,15 @@ async function collectionExists(db: Db, name: string): Promise<boolean> {
 }
 
 export async function applySchema(db: Db): Promise<void> {
-    for (const [key, { indexes }] of Object.entries(SCHEMA)) {
+    for (const [key, { indexes, validator }] of Object.entries(SCHEMA)) {
         const name = COLLECTIONS[key as keyof typeof SCHEMA];
+        const validation = validator
+            ? { validator, validationLevel: "moderate", validationAction: "error" }
+            : {};
         if (!(await collectionExists(db, name))) {
-            await db.createCollection(name);
+            await db.createCollection(name, validation);
+        } else if (validator) {
+            await db.command({ collMod: name, ...validation });
         }
         await db.collection(name).createIndexes(indexes);
     }
