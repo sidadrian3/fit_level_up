@@ -1,7 +1,7 @@
 import "server-only";
 
 export { client, clientPromise } from "./client";
-export { getCollection, getDb } from "./get-collection";
+export { collectionExists, getCollection, getDb } from "./get-collection";
 export { applySchema } from "./apply-schema";
 export { COLLECTIONS } from "./schema";
 export type {

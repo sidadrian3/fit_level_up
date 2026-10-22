@@ -17,7 +17,7 @@ export async function setup() {
 
   const { applySchema, clientPromise, getDb } = await import('@/server/platform/database');
   await applySchema(await getDb());
-  (await clientPromise).close();
+  await (await clientPromise).close();
 
   console.log('Global Setup: MongoMemoryReplSet started at', process.env.MONGODB_URI);
 }

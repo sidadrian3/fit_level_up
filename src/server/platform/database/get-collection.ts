@@ -8,6 +8,10 @@ export async function getDb(): Promise<Db> {
     return client.db(env.MONGODB_DB);
 }
 
+export async function collectionExists(db: Db, name: string): Promise<boolean> {
+    return (await db.listCollections({ name }, { nameOnly: true }).toArray()).length > 0;
+}
+
 export async function getCollection<T extends Document>(key: CollectionKey): Promise<Collection<T>> {
     const db = await getDb();
     return db.collection<T>(COLLECTIONS[key]);

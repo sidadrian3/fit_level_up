@@ -1,9 +1,6 @@
 import type { Db } from "mongodb";
+import { collectionExists } from "./get-collection";
 import { COLLECTIONS, RETIRED_INDEXES, SCHEMA } from "./schema";
-
-async function collectionExists(db: Db, name: string): Promise<boolean> {
-    return (await db.listCollections({ name }, { nameOnly: true }).toArray()).length > 0;
-}
 
 export async function applySchema(db: Db): Promise<void> {
     for (const [key, { indexes, validator }] of Object.entries(SCHEMA)) {

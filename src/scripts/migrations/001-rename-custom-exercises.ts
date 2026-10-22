@@ -1,12 +1,7 @@
-import type { Db } from "mongodb";
-import { COLLECTIONS } from "@/server/platform/database";
+import { COLLECTIONS, collectionExists } from "@/server/platform/database";
 import type { Migration } from "./run-migrations";
 
 const OLD_NAME = "customExercises";
-
-async function collectionExists(db: Db, name: string): Promise<boolean> {
-  return (await db.listCollections({ name }, { nameOnly: true }).toArray()).length > 0;
-}
 
 export const renameCustomExercisesMigration: Migration = {
   name: "001-rename-custom-exercises",
