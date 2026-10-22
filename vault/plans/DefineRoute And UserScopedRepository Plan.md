@@ -1,6 +1,6 @@
 # DefineRoute And UserScopedRepository Plan
 
-**Status:** Draft, 2026-10-22. Issue [#24](https://github.com/sidadrian3/fit_level_up/issues/24). Step 2.2 in [[Architecture Overhaul Audit]] §8, implementing [[Architecture Overhaul Design Spec]] C2, C3 and C9. Refactor: no status code or response body changes, except routes that return 500 for bad input today.
+**Status:** Implemented, 2026-10-22. Issue [#24](https://github.com/sidadrian3/fit_level_up/issues/24). Step 2.2 in [[Architecture Overhaul Audit]] §8, implementing [[Architecture Overhaul Design Spec]] C2, C3 and C9. Refactor: no status code or response body changes, except routes that return 500 for bad input today.
 
 ## Problem Statement
 
