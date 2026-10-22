@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { defineRoute } from "@/server/runtime";
 
-export async function GET() {
-  return NextResponse.json({ status: "ok", timestamp: new Date().toISOString() });
-}
+export const GET = defineRoute({ name: "health", auth: "public" }, async () => ({
+  status: "ok",
+  timestamp: new Date().toISOString(),
+}));

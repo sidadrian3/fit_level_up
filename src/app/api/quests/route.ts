@@ -1,15 +1,4 @@
-import {NextResponse} from "next/server";
-import  { getUserQuests } from "@/lib/services/quests/get-user-quests";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { handleApiError } from "@/lib/api/handle-api-error";
+import { getUserQuests } from "@/lib/services/quests/get-user-quests";
+import { defineRoute } from "@/server/runtime";
 
-
-export async function GET() {
-    try{
-        const userId = await getAuthUserId();
-        const quests = await getUserQuests(userId);
-        return NextResponse.json(quests);
-    } catch (err) {
-        return handleApiError(err);
-    }
-}
+export const GET = defineRoute({ name: "quests.list", auth: "user" }, ({ userId }) => getUserQuests(userId));
