@@ -1,7 +1,7 @@
 import { WorkoutTemplateSchema } from "@/shared/contracts/template";
 import { createWorkoutTemplateInDb, getWorkoutTemplateByIdempotencyKeyFromDb } from "@/lib/data/workout-templates-db";
 import { isDuplicateKeyError } from "@/server/platform/database";
-import { ConflictError } from "@/lib/api/errors";
+import { ConflictError } from "@/server/platform/http";
 import { z } from "zod";
 import type { WorkoutTemplate } from "@/lib/types";
 

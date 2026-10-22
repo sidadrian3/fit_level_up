@@ -6,7 +6,7 @@ import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
 import { evaluateRun } from "@/lib/domain/run-evaluator";
 import { clientPromise, isDuplicateKeyError } from "@/server/platform/database";
 import { after } from "next/server";
-import { ConflictError } from "@/lib/api/errors";
+import { ConflictError } from "@/server/platform/http";
 
 export async function logRun(
     input: CreateRunInput,

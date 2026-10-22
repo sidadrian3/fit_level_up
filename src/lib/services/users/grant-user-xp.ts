@@ -5,7 +5,7 @@ import { UserStateService } from "@/lib/services/users/user-state.service";
 import { calcLevelUp } from "@/lib/domain/user-rules";
 import { ClientSession } from "mongodb";
 import { after } from "next/server";
-import { ConflictError } from "@/lib/api/errors";
+import { ConflictError } from "@/server/platform/http";
 
 
 export async function grantUserXP(userId: string, amount: number, session?: ClientSession): Promise<{ user: User; levelUp: boolean }> {

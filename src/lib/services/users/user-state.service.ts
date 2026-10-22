@@ -6,7 +6,7 @@ import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-leve
 import { after } from "next/server";
 import { toLocalDay } from "@/shared/time/calendar";
 import type { User } from "@/lib/types";
-import { ConflictError, NotFoundError } from "@/lib/api/errors";
+import { ConflictError, NotFoundError } from "@/server/platform/http";
 
 export interface ActivityPayload {
     xpEarned: number;

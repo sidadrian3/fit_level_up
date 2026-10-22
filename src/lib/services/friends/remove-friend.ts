@@ -1,5 +1,5 @@
 import { getFriendshipBetweenFromDb, deleteFriendshipInDb } from "@/lib/data/friendships-db";
-import { NotFoundError, ForbiddenError } from "@/lib/api/errors";
+import { NotFoundError, ForbiddenError } from "@/server/platform/http";
 
 export async function removeFriend(targetUserId: string, userId: string): Promise<{ success: boolean }> {
     const friendship = await getFriendshipBetweenFromDb(userId, targetUserId);

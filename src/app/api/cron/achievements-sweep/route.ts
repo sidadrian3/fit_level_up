@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sweepLockedAchievements } from "@/lib/services/achievements/sweep-locked-achievements";
 import { handleApiError } from "@/lib/api/handle-api-error";
-import { UnauthorizedError } from "@/lib/api/errors";
+import { UnauthorizedError } from "@/server/platform/http";
 import { env } from "@/server/platform/env";
 
 export const maxDuration = 300; // 5 minutes max duration for this cron job

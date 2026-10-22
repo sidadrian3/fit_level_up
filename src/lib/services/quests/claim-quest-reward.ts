@@ -5,7 +5,7 @@ import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdF
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
 import { clientPromise } from "@/server/platform/database";
 import type { User } from "@/lib/types";
-import { NotFoundError, ConflictError } from "@/lib/api/errors";
+import { NotFoundError, ConflictError } from "@/server/platform/http";
 
 export async function claimQuestReward(userId: string, questId: string): Promise<{ user: User; levelUp: boolean } | undefined> {
   await syncUserQuests(userId, { now: new Date(), timeZone: await getUserTimeZoneFromDb(userId) });

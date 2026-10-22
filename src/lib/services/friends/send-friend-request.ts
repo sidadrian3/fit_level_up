@@ -5,7 +5,7 @@ import { reopenOrInsertFriendRequestInDb } from "@/lib/data/friendships-db";
 import { isDuplicateKeyError } from "@/server/platform/database";
 import { publishToUser } from "@/lib/sse/sse-publisher";
 import { after } from "next/server";
-import { NotFoundError, ConflictError } from "@/lib/api/errors";
+import { NotFoundError, ConflictError } from "@/server/platform/http";
 
 
 export async function sendFriendRequest(requesterId: string, receiverId: string): Promise<Friendship> {

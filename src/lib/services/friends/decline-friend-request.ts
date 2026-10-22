@@ -1,6 +1,6 @@
 import type { Friendship } from "@/lib/types";
 import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
-import { NotFoundError, ConflictError, ForbiddenError } from "@/lib/api/errors";
+import { NotFoundError, ConflictError, ForbiddenError } from "@/server/platform/http";
 
 export async function declineFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {
     // 1. Fetch existing request between the two users
