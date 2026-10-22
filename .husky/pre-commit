@@ -14,5 +14,8 @@ if git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' \
   exit 1
 fi
 
+npx depcruise src --config .dependency-cruiser.cjs --ignore-known \
+  || { echo "pre-commit: dependency rules failed"; exit 1; }
+
 npm run typecheck || { echo "pre-commit: typecheck failed"; exit 1; }
 npm run test:run || { echo "pre-commit: tests failed"; exit 1; }

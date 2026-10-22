@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "tsx --conditions=react-server --env-file-if-exists=.env.local src/scripts/migrate-db.ts && next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "typecheck": "tsc --noEmit",
     "seed": "tsx --conditions=react-server --env-file=.env.local src/scripts/seed-achievements.ts && tsx --conditions=react-server --env-file=.env.local src/scripts/seed-quests.ts",
     "test": "vitest",
