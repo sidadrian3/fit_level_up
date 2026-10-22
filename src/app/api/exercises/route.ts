@@ -4,7 +4,7 @@ import { getCustomExercises } from "@/lib/services/exercises/get-custom-exercise
 import { createCustomExercise } from "@/lib/services/exercises/create-custom-exercise";
 import { handleApiError } from "@/lib/api/handle-api-error";
 import { RateLimit } from "@/lib/auth/rate-limit";
-import { CreateCustomExerciseSchema } from "@/lib/validations/schemas";
+import { CreateCustomExerciseSchema } from "@/shared/contracts/exercise";
 
 export async function GET() {
     try {

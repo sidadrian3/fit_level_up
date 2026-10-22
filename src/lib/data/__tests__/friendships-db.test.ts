@@ -9,8 +9,7 @@ import {
     getPendingIncomingRequestsFromDb, 
     getAcceptedFriendshipsFromDb 
 } from '../friendships-db';
-import { getCollection } from '../get-collection';
-import { ensureIndexes } from '../ensure-indexes';
+import { getCollection } from "@/server/platform/database";
 
 describe('friendships-db Data Layer Test', () => {
     const userA = "user-A";
@@ -18,13 +17,12 @@ describe('friendships-db Data Layer Test', () => {
     const userC = "user-C";
 
     beforeAll(async () => {
-        await ensureIndexes();
-        const col = await getCollection("friendshipsCollection");
+        const col = await getCollection("friendships");
         await col.deleteMany({});
     });
 
     afterAll(async () => {
-        const col = await getCollection("friendshipsCollection");
+        const col = await getCollection("friendships");
         await col.deleteMany({});
     });
 

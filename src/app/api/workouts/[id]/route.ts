@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { deleteWorkoutFromDb } from "@/lib/data/workout-db";
 import { updateWorkout } from "@/lib/services/workouts/update-workout";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { CreateWorkoutSchema } from "@/lib/validations/schemas";
+import { CreateWorkoutSchema } from "@/shared/contracts/workout";
 import { z } from "zod";
 import { handleApiError } from "@/lib/api/handle-api-error";
 

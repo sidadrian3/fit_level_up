@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { sendFriendRequest } from "@/lib/services/friends/send-friend-request";
 import { RateLimit } from "@/lib/auth/rate-limit";
-import { SendFriendRequestSchema } from "@/lib/validations/schemas";
+import { SendFriendRequestSchema } from "@/shared/contracts/friendship";
 import { z } from "zod";
 import { handleApiError } from "@/lib/api/handle-api-error";
 

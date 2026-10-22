@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth/server";
+import { auth } from "@/server/platform/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { UnauthorizedError } from "@/lib/api/errors";

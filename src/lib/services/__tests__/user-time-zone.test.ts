@@ -1,16 +1,16 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { ObjectId } from "mongodb";
 import crypto from "crypto";
-import { auth } from "@/lib/auth/server";
-import { getCollection } from "@/lib/data/get-collection";
-import { getUserFromDb, getUserTimeZoneFromDb, type UserMongoDoc } from "@/lib/data/user-db";
+import { auth } from "@/server/platform/auth";
+import { getCollection, type UserDoc } from "@/server/platform/database";
+import { getUserFromDb, getUserTimeZoneFromDb } from "@/lib/data/user-db";
 
 describe("user time zone", () => {
   const createdEmails: string[] = [];
   const createdIds: ObjectId[] = [];
 
   afterEach(async () => {
-    const users = await getCollection<UserMongoDoc>("usersCollection");
+    const users = await getCollection<UserDoc>("user");
     await users.deleteMany({
       $or: [{ email: { $in: createdEmails } }, { _id: { $in: createdIds } }],
     });
@@ -41,12 +41,12 @@ describe("user time zone", () => {
       })
     ).rejects.toThrow();
 
-    const users = await getCollection<UserMongoDoc>("usersCollection");
+    const users = await getCollection<UserDoc>("user");
     expect(await users.findOne({ email })).toBeNull();
   });
 
   it("reads UTC when the field is missing", async () => {
-    const users = await getCollection<UserMongoDoc>("usersCollection");
+    const users = await getCollection<UserDoc>("user");
     const { insertedId } = await users.insertOne({
       email: uniqueEmail(),
       name: "No TZ",

@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import { evaluateAchievements } from "../achievements/evaluate-achievements";
-import { getCollection } from "@/lib/data/get-collection";
-import { ensureIndexes } from "@/lib/data/ensure-indexes";
-import type { UserMongoDoc } from "@/lib/data/user-db";
+import { getCollection, type UserDoc } from "@/server/platform/database";
 import type { AchievementDefinitionDoc } from "@/lib/data/achievements-db";
 
 const achievementId = "evaluate_test_level_one";
@@ -11,15 +9,14 @@ describe("evaluateAchievements Integration Test", () => {
   let userId: string;
 
   beforeAll(async () => {
-    await ensureIndexes();
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const usersCol = await getCollection<UserDoc>("user");
     const { insertedId } = await usersCol.insertOne({
       email: "evaluate@example.com", name: "Evaluate", level: 1, xp: 0, xpToNextLevel: 500, streak: 0,
       totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date(),
     });
     userId = insertedId.toString();
 
-    const definitions = await getCollection<AchievementDefinitionDoc>("achievementsCollection");
+    const definitions = await getCollection<AchievementDefinitionDoc>("achievements");
     await definitions.insertOne({
       id: achievementId, title: "Level One", description: "Be level 1", icon: "star", rarity: "common",
       condition: { metric: "level", target: 1 },
@@ -27,7 +24,7 @@ describe("evaluateAchievements Integration Test", () => {
   });
 
   afterEach(async () => {
-    await (await getCollection("userAchievementsCollection")).deleteMany({ userId });
+    await (await getCollection("userAchievements")).deleteMany({ userId });
   });
 
   it("unlocks a met achievement and reports it", async () => {
@@ -41,7 +38,7 @@ describe("evaluateAchievements Integration Test", () => {
 
     const reports = [...first, ...second].filter(a => a.id === achievementId);
     expect(reports).toHaveLength(1);
-    const unlocks = await (await getCollection("userAchievementsCollection")).countDocuments({ userId, achievementId });
+    const unlocks = await (await getCollection("userAchievements")).countDocuments({ userId, achievementId });
     expect(unlocks).toBe(1);
   });
 });

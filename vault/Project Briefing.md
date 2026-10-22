@@ -342,7 +342,7 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 | [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.                             |
 | [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                              |
 | [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                             |
-| [ensure-indexes.ts](file:///z:/Projects/fit_level_up/src/lib/data/ensure-indexes.ts)        | All MongoDB index definitions. Run at startup.                                             |
+| [schema.ts](file:///z:/Projects/fit_level_up/src/server/platform/database/schema.ts)        | Collection names, document types, indexes and validators. Applied at build by `applySchema`. |
 | [friendships-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/friendships-db.ts)        | All MongoDB CRUD for the `friendships` collection.                                         |
 | [sse-publisher.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-publisher.ts)           | Redis-backed publisher. Pushes SSE events to per-user queues for serverless compatibility. |
 | [useFriendEvents.ts](file:///z:/Projects/fit_level_up/src/lib/hooks/useFriendEvents.ts)     | Client hook — opens SSE stream and invalidates TanStack Query cache on events.             |

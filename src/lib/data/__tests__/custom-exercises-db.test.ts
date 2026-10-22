@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getAllCustomExercisesFromDb, createCustomExerciseFromDb } from '../custom-exercises-db';
-import { getCollection } from '../get-collection';
+import { getCollection } from "@/server/platform/database";
 import { TargetMuscle } from '../../types';
 
 describe('custom-exercises-db Data Layer Test', () => {
     const userId = "db-user-id";
 
     beforeAll(async () => {
-        const exercisesCol = await getCollection("customExercisesCollection");
+        const exercisesCol = await getCollection("customExercises");
         await exercisesCol.deleteMany({ userId });
     });
 
     afterAll(async () => {
-        const exercisesCol = await getCollection("customExercisesCollection");
+        const exercisesCol = await getCollection("customExercises");
         await exercisesCol.deleteMany({ userId });
     });
 

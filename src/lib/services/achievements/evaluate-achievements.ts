@@ -7,7 +7,7 @@ import {
   getUserUnlocks,
   insertUserAchievements,
 } from "@/lib/data/achievements-db";
-import type { UserAchievementDoc } from "@/lib/data/achievements-db";
+import type { UserAchievementDoc } from "@/server/platform/database";
 import { isConditionMet } from "@/lib/domain/achievement-rules";
 import { ClientSession } from "mongodb";
 

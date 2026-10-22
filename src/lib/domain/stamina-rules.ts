@@ -1,4 +1,4 @@
-import { GAME_CONFIG } from "@/lib/config/game-config";
+import { GAME_CONFIG } from "@/server/platform/config";
 
 export function calcStaminaCost(duration: number): number {
   return GAME_CONFIG.stamina.baseWorkoutCost + (duration * GAME_CONFIG.stamina.workoutDurationMultiplier);

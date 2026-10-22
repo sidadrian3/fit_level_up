@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { createCustomExercise } from '../exercises/create-custom-exercise';
-import { getCollection } from '../../data/get-collection';
-import { ensureIndexes } from '../../data/ensure-indexes';
+import { getCollection } from "@/server/platform/database";
 import { ConflictError } from '@/lib/api/errors';
 import { TargetMuscle } from '../../types';
 
@@ -9,12 +8,11 @@ describe('createCustomExercise Integration Test', () => {
     const userId = "test-user-id-123";
 
     beforeAll(async () => {
-        await ensureIndexes();
     });
 
     afterEach(async () => {
         // Clean up custom exercises between tests
-        const exercisesCol = await getCollection("customExercisesCollection");
+        const exercisesCol = await getCollection("customExercises");
         await exercisesCol.deleteMany({ userId });
     });
 
@@ -28,7 +26,7 @@ describe('createCustomExercise Integration Test', () => {
         expect(exercise.targetMuscle).toBe(TargetMuscle.Chest);
 
         // 2. Verify it's actually in the database
-        const exercisesCol = await getCollection("customExercisesCollection");
+        const exercisesCol = await getCollection("customExercises");
         const doc = await exercisesCol.findOne({ userId, name: "Incline Dumbbell Press", targetMuscle: TargetMuscle.Chest });
         expect(doc).toBeDefined();
     });
@@ -43,7 +41,7 @@ describe('createCustomExercise Integration Test', () => {
         ).rejects.toThrow("You already created an exercise with this name for this muscle group.");
         
         // 3. Verify only ONE exercise exists in the DB
-        const exercisesCol = await getCollection("customExercisesCollection");
+        const exercisesCol = await getCollection("customExercises");
         const allExercises = await exercisesCol.find({ userId }).toArray();
         expect(allExercises.length).toBe(1);
         expect(allExercises[0].name).toBe("Bulgarian Split Squat");
@@ -66,7 +64,7 @@ describe('createCustomExercise Integration Test', () => {
         expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
         const rejected = results.find(r => r.status === 'rejected') as PromiseRejectedResult;
         expect(rejected.reason).toBeInstanceOf(ConflictError);
-        const exercisesCol = await getCollection("customExercisesCollection");
+        const exercisesCol = await getCollection("customExercises");
         expect(await exercisesCol.countDocuments({ userId })).toBe(1);
     });
 });

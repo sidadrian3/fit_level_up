@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getPaginatedWorkoutsFromDb } from "@/lib/data/workout-db";
 import { logWorkout } from "@/lib/services/workouts/log-workout";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { CreateWorkoutSchema } from "@/lib/validations/schemas";
+import { CreateWorkoutSchema } from "@/shared/contracts/workout";
 import { z } from "zod";
 import { RateLimit } from "@/lib/auth/rate-limit";
 import { handleApiError } from "@/lib/api/handle-api-error";

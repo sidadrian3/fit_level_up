@@ -1,8 +1,8 @@
 // PURE FUNCTIONS — no imports from infrastructure, no database, no process.env
 
 import type { CreateWorkoutInput, Exercise } from "@/lib/types";
-import { GAME_CONFIG } from "@/lib/config/game-config";
-import { DomainError } from "./domain-error";
+import { GAME_CONFIG } from "@/server/platform/config";
+import { DomainError } from "@/server/platform/domain";
 
 export function validateWorkoutInput(input: CreateWorkoutInput): void {
     if (!input.title.trim()) {

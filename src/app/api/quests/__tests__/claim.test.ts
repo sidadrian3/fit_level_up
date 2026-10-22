@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { POST } from "../[id]/claim/route";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection } from "@/server/platform/database";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 vi.mock("@/lib/auth/auth-helpers", () => ({
@@ -21,8 +21,8 @@ describe("POST /api/quests/[id]/claim", () => {
   });
 
   afterEach(async () => {
-    await (await getCollection("userQuestsCollection")).deleteMany({ userId });
-    await (await getCollection("questTemplatesCollection")).deleteMany({});
+    await (await getCollection("userQuests")).deleteMany({ userId });
+    await (await getCollection("questTemplates")).deleteMany({});
   });
 
   it("returns 404 for a malformed quest id", async () => {
@@ -30,12 +30,12 @@ describe("POST /api/quests/[id]/claim", () => {
   });
 
   it("returns 400 when the quest is not completed", async () => {
-    const templates = await getCollection("questTemplatesCollection");
+    const templates = await getCollection("questTemplates");
     const { insertedId } = await templates.insertOne({
       title: "Daily Burn", description: "d", category: "special", metric: "workout_count",
       target: 1, xpReward: 100, icon: "dumbbell", isActive: true,
     });
-    const userQuests = await getCollection("userQuestsCollection");
+    const userQuests = await getCollection("userQuests");
     const quest = await userQuests.insertOne({
       userId, questTemplateId: insertedId.toString(), progress: 0, target: 1,
       completed: false, claimed: false, periodStart: "all-time", periodEnd: "all-time",

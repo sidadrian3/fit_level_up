@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addDays, isValidTimeZone, startOfLocalDay, startOfWeek, toLocalDay } from "../dates";
-import { timeZoneSchema } from "@/lib/validations/schemas";
+import { addDays, isValidTimeZone, startOfLocalDay, startOfWeek, toLocalDay } from "../calendar";
+import { timeZoneSchema } from "@/shared/contracts/user";
 
 describe("toLocalDay", () => {
   it("resolves the calendar day in the given zone", () => {

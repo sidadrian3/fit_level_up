@@ -1,5 +1,5 @@
-import { GAME_CONFIG } from "@/lib/config/game-config";
-import { addDays, startOfWeek, toLocalDay } from "@/lib/utils/dates";
+import { GAME_CONFIG } from "@/server/platform/config";
+import { addDays, startOfWeek, toLocalDay } from "@/shared/time/calendar";
 
 export type LevelUpResult = {
   newXp: number;

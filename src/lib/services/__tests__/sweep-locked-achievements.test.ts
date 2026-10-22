@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { sweepLockedAchievements } from "../achievements/sweep-locked-achievements";
-import { getCollection } from "../../data/get-collection";
-import { UserMongoDoc } from "../../data/user-db";
+import { getCollection, type UserDoc } from "@/server/platform/database";
 import { AchievementDefinitionDoc } from "../../data/achievements-db";
 
 describe("sweepLockedAchievements", () => {
   beforeAll(async () => {
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const usersCol = await getCollection<UserDoc>("user");
     await usersCol.deleteMany({});
 
     await usersCol.insertOne({
@@ -59,7 +58,7 @@ describe("sweepLockedAchievements", () => {
 
     // Setup an achievement template
     const achievementsCol = await getCollection<AchievementDefinitionDoc>(
-      "achievementsCollection",
+      "achievements",
     );
     await achievementsCol.insertOne({
       id: "first_workout",
@@ -72,13 +71,13 @@ describe("sweepLockedAchievements", () => {
   });
 
   afterAll(async () => {
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const usersCol = await getCollection<UserDoc>("user");
     await usersCol.deleteMany({});
   });
 
   afterEach(async () => {
     const userAchievementsCol = await getCollection(
-      "userAchievementsCollection",
+      "userAchievements",
     );
     await userAchievementsCol.deleteMany({});
   });

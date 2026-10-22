@@ -1,4 +1,4 @@
-import { DomainError } from "./domain-error";
+import { DomainError } from "@/server/platform/domain";
 
 export function validateFriendRequest(requesterId: string, receiverId: string): void {
     if(!requesterId || !receiverId){

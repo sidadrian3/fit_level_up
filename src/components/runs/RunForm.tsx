@@ -7,7 +7,7 @@ import { createRun, updateRun } from "@/lib/data/api-client";
 import type { Run } from "@/lib/types";
 import { X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
-import { CreateRunSchema } from "@/lib/validations/schemas";
+import { CreateRunSchema } from "@/shared/contracts/run";
 
 const difficulties: Run["difficulty"][] = [
     "easy",

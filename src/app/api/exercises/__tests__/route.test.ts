@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { POST } from "../route";
 import { RateLimit } from "@/lib/auth/rate-limit";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection } from "@/server/platform/database";
 
 const userId = "exercise-route-user";
 
@@ -23,7 +23,7 @@ describe("POST /api/exercises", () => {
   });
 
   afterEach(async () => {
-    await (await getCollection("customExercisesCollection")).deleteMany({ userId });
+    await (await getCollection("customExercises")).deleteMany({ userId });
   });
 
   it("returns 429 when the rate limit is exceeded", async () => {

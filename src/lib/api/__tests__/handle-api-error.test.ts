@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { handleApiError } from "../handle-api-error";
-import { DomainError } from "@/lib/domain/domain-error";
+import { DomainError } from "@/server/platform/domain";
 import { ForbiddenError } from "../errors";
 
 describe("handleApiError", () => {

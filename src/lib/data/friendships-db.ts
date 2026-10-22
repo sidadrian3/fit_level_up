@@ -1,20 +1,10 @@
 import { ObjectId } from "mongodb";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection, type FriendshipDoc } from "@/server/platform/database";
 import { parseObjectId } from "@/lib/data/object-id";
 import { buildFriendshipPairKey } from "@/lib/domain/friend-rules";
 import type { Friendship, FriendshipStatus } from "@/lib/types";
 
-export type FriendshipMongoDoc = {
-  _id?: ObjectId;
-  requesterId: string;
-  receiverId: string;
-  pairKey: string;
-  status: "pending" | "accepted" | "declined";
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export function toFriendship(doc: FriendshipMongoDoc): Friendship {
+export function toFriendship(doc: FriendshipDoc): Friendship {
   return {
     id: doc._id!.toString(),
     requesterId: doc.requesterId,
@@ -25,9 +15,9 @@ export function toFriendship(doc: FriendshipMongoDoc): Friendship {
 }
 
 export async function insertFriendshipInDb(
-  doc: Omit<FriendshipMongoDoc, "_id" | "pairKey">
+  doc: Omit<FriendshipDoc, "_id" | "pairKey">
 ): Promise<Friendship> {
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const withPairKey = { ...doc, pairKey: buildFriendshipPairKey(doc.requesterId, doc.receiverId) };
   const result = await collection.insertOne(withPairKey);
   return toFriendship({ ...withPairKey, _id: result.insertedId });
@@ -39,7 +29,7 @@ export async function reopenOrInsertFriendRequestInDb(
   receiverId: string,
   now: Date
 ): Promise<Friendship> {
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const result = await collection.findOneAndUpdate(
     { pairKey: buildFriendshipPairKey(requesterId, receiverId), status: "declined" },
     { $set: { requesterId, receiverId, status: "pending", createdAt: now, updatedAt: now } },
@@ -54,13 +44,13 @@ export async function reopenOrInsertFriendRequestInDb(
 export async function getFriendshipByIdFromDb(id: string): Promise<Friendship | null> {
   const _id = parseObjectId(id);
   if (!_id) return null;
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const doc = await collection.findOne({ _id });
   return doc ? toFriendship(doc) : null;
 }
 
 export async function getFriendshipBetweenFromDb(userId: string, otherId: string): Promise<Friendship | null> {
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const doc = await collection.findOne({ pairKey: buildFriendshipPairKey(userId, otherId) });
   return doc ? toFriendship(doc) : null;
 }
@@ -68,7 +58,7 @@ export async function getFriendshipBetweenFromDb(userId: string, otherId: string
 export async function updateFriendshipStatusInDb(id: string, status: FriendshipStatus, updatedAt: Date): Promise<Friendship | null> {
   const _id = parseObjectId(id);
   if (!_id) return null;
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const result = await collection.findOneAndUpdate(
     { _id },
     { $set: { status, updatedAt } },
@@ -80,7 +70,7 @@ export async function updateFriendshipStatusInDb(id: string, status: FriendshipS
 export async function deleteFriendshipInDb(id: string, userId: string): Promise<boolean> {
   const _id = parseObjectId(id);
   if (!_id) return false;
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const result = await collection.deleteOne({
     _id,
     $or: [{ requesterId: userId }, { receiverId: userId }]
@@ -89,7 +79,7 @@ export async function deleteFriendshipInDb(id: string, userId: string): Promise<
 }
 
 export async function getAcceptedFriendIdsFromDb(userId: string): Promise<string[]> {
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const docs = await collection.find({
     status: "accepted",
     $or: [{ requesterId: userId }, { receiverId: userId }]
@@ -99,7 +89,7 @@ export async function getAcceptedFriendIdsFromDb(userId: string): Promise<string
 }
 
 export async function getPendingIncomingRequestsFromDb(userId: string): Promise<Friendship[]> {
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const docs = await collection.find({
     receiverId: userId,
     status: "pending"
@@ -109,7 +99,7 @@ export async function getPendingIncomingRequestsFromDb(userId: string): Promise<
 }
 
 export async function getAcceptedFriendshipsFromDb(userId: string): Promise<Friendship[]> {
-  const collection = await getCollection<FriendshipMongoDoc>("friendshipsCollection");
+  const collection = await getCollection<FriendshipDoc>("friendships");
   const docs = await collection.find({
     status: "accepted",
     $or: [{ requesterId: userId }, { receiverId: userId }]

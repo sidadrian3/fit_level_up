@@ -1,5 +1,5 @@
 import type { Quest } from "@/lib/types";
-import { toLocalDay } from "@/lib/utils/dates";
+import { toLocalDay } from "@/shared/time/calendar";
 import { getUserTimeZoneFromDb } from "@/lib/data/user-db";
 import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
 import { getUserQuestsForUserFromDb, getQuestTemplatesByIdsFromDb, toQuestView } from "@/lib/data/quests-db";

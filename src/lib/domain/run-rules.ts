@@ -1,6 +1,6 @@
 import type { CreateRunInput, Run } from "@/lib/types";
-import { GAME_CONFIG } from "@/lib/config/game-config";
-import { DomainError } from "./domain-error";
+import { GAME_CONFIG } from "@/server/platform/config";
+import { DomainError } from "@/server/platform/domain";
 
 
 export function validateRunInput(input: CreateRunInput): void {

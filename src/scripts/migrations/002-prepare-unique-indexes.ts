@@ -1,5 +1,6 @@
-import type { Document, ObjectId } from "mongodb";
-import { getCollection } from "../lib/data/get-collection";
+import type { Db, Document, ObjectId } from "mongodb";
+import { COLLECTIONS, type CollectionKey } from "@/server/platform/database";
+import type { Migration } from "./run-migrations";
 
 type FriendshipCandidate = { _id: ObjectId; status: string; updatedAt: Date; createdAt: Date };
 type UserQuestCandidate = { _id: ObjectId; claimed: boolean; progress: number };
@@ -35,13 +36,14 @@ const PAIR_KEY_EXPRESSION = {
 };
 
 async function removeDuplicateGroups<T extends { _id: ObjectId }>(
-  collectionKey: Parameters<typeof getCollection>[0],
+  db: Db,
+  collectionKey: CollectionKey,
   groupKey: Document | string,
   pickKeeper: (docs: T[]) => ObjectId,
   projection: Document,
   pipelinePrefix: Document[] = []
 ): Promise<number> {
-  const collection = await getCollection(collectionKey);
+  const collection = db.collection(COLLECTIONS[collectionKey]);
   const groups = await collection
     .aggregate<{ docs: T[] }>([
       ...pipelinePrefix,
@@ -59,18 +61,19 @@ async function removeDuplicateGroups<T extends { _id: ObjectId }>(
   return removed;
 }
 
-async function dropNonUniqueIndex(collectionKey: Parameters<typeof getCollection>[0], indexName: string): Promise<void> {
-  const collection = await getCollection(collectionKey);
+async function dropNonUniqueIndex(db: Db, collectionKey: CollectionKey, indexName: string): Promise<void> {
+  const collection = db.collection(COLLECTIONS[collectionKey]);
   const existing = (await collection.indexes().catch(() => [])).find((index) => index.name === indexName);
   if (existing && !existing.unique) {
     await collection.dropIndex(indexName);
   }
 }
 
-// Unique indexes cannot build over existing duplicates, so this must run before ensureIndexes. Safe to re-run.
-export async function prepareUniqueIndexes(): Promise<void> {
+// Unique indexes cannot build over existing duplicates, so this must run before applySchema. Safe to re-run.
+async function prepareUniqueIndexes(db: Db): Promise<void> {
   const duplicateUnlocks = await removeDuplicateGroups(
-    "userAchievementsCollection",
+    db,
+    "userAchievements",
     { userId: "$userId", achievementId: "$achievementId" },
     firstDocument,
     { _id: "$_id" },
@@ -78,7 +81,8 @@ export async function prepareUniqueIndexes(): Promise<void> {
   );
 
   const duplicateExercises = await removeDuplicateGroups(
-    "customExercisesCollection",
+    db,
+    "customExercises",
     { userId: "$userId", name: "$name", targetMuscle: "$targetMuscle" },
     firstDocument,
     { _id: "$_id" },
@@ -86,27 +90,34 @@ export async function prepareUniqueIndexes(): Promise<void> {
   );
 
   const duplicateQuestRows = await removeDuplicateGroups(
-    "userQuestsCollection",
+    db,
+    "userQuests",
     { userId: "$userId", questTemplateId: "$questTemplateId", periodStart: "$periodStart", periodEnd: "$periodEnd" },
     pickUserQuestToKeep,
     { _id: "$_id", claimed: "$claimed", progress: "$progress" }
   );
 
   const duplicateFriendships = await removeDuplicateGroups(
-    "friendshipsCollection",
+    db,
+    "friendships",
     "$pairKey",
     pickFriendshipToKeep,
     { _id: "$_id", status: "$status", updatedAt: "$updatedAt", createdAt: "$createdAt" },
     [{ $addFields: { pairKey: PAIR_KEY_EXPRESSION } }]
   );
 
-  const friendships = await getCollection("friendshipsCollection");
+  const friendships = db.collection(COLLECTIONS.friendships);
   await friendships.updateMany({ pairKey: { $exists: false } }, [{ $set: { pairKey: PAIR_KEY_EXPRESSION } }]);
 
-  await dropNonUniqueIndex("userQuestsCollection", "idx_userQuests_sync_lookup");
+  await dropNonUniqueIndex(db, "userQuests", "idx_userQuests_sync_lookup");
 
   console.log(
     `Unique-index prep: removed ${duplicateUnlocks} duplicate unlocks, ${duplicateExercises} duplicate custom exercises, ` +
     `${duplicateQuestRows} duplicate quest rows, ${duplicateFriendships} duplicate friendships.`
   );
 }
+
+export const prepareUniqueIndexesMigration: Migration = {
+  name: "002-prepare-unique-indexes",
+  up: prepareUniqueIndexes,
+};

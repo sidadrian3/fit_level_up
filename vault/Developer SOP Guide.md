@@ -20,12 +20,11 @@ How to set up, run, check and change FitLevelUp. For what the system is, start a
 
 ## 3. Environment variables
 
-Validated at startup by `src/env.ts` (a missing required variable fails the build, not the first request).
+Validated at startup by `src/server/platform/env/env.ts` (server variables) and `src/lib/env.ts` (`NEXT_PUBLIC_BETTER_AUTH_URL`, the one variable the browser reads); `next.config.ts` imports both, so a missing required variable fails the build, not the first request.
 
 | Variable | Purpose |
 |---|---|
 | `MONGODB_URI`, `MONGODB_DB` | Database connection and name |
-| `MONGODB_*_COLLECTION` | Optional collection-name overrides (defaults in [[Data Model And API Reference]] §2) |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limiter and SSE queues |
 | `BETTER_AUTH_SECRET` | Session signing (at least 10 characters) |
 | `NEXT_PUBLIC_BETTER_AUTH_URL` | Public base URL of the app |
@@ -37,7 +36,7 @@ Validated at startup by `src/env.ts` (a missing required variable fails the buil
 | Command | Does |
 |---|---|
 | `npm run dev` | Dev server on port 3000 |
-| `npm run lint` | ESLint (check only) |
+| `npm run lint` | ESLint (check only), then the dependency-cruiser rules in `.dependency-cruiser.cjs` (cycles and who may import whom; three cycles in old `src/lib` code are baselined in `.dependency-cruiser-known-violations.json`) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:run` | All Vitest tests once, against an in-memory MongoDB replica set |
 | `npm test` | Vitest in watch mode |
@@ -63,7 +62,7 @@ In short: brain scan of the vault → triage → brainstorm → spec → readine
 
 Never commit with `--no-verify`. The hook and skill files under `.claude/` are local (gitignored); the Husky hook is shared.
 
-Known lint debt: `npm run lint` currently reports errors in files unrelated to new work. The pre-commit hook lints only staged files, so the debt does not block unrelated commits, but clear it so the hooks start from zero.
+The pre-commit hook lints staged files, then runs the dependency-cruiser rules over `src/`, typechecks and runs the full test suite. ESLint ignores the local `.agents/` and `.claude/` folders.
 
 ## 7. Branches and commits
 
@@ -73,9 +72,9 @@ Known lint debt: `npm run lint` currently reports errors in files unrelated to n
 
 ## 8. Changing the data model
 
-1. Update the type in `src/lib/types.ts` and the document type in the `-db.ts` file.
-2. Add an index to `src/lib/data/ensure-indexes.ts` for any new query shape.
-3. Existing documents will not have the new field: read it with a default (see `toUser`), or backfill it with a script. `src/scripts/migrate-db.ts` runs `prepareUniqueIndexes()` (de-duplication and backfills that a new unique index needs) and then `ensureIndexes()`; it runs on every build. A new unique index needs its de-duplication step in `src/scripts/prepare-unique-indexes.ts` first.
+1. Update the document type, the validator and the indexes of the collection in `src/server/platform/database/schema.ts`, and the shared type in `src/lib/types.ts` if the browser sees it. A validator rejects writes that do not match it, so change it together with the code that writes the field.
+2. Add an index to the collection's `SCHEMA` entry for any new query shape.
+3. Existing documents will not have the new field: read it with a default (see `toUser`), or backfill it with a numbered migration in `src/scripts/migrations/` (add it to `MIGRATIONS` in `index.ts`). `src/scripts/migrate-db.ts` runs the pending migrations and then `applySchema()` on every production build; preview builds skip both. Write migrations to be idempotent, and run a de-duplication migration before the unique index it needs.
 4. Update [[Data Model And API Reference]] §2–§3.
 
 ## 9. Testing

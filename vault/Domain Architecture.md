@@ -113,9 +113,9 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
 
 The Domain layer is where the "game mechanics" live. It contains pure, synchronous functions that take inputs and calculate outputs. Because this layer has **no side effects** and doesn't touch the database, it is extremely fast and easy to write unit tests for.
 
-Domain rules never read the clock or assume a time zone. Every calendar-day rule (`calcNewStreak`, `calcDisplayStreak`, `calcActiveDays`, `getPeriodForCategory`) takes `now: Date` and the user's `timeZone` as arguments, and the service supplies both. The calendar helpers (`toLocalDay`, `addDays`, `startOfWeek`, `startOfLocalDay`) live in `src/lib/utils/dates.ts`; weeks run Monday to Sunday.
+Domain rules never read the clock or assume a time zone. Every calendar-day rule (`calcNewStreak`, `calcDisplayStreak`, `calcActiveDays`, `getPeriodForCategory`) takes `now: Date` and the user's `timeZone` as arguments, and the service supplies both. The calendar helpers (`toLocalDay`, `addDays`, `startOfWeek`, `startOfLocalDay`) live in `src/shared/time/calendar.ts`; weeks run Monday to Sunday.
 
-When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/lib/domain/domain-error.ts`. Its `kind` is `invalid` or `conflict`, and `handleApiError` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from `lib/api`.
+When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/server/platform/domain/domain-error.ts`. Its `kind` is `invalid` or `conflict`, and `handleApiError` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from `lib/api`.
 
 **Example Snippet (`src/lib/domain/workout-evaluator.ts`):**
 ```typescript

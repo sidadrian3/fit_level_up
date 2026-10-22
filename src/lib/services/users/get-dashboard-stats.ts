@@ -1,4 +1,4 @@
-import { weekInstants } from "@/lib/utils/dates";
+import { weekInstants } from "@/shared/time/calendar";
 import { countWorkoutsInRange } from "@/lib/data/workout-db";
 import { getTotalDistanceInRange } from "@/lib/data/runs-db";
 import { countUserAchievements } from "@/lib/data/achievements-db";

@@ -3,7 +3,7 @@ import { getUserTimeZoneFromDb } from "@/lib/data/user-db";
 import { validateQuestClaim } from "@/lib/domain/quest-rules";
 import { getUserQuestByIdFromDb, markUserQuestClaimedInDb, getQuestTemplateByIdFromDb } from "@/lib/data/quests-db";
 import { grantUserXP } from "@/lib/services/users/grant-user-xp";
-import clientPromise from "@/lib/mongodb";
+import { clientPromise } from "@/server/platform/database";
 import type { User } from "@/lib/types";
 import { NotFoundError, ConflictError } from "@/lib/api/errors";
 

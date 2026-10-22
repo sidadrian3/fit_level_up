@@ -4,7 +4,8 @@ import dotenv from "dotenv";
 // Load environment variables from .env.local before importing env
 dotenv.config({ path: ".env.local" });
 
-import { env } from "../env";
+import { env } from "@/server/platform/env";
+import { COLLECTIONS } from "@/server/platform/database";
 import type { QuestTemplateMongoDoc } from "../lib/data/quests-db";
 
 const INITIAL_QUEST_TEMPLATES: Omit<QuestTemplateMongoDoc, "_id">[] = [
@@ -70,7 +71,7 @@ async function seed() {
 
     // Use the explicit database name
     const db = client.db(env.MONGODB_DB);
-    const collection = db.collection(env.MONGODB_QUEST_TEMPLATES_COLLECTION);
+    const collection = db.collection(COLLECTIONS.questTemplates);
 
     console.log("Checking for existing quest templates...");
     const count = await collection.countDocuments();

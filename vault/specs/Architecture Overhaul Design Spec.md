@@ -99,7 +99,7 @@ export const RATE_LIMIT_TIERS = {
 | Shape of the whole graph | `dependency-cruiser` (one dev dependency, `.dependency-cruiser.cjs`) | ESLint cannot check cycles or "nothing imports X" cheaply. `eslint-plugin-boundaries` has no cycle check, and `import/no-cycle` is slow |
 | Server code never reaching the browser bundle | `server-only` imported by every `index.ts` under `src/server/` | The Next build fails if a client component pulls it in |
 
-`npm run lint` becomes `eslint && depcruise src --config .dependency-cruiser.cjs`. The existing CI "Run Linter" step and the pre-commit hook need no change.
+`npm run lint` becomes `eslint && depcruise src --config .dependency-cruiser.cjs`, so the existing CI "Run Linter" step picks it up. The pre-commit hook lints only staged files, so it runs `depcruise` explicitly. Violations already in old `src/lib` code go in a known-violations baseline (`--ignore-known`) that step 5.1 empties.
 
 **ESLint rules (file-level)**
 
@@ -118,7 +118,7 @@ export const RATE_LIMIT_TIERS = {
 | G4 | `src/server/platform/**` imports no feature module and not `src/server/runtime.ts` |
 | G5 | No file under `src/server/` except `runtime.ts` imports `src/server/notification/**` or `src/server/achievements/**`. `src/app/**` may import `achievements` (for `GET /api/achievements`) and `notification` (for its routes) |
 | G6 | `src/server/runtime.ts` is imported only from `src/app/**` |
-| G7 | Only `*.repository.ts` files and `src/server/platform/database/**` obtain a collection handle (`getCollection`). Type-only `mongodb` imports (`ClientSession`, `ObjectId`) are allowed everywhere on the server |
+| G7 | Only `*.repository.ts` files and `src/server/platform/database/**` obtain a collection handle (`getCollection`). Type-only `mongodb` imports (`ClientSession`, `ObjectId`) are allowed everywhere on the server. **Enforced by ESLint as rule E3** (`importNames`), since dependency-cruiser sees which module is imported, not which names ([[Platform Skeleton Plan]]) |
 
 Step 2.1 proves the setup once: a deliberate deep import fails `npm run lint`, then it is reverted.
 
@@ -142,7 +142,7 @@ These step scopes change; audit §8 is updated to match:
 **Decision:**
 
 - **Scripts.** Each step that changes stored data adds `src/scripts/migrations/NNN-<name>.ts`, exporting `up(db: Db): Promise<void>`.
-- **Order at build.** `migrate-db.ts` runs pending migrations in order, then `applySchema()` (validators and indexes, C8). A migration that cleans data runs before the unique index that needs it, as `prepare-unique-indexes.ts` does today. That script becomes migration `001`.
+- **Order at build.** `migrate-db.ts` runs pending migrations in order, then `applySchema()` (validators and indexes, C8). A migration that cleans data runs before the unique index that needs it, as `prepare-unique-indexes.ts` does today. That script becomes migration `002`, after `001` renames `customExercises` to `custom_exercises`, so the dedupe sees the collection it targets.
 - **Tracking.** Applied migrations are recorded in a `schema_migrations` collection (`{ _id: "<NNN-name>", appliedAt }`), so builds don't rerun every script forever.
 - **Idempotence.** Every script stays idempotent anyway (`$setOnInsert`, upserts, guards), so a crash halfway through is safe to rerun.
 - **Expand-only until 5.1.** No migration deletes or renames a field the previous deploy reads, so a Vercel instant rollback still finds its data. Old game fields stay on the auth `user` document until the 5.1 cleanup migration unsets them.
@@ -196,7 +196,8 @@ src/
   server/                            server-only
     runtime.ts                       composition root: wired defineRoute, drainOutbox, LISTENERS (C9)
     platform/
-      env/                           env.ts (no collection-name vars)
+      env/                           server env.ts (no collection-name vars); the one client variable lives in src/lib/env.ts,
+                                     because the browser auth client reads it; next.config.ts imports both files directly
       config/                        GAME_CONFIG, RATE_LIMIT_TIERS, OUTBOX_TUNING (pure constants)
       domain/                        DomainError and other pure building blocks for *.rules.ts
       database/                      client, schema.ts, applySchema, withTransaction,
@@ -658,13 +659,14 @@ export const RETIRED_INDEXES: { collection: AppCollection; name: string }[];
 // 5. applySchema(db): create missing collections → collMod validators → createIndexes → drop RETIRED_INDEXES
 ```
 
-- **Validators** use `validationAction: "error"` and `validationLevel: "moderate"`: new writes must conform, and documents that already break the rules don't block their own updates during a migration. Each validator requires the fields every document has and pins their BSON types (`userId: string`, dates as `date`), which would have caught `workout_templates.createdAt` stored as a string. Better-auth's collections get none.
+- **Growth.** `schema.ts` describes only collections that exist. Step 2.1 covers today's; each later step adds its own (`outbox` in 2.5, `player_profiles` and `xp_ledger` in 3.1, `notifications` in 3.8).
+- **Validators** use `validationAction: "error"` and `validationLevel: "moderate"`: new writes must conform, and documents that already break the rules don't block their own updates during a migration. Each validator requires the fields every document has and pins their BSON types (`userId: string`, dates as `date`), which would have caught `workout_templates.createdAt` stored as a string. In 2.1 they describe **today's** write shapes (that `createdAt` stays a string), so the refactor changes no behaviour; the step that owns each collection tightens its validator together with the code and a backfill. Better-auth's collections get none, and neither do `quest_templates` and `achievements`, which retire in 3.2.
 - **Drift check.** The TypeScript types and the validators are written by hand. The integration suite is the drift check: `vitest.global-setup.ts` runs `applySchema()` against the in-memory replica set, so every test write passes through the validators.
 - **Retired indexes in 2.1** (Phase 0 carry-over):
   - `friendships.idx_friendships_requester_receiver` (with the matching `requesterId` branch in `sendFriendRequest`);
   - `user_achievements.idx_userAchievements_userId`;
   - `custom_exercises.idx_customExercises_userId` (each is a prefix of a unique index).
-- **Collection rename in 2.1.** `env.ts` defaults `MONGODB_CUSTOM_EXERCISES_COLLECTION` to `customExercises`, so that is the effective name unless Vercel overrides it. Migration `002` renames `customExercises` → `custom_exercises` when the old name exists and the new one doesn't (idempotent). Step 2.1 first checks which name production actually uses.
+- **Collection rename in 2.1.** `env.ts` defaults `MONGODB_CUSTOM_EXERCISES_COLLECTION` to `customExercises`, so that is the effective name unless Vercel overrides it. Migration `001` renames `customExercises` → `custom_exercises` when the old name exists and the new one doesn't (idempotent). Step 2.1 first checks which name production actually uses.
 - **Collections retiring in 3.2:** `quest_templates` and `achievements` (and their indexes).
 
 ### C9. `runtime.ts`: the composition root

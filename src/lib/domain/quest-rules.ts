@@ -1,6 +1,6 @@
-import { DomainError } from "./domain-error";
+import { DomainError } from "@/server/platform/domain";
 import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
-import { toLocalDay, addDays, startOfWeek } from "@/lib/utils/dates";
+import { toLocalDay, addDays, startOfWeek } from "@/shared/time/calendar";
 
 export function getPeriodForCategory(category: QuestCategory, now: Date, timeZone: string) {
   const today = toLocalDay(now, timeZone);

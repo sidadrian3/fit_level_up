@@ -4,7 +4,8 @@ import dotenv from "dotenv";
 // Load environment variables from .env.local before importing env
 dotenv.config({ path: ".env.local" });
 
-import { env } from "../env";
+import { env } from "@/server/platform/env";
+import { COLLECTIONS } from "@/server/platform/database";
 
 const INITIAL_ACHIEVEMENTS = [
     {
@@ -59,7 +60,7 @@ async function seed() {
 
     // Use the explicit database name
     const db = client.db(env.MONGODB_DB);
-    const collection = db.collection("achievements");
+    const collection = db.collection(COLLECTIONS.achievements);
 
     console.log("Checking for existing achievements...");
     const count = await collection.countDocuments();
