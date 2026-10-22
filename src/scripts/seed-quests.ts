@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 // Load environment variables from .env.local before importing env
 dotenv.config({ path: ".env.local" });
 
-import { env } from "../env";
+import { env } from "@/server/platform/env";
 import type { QuestTemplateMongoDoc } from "../lib/data/quests-db";
 
 const INITIAL_QUEST_TEMPLATES: Omit<QuestTemplateMongoDoc, "_id">[] = [

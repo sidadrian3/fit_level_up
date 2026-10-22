@@ -9,7 +9,7 @@ import { declineFriendRequest } from '../friends/decline-friend-request';
 import { getFriends } from '../friends/get-friends';
 import { getFriendRequests } from '../friends/get-friend-requests';
 import { removeFriend } from '../friends/remove-friend';
-import { DomainError } from '@/lib/domain/domain-error';
+import { DomainError } from '@/server/platform/domain';
 import { ConflictError, ForbiddenError } from '@/lib/api/errors';
 
 

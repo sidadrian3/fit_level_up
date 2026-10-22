@@ -1,4 +1,4 @@
-import { DomainError } from "./domain-error";
+import { DomainError } from "@/server/platform/domain";
 import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
 import { toLocalDay, addDays, startOfWeek } from "@/shared/time/calendar";
 

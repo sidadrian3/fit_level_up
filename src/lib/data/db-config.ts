@@ -1,4 +1,4 @@
-import { env } from "../../env";
+import { env } from "@/server/platform/env";
 
 export function getDbConfig() {
   const dbName = env.MONGODB_DB;

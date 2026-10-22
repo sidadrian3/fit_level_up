@@ -20,11 +20,5 @@ export const env = createEnv({
         BETTER_AUTH_SECRET: z.string().min(10),
         CRON_SECRET: z.string().min(16),
     },
-    client: {
-        NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url(),
-    },
-    // For Next.js >= 13.4.4, you must explicitly pass client variables here
-    experimental__runtimeEnv: {
-        NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
-    },
+    experimental__runtimeEnv: {},
 });

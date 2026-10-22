@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 // Load environment variables from .env.local before importing env
 dotenv.config({ path: ".env.local" });
 
-import { env } from "../env";
+import { env } from "@/server/platform/env";
 
 const INITIAL_ACHIEVEMENTS = [
     {

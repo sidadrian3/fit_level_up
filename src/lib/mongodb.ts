@@ -1,5 +1,5 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
-import { env } from "../env";
+import { env } from "@/server/platform/env";
 
 const uri = env.MONGODB_URI;
 

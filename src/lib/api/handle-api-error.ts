@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AppError } from "./errors";
-import { DomainError, type DomainErrorKind } from "@/lib/domain/domain-error";
+import { DomainError, type DomainErrorKind } from "@/server/platform/domain";
 
 const DOMAIN_ERROR_STATUS: Record<DomainErrorKind, number> = {
   invalid: 400,

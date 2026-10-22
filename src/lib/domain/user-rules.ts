@@ -1,4 +1,4 @@
-import { GAME_CONFIG } from "@/lib/config/game-config";
+import { GAME_CONFIG } from "@/server/platform/config";
 import { addDays, startOfWeek, toLocalDay } from "@/shared/time/calendar";
 
 export type LevelUpResult = {
