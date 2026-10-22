@@ -425,7 +425,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **0.7** | `/feature`  | Per-user time zone for streaks and quest periods                                    | F-8                                   | 0.5        | Done   |
 | **1.1** | `/feature`  | Architecture Overhaul Design Spec (spec only)                                       | §7.2                                  | Phase 0    | Done   |
 | **2.1** | `/refactor` | `server/platform/` skeleton, `src/shared/`, `schema.ts`, migration runner, boundary tooling | §3.2 #9                               | 1.1        | Done   |
-| **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated                   | F-12 by construction                  | 2.1        | Open   |
+| **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated                   | F-12 by construction                  | 2.1        | Done   |
 | **2.3** | `/feature`  | Per-user, per-route rate-limit tiers                                                | F-11                                  | 2.2        | Open   |
 | **2.4** | `/feature`  | `Idempotency-Key` header replaces body sniffing                                     | F-20                                  | 2.2        | Open   |
 | **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Open   |
