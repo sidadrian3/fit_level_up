@@ -1,6 +1,6 @@
 # Data Model And API Reference
 
-Every MongoDB collection, every API route and every page in FitLevelUp. The code is the source of truth: collection names come from `getDbConfig()` in `src/lib/data/db-config.ts`, indexes from `src/lib/data/ensure-indexes.ts`, and types from `src/lib/types.ts`. This note is kept in step with them by the Handbook Sync step ([[Developer Handbook]] §7).
+Every MongoDB collection, every API route and every page in FitLevelUp. The code is the source of truth: collection names, document types, indexes and validators come from `src/server/platform/database/schema.ts`, and shared types from `src/lib/types.ts` and `src/shared/contracts/`. This note is kept in step with them by the Handbook Sync step ([[Developer Handbook]] §7).
 
 ---
 
@@ -9,7 +9,7 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 - Every document that belongs to a person carries a `userId`, and every query filters on it. The `userId` comes from the session (`getAuthUserId()`), never from the request.
 - Dates are stored as BSON `Date` and returned to the browser as ISO strings (`DateString`).
 - Creates that a retry could repeat carry a client-generated `idempotencyKey`, backed by a unique partial index.
-- Collection names are configurable through environment variables; the defaults below are what a fresh setup uses.
+- Collection names are fixed in `COLLECTIONS` in `schema.ts`; no environment variable overrides them.
 
 ## 2. Collections
 
@@ -30,11 +30,11 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 
 Better Auth also manages its own `session`, `account` and `verification` collections through its MongoDB adapter. Never write to them directly.
 
-Enumerations in `src/lib/types.ts`: `TargetMuscle` (Chest, Back, Legs, Arms, Core, Cardio, Full Body), `QuestCategory` (daily, weekly, special), `QuestMetric` (workout_count, run_count, run_distance), run `difficulty` (easy, moderate, hard, intense), achievement `rarity` (common, rare, epic, legendary).
+Enumerations in `src/lib/types.ts` (`TargetMuscle` is defined in `src/shared/contracts/exercise.ts` and re-exported): `TargetMuscle` (Chest, Back, Legs, Arms, Core, Cardio, Full Body), `QuestCategory` (daily, weekly, special), `QuestMetric` (workout_count, run_count, run_distance), run `difficulty` (easy, moderate, hard, intense), achievement `rarity` (common, rare, epic, legendary).
 
 ## 3. Indexes
 
-Created idempotently by `ensureIndexes()`:
+Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`. `applySchema` also applies a `$jsonSchema` validator (`validationAction: error`, `validationLevel: moderate`) to `workouts`, `runs`, `custom_exercises`, `workout_templates`, `user_quests`, `user_achievements` and `friendships`: a new write must match, and an existing document that does not match can still be updated. The validators describe what the code writes today, so `workout_templates.createdAt` and `user_achievements.unlockedDate` are strings.
 
 | Collection | Index | Purpose |
 |---|---|---|
@@ -45,9 +45,9 @@ Created idempotently by `ensureIndexes()`:
 | user_quests | `{ userId, questTemplateId, periodStart, periodEnd }` unique | One row per user, quest and period; exact-match sync lookup |
 | user_quests | `{ userId }` | Listing a user's quests |
 | quest_templates | `{ isActive, metric }` | Finding quests a new activity advances |
-| user_achievements | `{ userId }`; `{ userId, achievementId }` unique | Listing unlocked achievements; an achievement unlocks once per user |
-| custom_exercises | `{ userId }`; `{ userId, name, targetMuscle }` unique | Listing a user's exercises; duplicate protection |
-| friendships | `{ pairKey }` unique; requester + receiver pair (unique); receiver + status; requester + status; status | One document per pair; friend lists and pending requests |
+| user_achievements | `{ userId, achievementId }` unique | Listing unlocked achievements (the `userId` prefix); an achievement unlocks once per user |
+| custom_exercises | `{ userId, name, targetMuscle }` unique | Listing a user's exercises (the `userId` prefix); duplicate protection |
+| friendships | `{ pairKey }` unique; receiver + status; requester + status; status | One document per pair; friend lists and pending requests |
 | workout_templates | `{ userId }`; `{ userId, idempotencyKey }` unique, partial | Listing, duplicate-submit protection |
 
 ## 4. API routes
@@ -103,6 +103,6 @@ Navigation links live in `src/lib/constants/navigation.ts`.
 
 - **Cron:** `/api/cron/achievements-sweep` runs `sweepLockedAchievements` for every user active in the last 72 hours (a local-day `lastActivityDate` can sit up to 36 hours before the activity), daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token.
 - **SSE:** services publish events to a per-user Redis list (`sse:{userId}`, 60-second TTL) through `src/lib/sse/sse-publisher.ts`; `/api/friends/events` drains it into the browser, where `FriendEventManager` and the level-up and achievement managers show toasts.
-- **Scripts:** `src/scripts/migrate-db.ts` runs before every build (`prepareUniqueIndexes()` removes duplicate rows and backfills `friendships.pairKey`, then `ensureIndexes()` builds the indexes); `seed-quests.ts` and `seed-achievements.ts` fill the catalogues.
+- **Scripts:** `src/scripts/migrate-db.ts` runs before every build, but only when `VERCEL_ENV` is `production` or unset: preview deployments share the production database, so they skip it. It runs the pending numbered migrations in `src/scripts/migrations/` (recorded in the `schema_migrations` collection), then `applySchema()`. Migration `001` renames a legacy `customExercises` collection to `custom_exercises`; `002` removes duplicate rows and backfills `friendships.pairKey` before the unique indexes build. `seed-quests.ts` and `seed-achievements.ts` fill the catalogues.
 
 [[Guides Index]]

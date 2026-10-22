@@ -197,15 +197,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `MONGODB_URI`                          | Yes      | —                   | Full MongoDB connection string |
 | `MONGODB_DB`                           | Yes      | —                   | Database name                  |
 | `NEXT_PUBLIC_BETTER_AUTH_URL`          | Yes      | —                   | App base URL for Better Auth   |
-| `MONGODB_WORKOUTS_COLLECTION`          | No       | `workouts`          | Collection name override       |
-| `MONGODB_RUNS_COLLECTION`              | No       | `runs`              | Collection name override       |
-| `MONGODB_QUEST_TEMPLATES_COLLECTION`   | No       | `quest_templates`   | Collection name override       |
-| `MONGODB_USER_QUESTS_COLLECTION`       | No       | `user_quests`       | Collection name override       |
-| `MONGODB_ACHIEVEMENTS_COLLECTION`      | No       | `achievements`      | Collection name override       |
-| `MONGODB_USER_ACHIEVEMENTS_COLLECTION` | No       | `user_achievements` | Collection name override       |
-| `MONGODB_CUSTOM_EXERCISES_COLLECTION`  | No       | `customExercises`   | Collection name override       |
 
-All variables are validated at startup by `src/env.ts` using `@t3-oss/env-nextjs` + Zod. The server will refuse to start if any required variable is missing or malformed.
+All variables are validated at startup by `src/server/platform/env/env.ts` and `src/lib/env.ts` using `@t3-oss/env-nextjs` + Zod. The server will refuse to start if any required variable is missing or malformed.
 
 ---
 

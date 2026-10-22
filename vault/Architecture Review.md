@@ -294,7 +294,7 @@ The `logWorkout` service is a transaction script that orchestrates multiple pure
 
 The application uses **[better-auth](https://better-auth.com/)** with the `mongodbAdapter` as the core identity provider.
 
-- **Provider:** Email and Password (configured in `src/lib/auth/server.ts`).
+- **Provider:** Email and Password (configured in `src/server/platform/auth/auth.ts`).
 - **Session Storage:** Server-side sessions persisted in MongoDB.
 
 ### Authorization Method: The Decorator Pattern
