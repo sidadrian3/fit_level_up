@@ -12,7 +12,7 @@ The following diagram illustrates how a typical action (like logging a workout) 
    │ (1) POST /api/workouts { title, duration... }
    ▼
 [ API Layer ] (src/app/api)
-   │ - Auth, Rate Limiting & Validation (Zod)
+   │ - defineRoute: Auth, Rate Limiting, Validation (Zod), Error mapping
    │
    │ (2) logWorkout(parsedInput, userId)
    ▼
@@ -47,30 +47,14 @@ The following diagram illustrates how a typical action (like logging a workout) 
 ### 1. Endpoints (API Layer)
 **Location:** `src/app/api/...`
 
-The API layer is extremely thin. Its only job is to handle the HTTP context: parsing the request, authenticating the user, enforcing rate limits, and validating the JSON payload using Zod. **It never performs business logic or talks directly to the database.**
+The API layer is extremely thin. A route file declares its contract to `defineRoute` (`src/server/platform/http`, wired in `src/server/runtime.ts`), which authenticates the user, enforces the rate limit, parses params, query and body with Zod, and turns any thrown error into a JSON response. The handler receives the parsed values and calls a service. **It never performs business logic or talks directly to the database, and it contains no `try/catch`.**
 
 **Example Snippet (`src/app/api/workouts/route.ts`):**
 ```typescript
-export async function POST(request: Request) {
-    try {
-        const userId = await getAuthUserId();
-        
-        // 1. Rate Limiting
-        const { success } = await RateLimit.limit(userId);
-        if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-
-        // 2. Validation
-        const body = await request.json();
-        const parsed = CreateWorkoutSchema.parse(body);
-        
-        // 3. Delegate to Service Layer
-        const workout = await logWorkout(parsed, userId);
-        
-        return NextResponse.json(workout, { status: 201 });
-    } catch (err) {
-        return handleApiError(err);
-    }
-}
+export const POST = defineRoute(
+  { name: "workouts.create", auth: "user", throttle: "standard", body: CreateWorkoutSchema, status: 201 },
+  ({ userId, body }) => logWorkout(body, userId)
+);
 ```
 
 ### 2. Services (Application Layer)
@@ -115,7 +99,7 @@ The Domain layer is where the "game mechanics" live. It contains pure, synchrono
 
 Domain rules never read the clock or assume a time zone. Every calendar-day rule (`calcNewStreak`, `calcDisplayStreak`, `calcActiveDays`, `getPeriodForCategory`) takes `now: Date` and the user's `timeZone` as arguments, and the service supplies both. The calendar helpers (`toLocalDay`, `addDays`, `startOfWeek`, `startOfLocalDay`) live in `src/shared/time/calendar.ts`; weeks run Monday to Sunday.
 
-When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/server/platform/domain/domain-error.ts`. Its `kind` is `invalid` or `conflict`, and `handleApiError` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from `lib/api`.
+When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/server/platform/domain/domain-error.ts`. Its `kind` is `invalid` or `conflict`, and `toErrorResponse` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from the HTTP platform area.
 
 **Example Snippet (`src/lib/domain/workout-evaluator.ts`):**
 ```typescript
@@ -142,7 +126,7 @@ export function evaluateWorkout(input: CreateWorkoutInput, currentStamina: numbe
 ### 4. Data (Persistence Layer)
 **Location:** `src/lib/data/...`
 
-The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`object-id.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (`mongo-errors.ts`) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or return the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
+The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`src/server/platform/database/mongo-utils.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (same file) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or return the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
 
 **Example Snippet (`src/lib/data/workout-db.ts`):**
 ```typescript

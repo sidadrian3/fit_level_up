@@ -150,8 +150,8 @@ This is the most important sequence to understand. Every workout log triggers a 
 
 ```
 POST /api/workouts
-  1. getAuthUserId()          ← verify session
-  2. Zod schema validation    ← sanitize input
+  1. defineRoute: session      ← verify auth, then the rate limit
+  2. defineRoute: Zod parse    ← sanitize input
 
   → logWorkout() service
       3. Domain validation (pure): is the input valid?
@@ -234,7 +234,7 @@ POST /api/workouts
 - **Pure Data Mappers:** Ensuring data mappers (like `toUser`) are strictly dumb type translators. Dynamic state assembly (like calculating stamina recovery or zeroing a broken streak) is properly encapsulated behind the `UserStateService` boundary rather than leaking into the data layer.
 - **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.
 - **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
-- **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, plus `DomainError` from the domain rules) and standardized all 19 API routes to use a centralized `handleApiError` utility, ensuring consistent HTTP status codes across the app.
+- **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, plus `DomainError` from the domain rules) and built every API route with `defineRoute`, which maps thrown errors in one place (`toErrorResponse`), ensuring consistent HTTP status codes across the app.
 
 ### Why was it built this way?
 
@@ -259,7 +259,7 @@ These are architectural upgrades that make the system more scalable and robust. 
 | --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 16  | **Quest template caching** | Right now, every quest read hits MongoDB to fetch all active templates. Templates almost never change. A 60-second in-memory cache (or `React.cache`) would cut this to near-zero DB reads. |
 
-| 19 | **Centralized error handling (COMPLETED)** | Every API route had its own `try/catch` with slightly different error handling. We standardized this using semantic error classes and a `handleApiError` utility. |
+| 19 | **Centralized error handling (COMPLETED)** | Every API route had its own `try/catch` with slightly different error handling. We standardized this using semantic error classes and `defineRoute`, which maps them in one place. |
 
 ---
 
@@ -854,7 +854,7 @@ it("should prevent duplicate custom exercises with the same name and muscle grou
 
 - No tests for the `grantUserXP` race condition scenario
 - No tests for `syncUserQuests` period-boundary logic
-- No API route-level tests (would need to mock `getAuthUserId` or use an E2E approach)
+- API route tests cover workouts, runs, exercises, templates, quest claim and the cron sweep; the other routes rely on the service integration tests, and `route-table.test.ts` guards that every route is built with `defineRoute`
 - Quest progress update tests are missing (the dead-code bug in `updateQuestProgress` would have been caught by these)
 
 To run all tests:
