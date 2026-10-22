@@ -40,7 +40,7 @@ Riskiest part:    validators applied in tests reject a fixture or a current writ
    - Scripts run with `tsx --conditions=react-server`.
    - Files outside Next's server layer (`next.config.ts`) import the file behind the index, never the index.
 6. **Migrations run only in production.** Previews share the production database, so `migrate-db.ts` runs migrations and `applySchema` only when `VERCEL_ENV` is `production` or unset (local builds), and logs a skip otherwise.
-7. **Migration 002 is safe in every state.**
+7. **Migration 001 (the rename) is safe in every state, and runs before 002 (unique-index prep), because 002 dedupes `custom_exercises`, which production only has after the rename.**
 
    | State | Action |
    |---|---|
@@ -91,7 +91,7 @@ src/
     auth/{auth.ts,index.ts}
   lib/env.ts                  client env
   scripts/migrate-db.ts       guard → runMigrations → applySchema
-  scripts/migrations/{index.ts,run-migrations.ts,001-prepare-unique-indexes.ts,002-rename-custom-exercises.ts,__tests__/}
+  scripts/migrations/{index.ts,run-migrations.ts,001-rename-custom-exercises.ts,002-prepare-unique-indexes.ts,__tests__/}
 tests/stubs/server-only.ts    empty module for the Vitest alias
 .dependency-cruiser.cjs
 ```
@@ -220,7 +220,7 @@ Every task leaves `npx eslint <changed files> && npm run typecheck && npm run te
 ### Task 6: Migration runner, migrations 001–002, preview guard
 
 **Files:**
-- New: `src/scripts/migrations/{index.ts,run-migrations.ts,001-prepare-unique-indexes.ts,002-rename-custom-exercises.ts}`, `src/scripts/migrations/__tests__/{run-migrations,001-prepare-unique-indexes,002-rename-custom-exercises}.test.ts`
+- New: `src/scripts/migrations/{index.ts,run-migrations.ts,001-rename-custom-exercises.ts,002-prepare-unique-indexes.ts}`, `src/scripts/migrations/__tests__/{run-migrations,001-rename-custom-exercises,002-prepare-unique-indexes}.test.ts`
 - Modified: `src/scripts/migrate-db.ts`, `src/server/platform/database/schema.ts` (`schemaMigrations`)
 - Deleted: `src/scripts/prepare-unique-indexes.ts`, `src/scripts/__tests__/prepare-unique-indexes.test.ts`
 
@@ -238,18 +238,18 @@ Every task leaves `npx eslint <changed files> && npm run typecheck && npm run te
    - a migration that throws is not recorded, and stops the run;
    - `shouldRunMigrations` is true for `undefined` and `"production"`, false for `"preview"` and `"development"`.
 2. Implement `run-migrations.ts`, and add `schemaMigrations: "schema_migrations"` to `COLLECTIONS`. It gets no `SCHEMA` entry: no validator, and `_id` is the only key.
-3. `001-prepare-unique-indexes.ts`: the body of `prepareUniqueIndexes`, rewritten as `up(db)` using `db.collection(COLLECTIONS.x)`, logic unchanged. Move its test with it; the assertions stay the same.
-4. **Test first** (`002-rename-custom-exercises.test.ts`), covering the four states of Decision 7:
+3. `002-prepare-unique-indexes.ts`: the body of `prepareUniqueIndexes`, rewritten as `up(db)` using `db.collection(COLLECTIONS.x)`, logic unchanged. Move its test with it; the assertions stay the same.
+4. **Test first** (`001-rename-custom-exercises.test.ts`), covering the four states of Decision 7:
    - only the old collection exists → it is renamed and keeps its documents;
    - both exist, old empty → the old one is dropped;
    - both exist, old non-empty → it throws, naming both collections;
    - neither exists, or only the new one → no-op.
    Each test drops `customExercises` and `custom_exercises` in its own cleanup, then calls `applySchema` to restore the new collection's indexes. Implement the migration.
-5. `MIGRATIONS = [m001, m002]`.
+5. `MIGRATIONS = [m001 rename, m002 prepare-unique-indexes]`.
 6. Rewrite `migrate-db.ts`:
    1. If `!shouldRunMigrations(process.env.VERCEL_ENV)`, log `Skipping migrations: VERCEL_ENV=<value> shares the production database` and exit 0.
    2. Otherwise: `runMigrations(db, MIGRATIONS)` → `applySchema(db)` → log the applied names → exit 0. Any error → exit 1.
-7. Run the checks, plus `npx tsx --conditions=react-server --env-file-if-exists=.env.local src/scripts/migrate-db.ts` once against the `.env.local` database (the Atlas dev database, per [[Per-User Time Zone]]), and confirm it records 001 and 002. Commit `refactor(migrations): numbered migration runner with schema_migrations and a production-only guard`.
+7. Run the checks, plus `npx tsx --conditions=react-server --env-file-if-exists=.env.local src/scripts/migrate-db.ts` once against the `.env.local` database (the Atlas dev database, per [[Per-User Time Zone]]), and confirm it records both. Commit `refactor(migrations): numbered migration runner with schema_migrations and a production-only guard`.
 
 ### Task 7: Validators
 
@@ -276,7 +276,7 @@ Every task leaves `npx eslint <changed files> && npm run typecheck && npm run te
    - running `applySchema` twice is idempotent.
 4. Run `npm run test:run`. For each rejected fixture:
    - **a partial fixture** (e.g. dashboard workouts with no exercises) → complete it with the fields today's code writes;
-   - **a deliberate legacy shape** (migration 001's friendships without `pairKey`, unlock duplicates) → insert with `{ bypassDocumentValidation: true }` and a one-line comment saying it simulates pre-validator data.
+   - **a deliberate legacy shape** (migration 002's friendships without `pairKey`, unlock duplicates) → insert with `{ bypassDocumentValidation: true }` and a one-line comment saying it simulates pre-validator data.
    - **Never loosen a validator to pass a test.** If production code itself writes a shape the table rejects, stop: that's a plan-wrong signal, and the table is wrong.
 5. Run the checks and commit `refactor(database): $jsonSchema validators matching today's write shapes`.
 

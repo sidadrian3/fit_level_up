@@ -142,7 +142,7 @@ These step scopes change; audit §8 is updated to match:
 **Decision:**
 
 - **Scripts.** Each step that changes stored data adds `src/scripts/migrations/NNN-<name>.ts`, exporting `up(db: Db): Promise<void>`.
-- **Order at build.** `migrate-db.ts` runs pending migrations in order, then `applySchema()` (validators and indexes, C8). A migration that cleans data runs before the unique index that needs it, as `prepare-unique-indexes.ts` does today. That script becomes migration `001`.
+- **Order at build.** `migrate-db.ts` runs pending migrations in order, then `applySchema()` (validators and indexes, C8). A migration that cleans data runs before the unique index that needs it, as `prepare-unique-indexes.ts` does today. That script becomes migration `002`, after `001` renames `customExercises` to `custom_exercises`, so the dedupe sees the collection it targets.
 - **Tracking.** Applied migrations are recorded in a `schema_migrations` collection (`{ _id: "<NNN-name>", appliedAt }`), so builds don't rerun every script forever.
 - **Idempotence.** Every script stays idempotent anyway (`$setOnInsert`, upserts, guards), so a crash halfway through is safe to rerun.
 - **Expand-only until 5.1.** No migration deletes or renames a field the previous deploy reads, so a Vercel instant rollback still finds its data. Old game fields stay on the auth `user` document until the 5.1 cleanup migration unsets them.
@@ -666,7 +666,7 @@ export const RETIRED_INDEXES: { collection: AppCollection; name: string }[];
   - `friendships.idx_friendships_requester_receiver` (with the matching `requesterId` branch in `sendFriendRequest`);
   - `user_achievements.idx_userAchievements_userId`;
   - `custom_exercises.idx_customExercises_userId` (each is a prefix of a unique index).
-- **Collection rename in 2.1.** `env.ts` defaults `MONGODB_CUSTOM_EXERCISES_COLLECTION` to `customExercises`, so that is the effective name unless Vercel overrides it. Migration `002` renames `customExercises` → `custom_exercises` when the old name exists and the new one doesn't (idempotent). Step 2.1 first checks which name production actually uses.
+- **Collection rename in 2.1.** `env.ts` defaults `MONGODB_CUSTOM_EXERCISES_COLLECTION` to `customExercises`, so that is the effective name unless Vercel overrides it. Migration `001` renames `customExercises` → `custom_exercises` when the old name exists and the new one doesn't (idempotent). Step 2.1 first checks which name production actually uses.
 - **Collections retiring in 3.2:** `quest_templates` and `achievements` (and their indexes).
 
 ### C9. `runtime.ts`: the composition root

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
-import { prepareUniqueIndexes } from "../prepare-unique-indexes";
+import { prepareUniqueIndexesMigration } from "../002-prepare-unique-indexes";
 import { applySchema, COLLECTIONS, getCollection, getDb } from "@/server/platform/database";
 
 const userId = "prep-user";
@@ -30,7 +30,7 @@ async function dropUniqueIndexes() {
   );
 }
 
-describe("prepareUniqueIndexes", () => {
+describe("002-prepare-unique-indexes", () => {
   beforeEach(async () => {
     await clearAll();
     await dropUniqueIndexes();
@@ -69,7 +69,7 @@ describe("prepareUniqueIndexes", () => {
       { requesterId: "u5", receiverId: "u6", status: "pending", createdAt: later, updatedAt: later },
     ]);
 
-    await prepareUniqueIndexes();
+    await prepareUniqueIndexesMigration.up(await getDb());
     await applySchema(await getDb());
 
     expect(await unlocks.find({ userId, achievementId: "a" }).toArray()).toMatchObject([{ unlockedDate: "2026-01-01" }]);
@@ -89,9 +89,9 @@ describe("prepareUniqueIndexes", () => {
     const friendships = await getCollection("friendships");
     await friendships.insertOne({ requesterId: "u1", receiverId: "u2", status: "pending", createdAt: later, updatedAt: later });
 
-    await prepareUniqueIndexes();
+    await prepareUniqueIndexesMigration.up(await getDb());
     await applySchema(await getDb());
-    await prepareUniqueIndexes();
+    await prepareUniqueIndexesMigration.up(await getDb());
 
     expect(await friendships.countDocuments({})).toBe(1);
   });

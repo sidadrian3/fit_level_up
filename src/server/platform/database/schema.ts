@@ -15,6 +15,7 @@ export const COLLECTIONS = {
     customExercises: "custom_exercises",
     friendships: "friendships",
     workoutTemplates: "workout_templates",
+    schemaMigrations: "schema_migrations",
 } as const;
 
 export type CollectionKey = keyof typeof COLLECTIONS;
