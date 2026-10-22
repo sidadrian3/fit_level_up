@@ -1,21 +1,8 @@
 import { ObjectId } from "mongodb";
 import type { Exercise, Workout } from "@/lib/types";
 import { ClientSession } from "mongodb";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection, type WorkoutDoc } from "@/server/platform/database";
 import { parseObjectId } from "@/lib/data/object-id";
-type WorkoutDoc = {
-    _id?: ObjectId;
-    userId: string;
-    title: string;
-    exercises: Exercise[];
-    duration: number;
-    xpEarned: number;
-    date: Date;
-    idempotencyKey?: string;
-};
-
-
-
 function toWorkout(doc: WorkoutDoc): Workout {
     if (!doc._id) {
         throw new Error("Workout document is missing _id");
@@ -33,7 +20,7 @@ function toWorkout(doc: WorkoutDoc): Workout {
 
 
 export async function getAllWorkoutsFromDb(userId: string, limit?: number, skip?: number): Promise<Workout[]> {
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
 
     let cursor = collection.find({ userId }).sort({ _id: -1 });
     if (skip !== undefined) cursor = cursor.skip(skip);
@@ -44,7 +31,7 @@ export async function getAllWorkoutsFromDb(userId: string, limit?: number, skip?
 }
 
 export async function getPaginatedWorkoutsFromDb(userId: string, limit: number, skip: number) {
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
 
     const [docs, totalCount] = await Promise.all([
         collection.find({ userId }).sort({ _id: -1 }).skip(skip).limit(limit).toArray(),
@@ -61,7 +48,7 @@ export async function insertWorkout(
     doc: Omit<WorkoutDoc, "_id">,
     session?: ClientSession
 ): Promise<Workout> {
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
 
     const result = await collection.insertOne(doc, { session });
 
@@ -78,7 +65,7 @@ export async function deleteWorkoutFromDb(id: string, userId: string): Promise<b
         return false;
     }
 
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
 
     const result = await collection.deleteOne({ _id, userId });
     return result.deletedCount === 1;
@@ -94,7 +81,7 @@ export async function updateWorkoutInDb(
         return null;
     }
 
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
 
     // Fetch original to preserve date
     const existing = await collection.findOne({ _id, userId });
@@ -121,12 +108,12 @@ export async function updateWorkoutInDb(
 }
 
 export async function countWorkoutsInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
     return collection.countDocuments({ userId, date: { $gte: from, $lt: toExclusive } });
 }
 
 export async function getWorkoutDatesInRange(userId: string, from: Date, toExclusive: Date): Promise<Date[]> {
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
     const docs = await collection
         .find({ userId, date: { $gte: from, $lt: toExclusive } })
         .project<Pick<WorkoutDoc, "date">>({ date: 1 })
@@ -135,7 +122,7 @@ export async function getWorkoutDatesInRange(userId: string, from: Date, toExclu
 }
 
 export async function getWorkoutByIdempotencyKey(userId: string, key: string): Promise<Workout | null> {
-    const collection = await getCollection<WorkoutDoc>("workoutsCollection");
+    const collection = await getCollection<WorkoutDoc>("workouts");
     const doc = await collection.findOne({ userId, idempotencyKey: key });
     return doc ? toWorkout(doc) : null;
 }

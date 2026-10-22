@@ -3,8 +3,6 @@ import { env } from "@/server/platform/env";
 
 const uri = env.MONGODB_URI;
 
-
-
 const options = {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -38,5 +36,4 @@ if (process.env.NODE_ENV === "development") {
     clientPromise = client.connect();
 }
 
-export { client };
-export default clientPromise;
+export { client, clientPromise };

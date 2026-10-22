@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { Achievement } from "@/lib/types";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection, type UserAchievementDoc } from "@/server/platform/database";
 import { ClientSession } from "mongodb";
 import type { AchievementCondition } from "@/lib/domain/achievement-rules";
 
@@ -13,15 +13,6 @@ export type AchievementDefinitionDoc = {
     rarity: "common" | "rare" | "epic" | "legendary";
     condition: AchievementCondition;
 };
-
-export type UserAchievementDoc = {
-    _id?: ObjectId;
-    userId: string;
-    achievementId: string;
-    unlockedDate: string;
-};
-
-
 
 // // ----------------------------------------------------------------------------
 // // SEEDING LOGIC: We define the rules of the game here.
@@ -79,19 +70,19 @@ export type UserAchievementDoc = {
 
 /** Fetch all achievement definitions (ensures they're seeded first) */
 export async function getAchievementDefinitions(): Promise<AchievementDefinitionDoc[]> {
-    const collection = await getCollection<AchievementDefinitionDoc>("achievementsCollection");
+    const collection = await getCollection<AchievementDefinitionDoc>("achievements");
     return collection.find({}).toArray();
 }
 
 /** Fetch all achievement unlock records for a user */
 export async function getUserUnlocks(userId: string): Promise<UserAchievementDoc[]> {
-    const collection = await getCollection<UserAchievementDoc>("userAchievementsCollection");
+    const collection = await getCollection<UserAchievementDoc>("userAchievements");
     return collection.find({ userId }).toArray();
 }
 
 /** Batch-unlock achievements; returns the ids this call actually inserted (a concurrent evaluation may have won) */
 export async function insertUserAchievements(docs: UserAchievementDoc[], session?: ClientSession): Promise<Set<string>> {
-    const collection = await getCollection<UserAchievementDoc>("userAchievementsCollection");
+    const collection = await getCollection<UserAchievementDoc>("userAchievements");
     const result = await collection.bulkWrite(
         docs.map((doc) => ({
             updateOne: {
@@ -131,6 +122,6 @@ export async function getAllAchievementsForUser(userId: string): Promise<Achieve
 }
 
 export async function countUserAchievements(userId: string): Promise<number> {
-    const collection = await getCollection("userAchievementsCollection");
+    const collection = await getCollection("userAchievements");
     return collection.countDocuments({ userId });
 }

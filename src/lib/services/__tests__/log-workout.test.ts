@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { logWorkout } from '../workouts/log-workout';
-import { getCollection } from '../../data/get-collection';
-import { UserMongoDoc } from '../../data/user-db';
+import { getCollection, type UserDoc } from "@/server/platform/database";
 import { ObjectId } from 'mongodb';
-import { ensureIndexes } from '../../data/ensure-indexes';
 import { TargetMuscle } from '../../types';
 import crypto from 'crypto';
 
@@ -12,7 +10,7 @@ describe('logWorkout Integration Test', () => {
 
   beforeAll(async () => {
     // Setup a dummy user in the empty in-memory db
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const usersCol = await getCollection<UserDoc>("user");
     const result = await usersCol.insertOne({
       email: "test@example.com",
       name: "Test User",
@@ -29,13 +27,12 @@ describe('logWorkout Integration Test', () => {
     userId = result.insertedId.toString();
 
     // Ensure MongoDB indexes are created in the test DB (especially the idempotency index)
-    await ensureIndexes();
   });
 
   afterEach(async () => {
     vi.useRealTimers();
     // Clean up workouts between tests
-    const workoutsCol = await getCollection("workoutsCollection");
+    const workoutsCol = await getCollection("workouts");
     await workoutsCol.deleteMany({});
   });
 
@@ -58,7 +55,7 @@ describe('logWorkout Integration Test', () => {
     expect(workout.xpEarned).toBeGreaterThan(0);
 
     // 2. Verify user stats were updated
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const usersCol = await getCollection<UserDoc>("user");
     const user = await usersCol.findOne({ _id: new ObjectId(userId) });
 
     expect(user).toBeDefined();
@@ -68,7 +65,7 @@ describe('logWorkout Integration Test', () => {
   });
 
   it("extends the streak on the user's local day", async () => {
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const usersCol = await getCollection<UserDoc>("user");
     await usersCol.updateOne(
       { _id: new ObjectId(userId) },
       { $set: { timeZone: "Asia/Manila", streak: 3, lastActivityDate: new Date("2026-10-20T00:00:00Z") } }
@@ -102,7 +99,7 @@ describe('logWorkout Integration Test', () => {
     expect(firstWorkout.id).toBeDefined();
 
     // 2. Capture user stats after first request
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+    const usersCol = await getCollection<UserDoc>("user");
     const userAfterFirst = await usersCol.findOne({ _id: new ObjectId(userId) });
     const xpAfterFirst = userAfterFirst!.xp;
 
@@ -116,7 +113,7 @@ describe('logWorkout Integration Test', () => {
     expect(userAfterSecond!.xp).toBe(xpAfterFirst);
 
     // 5. Verify only ONE workout exists in the DB with this key
-    const workoutsCol = await getCollection("workoutsCollection");
+    const workoutsCol = await getCollection("workouts");
     const duplicateCount = await workoutsCol.countDocuments({ userId, idempotencyKey });
     expect(duplicateCount).toBe(1);
   });
@@ -124,7 +121,7 @@ describe('logWorkout Integration Test', () => {
   describe('Stamina System Integration', () => {
     it('should correctly deduct stamina for a normal workout', async () => {
       // 1. Arrange: Update the dummy user to have 100 stamina
-      const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+      const usersCol = await getCollection<UserDoc>("user");
       await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 100, lastStaminaUpdate: new Date() } });
 
       const workoutInput = {
@@ -144,7 +141,7 @@ describe('logWorkout Integration Test', () => {
 
     it('should apply exhaustion debuff if stamina is 0', async () => {
       // 1. Arrange: Update the dummy user to have 0 stamina
-      const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+      const usersCol = await getCollection<UserDoc>("user");
       await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 0, lastStaminaUpdate: new Date() } });
 
       const workoutInput = {
@@ -168,7 +165,7 @@ describe('logWorkout Integration Test', () => {
       const twoDaysAgo = new Date();
       twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
 
-      const usersCol = await getCollection<UserMongoDoc>("usersCollection");
+      const usersCol = await getCollection<UserDoc>("user");
       await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 10, lastStaminaUpdate: twoDaysAgo } });
 
       const workoutInput = {

@@ -1,14 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { TargetMuscle, CustomExercise } from "@/lib/types";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection, type CustomExerciseDoc } from "@/server/platform/database";
 import { ClientSession } from "mongodb";
-
-export interface CustomExerciseDoc {
-    _id?: ObjectId;
-    userId: string;
-    name: string;
-    targetMuscle: TargetMuscle;
-}
 
 function toCustomExercise(doc: CustomExerciseDoc): CustomExercise {
     if (!doc._id) {
@@ -23,14 +16,14 @@ function toCustomExercise(doc: CustomExerciseDoc): CustomExercise {
 }
 
 export async function getAllCustomExercisesFromDb(userId: string): Promise<CustomExercise[]> {
-    const collection = await getCollection<CustomExerciseDoc>("customExercisesCollection");
+    const collection = await getCollection<CustomExerciseDoc>("customExercises");
 
     const docs = await collection.find({ userId }).toArray();
     return docs.map(toCustomExercise);
 }
 
 export async function createCustomExerciseFromDb(doc: Omit<CustomExerciseDoc, "_id">, session?: ClientSession): Promise<CustomExerciseDoc> {
-    const collection = await getCollection<CustomExerciseDoc>("customExercisesCollection");
+    const collection = await getCollection<CustomExerciseDoc>("customExercises");
     const result = await collection.insertOne(doc, session ? { session } : undefined);
     return { ...doc, _id: result.insertedId };
 

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { getCollection } from '@/lib/data/get-collection';
-import { ensureIndexes } from '@/lib/data/ensure-indexes';
+import { getCollection } from "@/server/platform/database";
 import * as ssePublisher from '@/lib/sse/sse-publisher';
 
 import { sendFriendRequest } from '../friends/send-friend-request';
@@ -19,10 +18,9 @@ describe('friends Service Layer Test', () => {
     let userC: { id: string };
 
     beforeAll(async () => {
-        await ensureIndexes();
-        const col = await getCollection("friendshipsCollection");
+        const col = await getCollection("friendships");
         await col.deleteMany({});
-        const userCol = await getCollection("usersCollection");
+        const userCol = await getCollection("user");
         await userCol.deleteMany({});
 
         const resA = await userCol.insertOne({ name: "User A", email: "a@a.com", level: 1, xp: 0, xpToNextLevel: 500, streak: 0, totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date() });
@@ -35,7 +33,7 @@ describe('friends Service Layer Test', () => {
     });
 
     beforeEach(async () => {
-        const col = await getCollection("friendshipsCollection");
+        const col = await getCollection("friendships");
         await col.deleteMany({});
         vi.clearAllMocks();
         vi.spyOn(ssePublisher, 'publishToUser').mockResolvedValue(undefined);
@@ -43,9 +41,9 @@ describe('friends Service Layer Test', () => {
     });
 
     afterAll(async () => {
-        const col = await getCollection("friendshipsCollection");
+        const col = await getCollection("friendships");
         await col.deleteMany({});
-        const userCol = await getCollection("usersCollection");
+        const userCol = await getCollection("user");
         await userCol.deleteMany({});
         vi.restoreAllMocks();
     });
@@ -98,7 +96,7 @@ describe('friends Service Layer Test', () => {
             expect(flipped.requesterId).toBe(userB.id);
             expect(flipped.receiverId).toBe(userA.id);
             expect(flipped.status).toBe("pending");
-            const col = await getCollection("friendshipsCollection");
+            const col = await getCollection("friendships");
             expect(await col.countDocuments({})).toBe(1);
         });
 
@@ -111,7 +109,7 @@ describe('friends Service Layer Test', () => {
             expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
             const rejected = results.find(r => r.status === 'rejected') as PromiseRejectedResult;
             expect(rejected.reason).toBeInstanceOf(ConflictError);
-            const col = await getCollection("friendshipsCollection");
+            const col = await getCollection("friendships");
             expect(await col.countDocuments({})).toBe(1);
         });
     });

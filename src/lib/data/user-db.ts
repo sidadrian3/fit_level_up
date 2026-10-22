@@ -1,32 +1,9 @@
 import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection, type UserDoc } from "@/server/platform/database";
 import { parseObjectId } from "@/lib/data/object-id";
 
-export type UserMongoDoc = {
-  _id?: ObjectId;
-  id?: string;
-  email: string;
-  name: string;
-  image?: string;
-  avatar?: string;
-  level: number;
-  xp: number;
-  xpToNextLevel: number;
-  streak: number;
-  lastActivityDate?: Date; // YYYY-MM-DD
-  totalWorkouts: number;
-  totalDistance: number;
-  createdAt: Date;
-  stamina: number;
-  lastStaminaUpdate: Date;
-  timeZone?: string;
-  __v?: number;
-};
-
-
-
-export function toUser(doc: UserMongoDoc): User {
+export function toUser(doc: UserDoc): User {
   const lastActivityStr = doc.lastActivityDate ? doc.lastActivityDate.toISOString().slice(0, 10) : undefined;
 
   return {
@@ -50,7 +27,7 @@ export function toUser(doc: UserMongoDoc): User {
 }
 
 export async function getUserFromDb(userId: string, session?: ClientSession): Promise<User | null> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const collection = await getCollection<UserDoc>("user");
 
   const _id = parseObjectId(userId);
   const userDoc = _id ? await collection.findOne({ _id }, { session }) : null;
@@ -58,7 +35,7 @@ export async function getUserFromDb(userId: string, session?: ClientSession): Pr
 }
 
 export async function getUserTimeZoneFromDb(userId: string, session?: ClientSession): Promise<string> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const collection = await getCollection<UserDoc>("user");
 
   const _id = parseObjectId(userId);
   const userDoc = _id ? await collection.findOne({ _id }, { session, projection: { timeZone: 1 } }) : null;
@@ -73,7 +50,7 @@ export async function updateUserXPInDb(
   currentVersion: number,
   session?: ClientSession
 ): Promise<User> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const collection = await getCollection<UserDoc>("user");
 
   const query = currentVersion === 0 
     ? { _id: new ObjectId(userId), $or: [{ __v: 0 }, { __v: { $exists: false } }] }
@@ -104,7 +81,7 @@ export async function updateUserStatsInDb(
   stats: { incrementWorkouts?: number; incrementDistance?: number },
   session?: ClientSession
 ): Promise<void> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const collection = await getCollection<UserDoc>("user");
 
   const incParams: Record<string, number> = {};
   if (stats.incrementWorkouts) {
@@ -127,7 +104,7 @@ export async function updateUserStaminaInDb(
   lastStaminaUpdate: string,
   session?: ClientSession
 ): Promise<void> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const collection = await getCollection<UserDoc>("user");
   await collection.updateOne(
     { _id: new ObjectId(userId) },
     { $set: { stamina: newStamina, lastStaminaUpdate: new Date(lastStaminaUpdate) } },
@@ -153,7 +130,7 @@ export async function applyUserActivityInDb(
   currentVersion: number,
   session?: ClientSession
 ): Promise<User> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const collection = await getCollection<UserDoc>("user");
 
   const query = currentVersion === 0 
     ? { _id: new ObjectId(userId), $or: [{ __v: 0 }, { __v: { $exists: false } }] }
@@ -188,7 +165,7 @@ export async function applyUserActivityInDb(
 }
 
 export async function getRecentlyActiveUsers(sinceDate: Date): Promise<User[]> {
-  const collection = await getCollection<UserMongoDoc>("usersCollection");
+  const collection = await getCollection<UserDoc>("user");
   const cursor = collection.find({ lastActivityDate: { $gte: sinceDate } });
   const docs = await cursor.toArray();
   return docs.map(toUser);

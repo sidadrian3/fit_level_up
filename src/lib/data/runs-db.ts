@@ -1,22 +1,8 @@
 import { ObjectId } from "mongodb";
 import type { Run } from "@/lib/types";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection, type RunDoc } from "@/server/platform/database";
 import { parseObjectId } from "@/lib/data/object-id";
 import { ClientSession } from "mongodb";
-
-type RunDoc = {
-    _id?: ObjectId;
-    userId: string;
-    distance: number;
-    duration: number;
-    pace: number;
-    difficulty: Run["difficulty"];
-    xpEarned: number;
-    date: Date;
-    idempotencyKey?: string;
-}
-
-
 
 function toRun(doc: RunDoc): Run {
     if (!doc._id) {
@@ -34,7 +20,7 @@ function toRun(doc: RunDoc): Run {
 }
 
 export async function getAllRunsFromDb(userId: string, limit?: number, skip?: number): Promise<Run[]> {
-    const collection = await getCollection<RunDoc>("runsCollection");
+    const collection = await getCollection<RunDoc>("runs");
 
     let cursor = collection.find({ userId }).sort({ _id: -1 });
     if (skip !== undefined) cursor = cursor.skip(skip);
@@ -45,7 +31,7 @@ export async function getAllRunsFromDb(userId: string, limit?: number, skip?: nu
 }
 
 export async function getPaginatedRunsFromDb(userId: string, limit: number, skip: number) {
-    const collection = await getCollection<RunDoc>("runsCollection");
+    const collection = await getCollection<RunDoc>("runs");
 
     const [docs, totalCount] = await Promise.all([
         collection.find({ userId }).sort({ _id: -1 }).skip(skip).limit(limit).toArray(),
@@ -62,7 +48,7 @@ export async function insertRun(
     doc: Omit<RunDoc, "_id">,
     session?: ClientSession
 ): Promise<Run> {
-    const collection = await getCollection<RunDoc>("runsCollection");
+    const collection = await getCollection<RunDoc>("runs");
 
     const result = await collection.insertOne(doc, { session });
 
@@ -78,7 +64,7 @@ export async function deleteRunFromDb(id: string, userId: string): Promise<boole
     if (!_id) {
         return false;
     }
-    const collection = await getCollection<RunDoc>("runsCollection");
+    const collection = await getCollection<RunDoc>("runs");
 
     const result = await collection.deleteOne({ _id, userId });
     return result.deletedCount === 1;
@@ -94,7 +80,7 @@ export async function updateRunInDb(
         return null;
     }
 
-    const collection = await getCollection<RunDoc>("runsCollection");
+    const collection = await getCollection<RunDoc>("runs");
 
     const existing = await collection.findOne({ _id, userId });
     if (!existing) {
@@ -120,7 +106,7 @@ export async function updateRunInDb(
 }
 
 export async function getTotalDistanceInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {
-    const collection = await getCollection<RunDoc>("runsCollection");
+    const collection = await getCollection<RunDoc>("runs");
 
     const distanceResult = await collection
         .aggregate([
@@ -144,7 +130,7 @@ export async function getTotalDistanceInRange(userId: string, from: Date, toExcl
 }
 
 export async function getRunByIdempotencyKey(userId: string, key: string): Promise<Run | null> {
-    const collection = await getCollection<RunDoc>("runsCollection");
+    const collection = await getCollection<RunDoc>("runs");
     const doc = await collection.findOne({ userId, idempotencyKey: key });
     return doc ? toRun(doc) : null;
 }

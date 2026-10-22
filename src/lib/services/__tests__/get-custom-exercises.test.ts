@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getCustomExercises } from '../exercises/get-custom-exercises';
-import { getCollection } from '../../data/get-collection';
+import { getCollection, type CustomExerciseDoc } from "@/server/platform/database";
 import { TargetMuscle } from '../../types';
-import { CustomExerciseDoc } from '../../data/custom-exercises-db';
 
 describe('getCustomExercises Integration Test', () => {
     const userId1 = "user-1";
@@ -10,7 +9,7 @@ describe('getCustomExercises Integration Test', () => {
 
     beforeAll(async () => {
         // Setup initial data
-        const exercisesCol = await getCollection<CustomExerciseDoc>("customExercisesCollection");
+        const exercisesCol = await getCollection<CustomExerciseDoc>("customExercises");
         await exercisesCol.insertMany([
             { userId: userId1, name: "Squat", targetMuscle: TargetMuscle.Legs },
             { userId: userId1, name: "Bench", targetMuscle: TargetMuscle.Chest },
@@ -19,7 +18,7 @@ describe('getCustomExercises Integration Test', () => {
     });
 
     afterAll(async () => {
-        const exercisesCol = await getCollection("customExercisesCollection");
+        const exercisesCol = await getCollection("customExercises");
         await exercisesCol.deleteMany({ userId: { $in: [userId1, userId2] } });
     });
 

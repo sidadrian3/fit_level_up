@@ -5,15 +5,6 @@ export const env = createEnv({
     server: {
         MONGODB_URI: z.string().startsWith("mongodb"),
         MONGODB_DB: z.string().min(1),
-        MONGODB_WORKOUTS_COLLECTION: z.string().min(1).default("workouts"),
-        MONGODB_RUNS_COLLECTION: z.string().min(1).default("runs"),
-        MONGODB_QUEST_TEMPLATES_COLLECTION: z.string().min(1).default("quest_templates"),
-        MONGODB_USER_QUESTS_COLLECTION: z.string().min(1).default("user_quests"),
-        MONGODB_ACHIEVEMENTS_COLLECTION: z.string().min(1).default("achievements"),
-        MONGODB_USER_ACHIEVEMENTS_COLLECTION: z.string().min(1).default("user_achievements"),
-        MONGODB_CUSTOM_EXERCISES_COLLECTION: z.string().min(1).default("customExercises"),
-        MONGODB_FRIENDSHIPS_COLLECTION: z.string().min(1).default("friendships"),
-        MONGODB_WORKOUT_TEMPLATES_COLLECTION: z.string().min(1).default("workout_templates"),
 
         UPSTASH_REDIS_REST_URL: z.string().url(),
         UPSTASH_REDIS_REST_TOKEN: z.string().min(1),

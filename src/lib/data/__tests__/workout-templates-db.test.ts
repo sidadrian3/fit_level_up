@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { getCollection } from '../get-collection';
-import { ensureIndexes } from '../ensure-indexes';
+import { getCollection, type WorkoutTemplateDoc } from "@/server/platform/database";
 import { 
     getWorkoutTemplatesFromDb, 
     createWorkoutTemplateInDb, 
     getWorkoutTemplateByIdempotencyKeyFromDb,
-    deleteWorkoutTemplateFromDb,
-    WorkoutTemplateMongoDoc
+    deleteWorkoutTemplateFromDb
 } from '../workout-templates-db';
 import { TargetMuscle } from '@/lib/types';
 import crypto from 'crypto';
@@ -15,16 +13,15 @@ describe("workout-templates-db Data Layer Test", () => {
     const userId = "db-user-id";
 
     beforeAll(async () => {
-        await ensureIndexes();
     });
 
     beforeEach(async () => {
-        const col = await getCollection<WorkoutTemplateMongoDoc>("workoutTemplatesCollection");
+        const col = await getCollection<WorkoutTemplateDoc>("workoutTemplates");
         await col.deleteMany({ userId });
     });
 
     afterAll(async () => {
-        const col = await getCollection<WorkoutTemplateMongoDoc>("workoutTemplatesCollection");
+        const col = await getCollection<WorkoutTemplateDoc>("workoutTemplates");
         await col.deleteMany({ userId });
     });
 

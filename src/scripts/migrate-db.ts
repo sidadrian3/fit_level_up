@@ -1,13 +1,12 @@
-import { ensureIndexes } from "../lib/data/ensure-indexes";
+import { applySchema, clientPromise, getDb } from "@/server/platform/database";
 import { prepareUniqueIndexes } from "./prepare-unique-indexes";
-import clientPromise from "../lib/mongodb";
 
 async function main() {
   console.log("Starting database migrations...");
   try {
     await clientPromise;
     await prepareUniqueIndexes();
-    await ensureIndexes();
+    await applySchema(await getDb());
     console.log("Database migrations completed successfully.");
     process.exit(0);
   } catch (error) {

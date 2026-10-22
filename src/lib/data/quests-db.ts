@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { Quest, QuestCategory, QuestMetric } from "@/lib/types";
-import { getCollection } from "@/lib/data/get-collection";
+import { getCollection, type UserQuestDoc } from "@/server/platform/database";
 import { parseObjectId } from "@/lib/data/object-id";
 import { ClientSession } from "mongodb";
 
@@ -16,20 +16,8 @@ export type QuestTemplateMongoDoc = {
   isActive: boolean;
 };
 
-export type UserQuestMongoDoc = {
-  _id?: ObjectId;
-  userId: string;
-  questTemplateId: string;
-  progress: number;
-  target: number;
-  completed: boolean;
-  claimed: boolean;
-  periodStart: string;
-  periodEnd: string;
-};
-
 export function toQuestView(
-  userQuest: UserQuestMongoDoc,
+  userQuest: UserQuestDoc,
   template: QuestTemplateMongoDoc,
 ): Quest {
   if (!userQuest._id) {
@@ -55,7 +43,7 @@ export async function getQuestTemplatesByMetricsFromDb(
   session?: ClientSession,
 ): Promise<QuestTemplateMongoDoc[]> {
   const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplatesCollection",
+    "questTemplates",
   );
   return collection
     .find({ isActive: true, metric: { $in: metrics } }, { session })
@@ -66,7 +54,7 @@ export async function getActiveQuestTemplatesFromDb(): Promise<
   QuestTemplateMongoDoc[]
 > {
   const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplatesCollection",
+    "questTemplates",
   );
   return collection.find({ isActive: true }).toArray();
 }
@@ -78,7 +66,7 @@ export async function getQuestTemplateByIdFromDb(
   const _id = parseObjectId(id);
   if (!_id) return null;
   const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplatesCollection",
+    "questTemplates",
   );
   return collection.findOne({ _id }, { session });
 }
@@ -87,7 +75,7 @@ export async function getQuestTemplatesByMetricFromDb(
   metric: QuestMetric,
 ): Promise<QuestTemplateMongoDoc[]> {
   const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplatesCollection",
+    "questTemplates",
   );
   return collection.find({ isActive: true, metric }).toArray();
 }
@@ -97,9 +85,9 @@ export async function findUserQuestFromDb(
   questTemplateId: string,
   periodStart: string,
   periodEnd: string,
-): Promise<UserQuestMongoDoc | null> {
-  const collection = await getCollection<UserQuestMongoDoc>(
-    "userQuestsCollection",
+): Promise<UserQuestDoc | null> {
+  const collection = await getCollection<UserQuestDoc>(
+    "userQuests",
   );
   return collection.findOne({
     userId,
@@ -112,21 +100,21 @@ export async function findUserQuestFromDb(
 export async function getUserQuestByIdFromDb(
   id: string,
   userId: string,
-): Promise<UserQuestMongoDoc | null> {
+): Promise<UserQuestDoc | null> {
   const _id = parseObjectId(id);
   if (!_id) return null;
-  const collection = await getCollection<UserQuestMongoDoc>(
-    "userQuestsCollection",
+  const collection = await getCollection<UserQuestDoc>(
+    "userQuests",
   );
   return collection.findOne({ _id, userId });
 }
 
 export async function insertUserQuestToDb(
-  doc: Omit<UserQuestMongoDoc, "_id">,
+  doc: Omit<UserQuestDoc, "_id">,
   session?: ClientSession,
 ): Promise<void> {
-  const collection = await getCollection<UserQuestMongoDoc>(
-    "userQuestsCollection",
+  const collection = await getCollection<UserQuestDoc>(
+    "userQuests",
   );
   await collection.insertOne(doc, { session });
 }
@@ -135,9 +123,9 @@ export async function getUserQuestsForUserFromDb(
   userId: string,
   today: string,
   session?: ClientSession,
-): Promise<UserQuestMongoDoc[]> {
-  const collection = await getCollection<UserQuestMongoDoc>(
-    "userQuestsCollection",
+): Promise<UserQuestDoc[]> {
+  const collection = await getCollection<UserQuestDoc>(
+    "userQuests",
   );
   return collection
     .find(
@@ -154,7 +142,7 @@ export async function getQuestTemplatesByIdsFromDb(
   ids: string[],
 ): Promise<QuestTemplateMongoDoc[]> {
   const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplatesCollection",
+    "questTemplates",
   );
   return collection
     .find({ _id: { $in: ids.flatMap((id) => parseObjectId(id) ?? []) } })
@@ -168,8 +156,8 @@ export async function updateUserQuestProgressInDb(
   completed: boolean,
   session?: ClientSession,
 ): Promise<void> {
-  const collection = await getCollection<UserQuestMongoDoc>(
-    "userQuestsCollection",
+  const collection = await getCollection<UserQuestDoc>(
+    "userQuests",
   );
   await collection.updateOne(
     { _id: id, userId },
@@ -185,8 +173,8 @@ export async function markUserQuestClaimedInDb(
   userId: string,
   session?: ClientSession,
 ): Promise<number> {
-  const collection = await getCollection<UserQuestMongoDoc>(
-    "userQuestsCollection",
+  const collection = await getCollection<UserQuestDoc>(
+    "userQuests",
   );
   const result = await collection.updateOne(
     { _id: id, userId, claimed: false },
@@ -199,12 +187,12 @@ export async function markUserQuestClaimedInDb(
 }
 
 export async function bulkUpsertUserQuestsToDb(
-  docs: Omit<UserQuestMongoDoc, "_id">[],
+  docs: Omit<UserQuestDoc, "_id">[],
   session?: ClientSession,
 ): Promise<void> {
   if (docs.length === 0) return;
-  const collection = await getCollection<UserQuestMongoDoc>(
-    "userQuestsCollection",
+  const collection = await getCollection<UserQuestDoc>(
+    "userQuests",
   );
 
   const operations = docs.map((doc) => ({

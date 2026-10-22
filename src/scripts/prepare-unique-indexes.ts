@@ -1,5 +1,5 @@
 import type { Document, ObjectId } from "mongodb";
-import { getCollection } from "../lib/data/get-collection";
+import { getCollection } from "@/server/platform/database";
 
 type FriendshipCandidate = { _id: ObjectId; status: string; updatedAt: Date; createdAt: Date };
 type UserQuestCandidate = { _id: ObjectId; claimed: boolean; progress: number };
@@ -67,10 +67,10 @@ async function dropNonUniqueIndex(collectionKey: Parameters<typeof getCollection
   }
 }
 
-// Unique indexes cannot build over existing duplicates, so this must run before ensureIndexes. Safe to re-run.
+// Unique indexes cannot build over existing duplicates, so this must run before applySchema. Safe to re-run.
 export async function prepareUniqueIndexes(): Promise<void> {
   const duplicateUnlocks = await removeDuplicateGroups(
-    "userAchievementsCollection",
+    "userAchievements",
     { userId: "$userId", achievementId: "$achievementId" },
     firstDocument,
     { _id: "$_id" },
@@ -78,7 +78,7 @@ export async function prepareUniqueIndexes(): Promise<void> {
   );
 
   const duplicateExercises = await removeDuplicateGroups(
-    "customExercisesCollection",
+    "customExercises",
     { userId: "$userId", name: "$name", targetMuscle: "$targetMuscle" },
     firstDocument,
     { _id: "$_id" },
@@ -86,24 +86,24 @@ export async function prepareUniqueIndexes(): Promise<void> {
   );
 
   const duplicateQuestRows = await removeDuplicateGroups(
-    "userQuestsCollection",
+    "userQuests",
     { userId: "$userId", questTemplateId: "$questTemplateId", periodStart: "$periodStart", periodEnd: "$periodEnd" },
     pickUserQuestToKeep,
     { _id: "$_id", claimed: "$claimed", progress: "$progress" }
   );
 
   const duplicateFriendships = await removeDuplicateGroups(
-    "friendshipsCollection",
+    "friendships",
     "$pairKey",
     pickFriendshipToKeep,
     { _id: "$_id", status: "$status", updatedAt: "$updatedAt", createdAt: "$createdAt" },
     [{ $addFields: { pairKey: PAIR_KEY_EXPRESSION } }]
   );
 
-  const friendships = await getCollection("friendshipsCollection");
+  const friendships = await getCollection("friendships");
   await friendships.updateMany({ pairKey: { $exists: false } }, [{ $set: { pairKey: PAIR_KEY_EXPRESSION } }]);
 
-  await dropNonUniqueIndex("userQuestsCollection", "idx_userQuests_sync_lookup");
+  await dropNonUniqueIndex("userQuests", "idx_userQuests_sync_lookup");
 
   console.log(
     `Unique-index prep: removed ${duplicateUnlocks} duplicate unlocks, ${duplicateExercises} duplicate custom exercises, ` +
