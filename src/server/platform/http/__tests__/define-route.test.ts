@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { env } from "@/server/platform/env";
@@ -22,6 +23,12 @@ function setup(options: { limitResult?: RateLimitResult | Error; userId?: string
 
 const post = (body: string, url = "http://localhost/api/x") =>
   new Request(url, { method: "POST", body, headers: { "content-type": "application/json" } });
+const idempotentPost = (body: string, key?: string) =>
+  new Request("http://localhost/api/x", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json", ...(key ? { "idempotency-key": key } : {}) },
+  });
 const get = (url = "http://localhost/api/x", headers?: Record<string, string>) => new Request(url, { headers });
 
 describe("defineRoute", () => {
@@ -230,5 +237,94 @@ describe("defineRoute", () => {
     const { defineRoute } = setup();
     const options = { name: "t", auth: "user", throttle: "standard", status: 201 } as const;
     expect(defineRoute(options, async () => ({})).definition).toEqual(options);
+  });
+
+  describe("idempotency", () => {
+    const KEY = "0b0e6f5e-7a1c-4b7e-9d3a-2f6f1c1d8a11";
+    const options = {
+      name: "t",
+      auth: "user",
+      throttle: "standard",
+      body: z.object({ a: z.number(), b: z.string(), idempotencyKey: z.uuid().optional() }),
+      idempotency: "required",
+      status: 201,
+    } as const;
+    const validBody = JSON.stringify({ a: 1, b: "x" });
+
+    it("returns 400 without the header", async () => {
+      const { defineRoute } = setup();
+      const handler = vi.fn(async () => ({ value: {}, replayed: false }));
+      const response = await defineRoute(options, handler)(idempotentPost(validBody));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "Missing or invalid Idempotency-Key header" });
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 for a non-UUID header", async () => {
+      const { defineRoute } = setup();
+      const handler = vi.fn(async () => ({ value: {}, replayed: false }));
+      const response = await defineRoute(options, handler)(idempotentPost(validBody, "abc"));
+      expect(response.status).toBe(400);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("accepts a lowercase header name", async () => {
+      const { defineRoute } = setup();
+      const handler = vi.fn(async ({ idempotency }) => ({ value: { key: idempotency.key }, replayed: false }));
+      const response = await defineRoute(options, handler)(idempotentPost(validBody, KEY));
+      expect(await response.json()).toEqual({ key: KEY });
+    });
+
+    it("falls back to body.idempotencyKey when the header is absent", async () => {
+      const { defineRoute } = setup();
+      const handler = vi.fn(async ({ idempotency }) => ({ value: { key: idempotency.key }, replayed: false }));
+      const body = JSON.stringify({ a: 1, b: "x", idempotencyKey: KEY });
+      const response = await defineRoute(options, handler)(idempotentPost(body));
+      expect(await response.json()).toEqual({ key: KEY });
+    });
+
+    it("passes a sha256 hex fingerprint of the validated body", async () => {
+      const { defineRoute } = setup();
+      const handler = vi.fn(async ({ idempotency }) => ({ value: { fp: idempotency.fingerprint }, replayed: false }));
+      const response = await defineRoute(options, handler)(idempotentPost(validBody, KEY));
+      const { fp } = (await response.json()) as { fp: string };
+      expect(fp).toMatch(/^[0-9a-f]{64}$/);
+      expect(fp).toBe(createHash("sha256").update(JSON.stringify({ a: 1, b: "x" })).digest("hex"));
+    });
+
+    it("fingerprints equal bodies equally regardless of field order", async () => {
+      const { defineRoute } = setup();
+      const handler = vi.fn(async ({ idempotency }) => ({ value: { fp: idempotency.fingerprint }, replayed: false }));
+      const route = defineRoute(options, handler);
+      const first = (await (await route(idempotentPost('{"b":"x","a":1}', KEY))).json()) as { fp: string };
+      const second = (await (await route(idempotentPost('{"a":1,"b":"x"}', KEY))).json()) as { fp: string };
+      expect(first.fp).toBe(second.fp);
+    });
+
+    it("adds Idempotent-Replayed on a replay", async () => {
+      const { defineRoute } = setup();
+      const response = await defineRoute(options, async () => ({ value: { id: 1 }, replayed: true }))(
+        idempotentPost(validBody, KEY)
+      );
+      expect(response.status).toBe(201);
+      expect(response.headers.get("Idempotent-Replayed")).toBe("true");
+      expect(await response.json()).toEqual({ id: 1 });
+    });
+
+    it("omits the header on a new create", async () => {
+      const { defineRoute } = setup();
+      const response = await defineRoute(options, async () => ({ value: { id: 1 }, replayed: false }))(
+        idempotentPost(validBody, KEY)
+      );
+      expect(response.status).toBe(201);
+      expect(response.headers.get("Idempotent-Replayed")).toBeNull();
+    });
+
+    it("leaves non-idempotent routes untouched", async () => {
+      const { defineRoute } = setup();
+      const response = await defineRoute({ name: "t", auth: "user" }, async () => ({ plain: true }))(get());
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ plain: true });
+    });
   });
 });

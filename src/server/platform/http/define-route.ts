@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { RATE_LIMIT_TIERS } from "@/server/platform/config";
 import { env } from "@/server/platform/env";
+import type { IdempotencyRequest, IdempotentResult } from "./idempotency";
 import { BadRequestError, TooManyRequestsError, UnauthorizedError, toErrorResponse } from "./errors";
 
 export type RouteAuth = "user" | "cron" | "public";
@@ -16,14 +17,16 @@ export interface RouteOptions<A, B, Q, P> {
   params?: z.ZodType<P>;
   throttle?: ThrottleTier;
   status?: 200 | 201;
+  idempotency?: "required";
 }
 
-export interface RouteContext<A, B, Q, P> {
+export interface RouteContext<A, B, Q, P, I = undefined> {
   request: Request;
   userId: A extends "user" ? string : undefined;
   body: B;
   query: Q;
   params: P;
+  idempotency: I;
 }
 
 export type DefinedRoute = ((
@@ -41,6 +44,22 @@ export interface RateLimitResult {
 interface DefineRouteDeps {
   requireUserId: () => Promise<string>;
   limit: (tier: ThrottleTier, identifier: string) => Promise<RateLimitResult>;
+}
+
+type ImplementationContext = RouteContext<RouteAuth, unknown, unknown, unknown, IdempotencyRequest | undefined>;
+
+const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+const idempotencyKeySchema = z.uuid();
+
+function resolveIdempotency(request: Request, body: unknown): IdempotencyRequest {
+  // The body fallback is transitional and is removed in this PR's last commit.
+  const bodyKey = typeof body === "object" && body !== null && "idempotencyKey" in body ? body.idempotencyKey : undefined;
+  const parsed = idempotencyKeySchema.safeParse(request.headers.get(IDEMPOTENCY_KEY_HEADER) ?? bodyKey);
+  if (!parsed.success) throw new BadRequestError("Missing or invalid Idempotency-Key header");
+  return {
+    key: parsed.data,
+    fingerprint: createHash("sha256").update(JSON.stringify(body)).digest("hex"),
+  };
 }
 
 export const idParams = z.object({ id: z.string() });
@@ -86,16 +105,19 @@ async function enforceThrottle(
 }
 
 export function createDefineRoute(deps: DefineRouteDeps) {
-  return function defineRoute<
-    A extends RouteAuth,
-    B = undefined,
-    Q = undefined,
-    P = undefined,
-    T = unknown,
-  >(
-    options: RouteOptions<A, B, Q, P>,
+  function defineRoute<B = undefined, Q = undefined, P = undefined, T = unknown>(
+    options: RouteOptions<"user", B, Q, P> & { idempotency: "required" },
+    handler: (ctx: RouteContext<"user", B, Q, P, IdempotencyRequest>) => Promise<IdempotentResult<T>>
+  ): DefinedRoute;
+  function defineRoute<A extends RouteAuth, B = undefined, Q = undefined, P = undefined, T = unknown>(
+    options: RouteOptions<A, B, Q, P> & { idempotency?: undefined },
     handler: (ctx: RouteContext<A, B, Q, P>) => Promise<T | Response>
+  ): DefinedRoute;
+  function defineRoute(
+    options: RouteOptions<RouteAuth, unknown, unknown, unknown>,
+    overloadHandler: (ctx: never) => Promise<unknown>
   ): DefinedRoute {
+    const handler = overloadHandler as (ctx: ImplementationContext) => Promise<unknown>;
     const route = async (
       request: Request,
       segment?: { params: Promise<Record<string, string>> }
@@ -110,28 +132,29 @@ export function createDefineRoute(deps: DefineRouteDeps) {
         }
 
         const rawParams = (await segment?.params) ?? {};
-        const params = (options.params ? options.params.parse(rawParams) : undefined) as P;
+        const params = options.params ? options.params.parse(rawParams) : undefined;
 
         const rawQuery = Object.fromEntries(new URL(request.url).searchParams);
-        const query = (options.query ? options.query.parse(rawQuery) : undefined) as Q;
+        const query = options.query ? options.query.parse(rawQuery) : undefined;
 
-        const body = (options.body ? options.body.parse(await readJsonBody(request)) : undefined) as B;
+        const body = options.body ? options.body.parse(await readJsonBody(request)) : undefined;
+        const idempotency = options.idempotency === "required" ? resolveIdempotency(request, body) : undefined;
 
-        const result = await handler({
-          request,
-          userId: userId as RouteContext<A, B, Q, P>["userId"],
-          body,
-          query,
-          params,
-        });
+        const result = await handler({ request, userId, body, query, params, idempotency });
         if (result instanceof Response) return result;
+        if (idempotency) {
+          const { value, replayed } = result as IdempotentResult<unknown>;
+          return NextResponse.json(value, {
+            status: options.status ?? 200,
+            headers: replayed ? { "Idempotent-Replayed": "true" } : undefined,
+          });
+        }
         return NextResponse.json(result, { status: options.status ?? 200 });
       } catch (err) {
         return toErrorResponse(err, options.name);
       }
     };
-    return Object.assign(route, {
-      definition: options as RouteOptions<RouteAuth, unknown, unknown, unknown>,
-    });
-  };
+    return Object.assign(route, { definition: options });
+  }
+  return defineRoute;
 }
