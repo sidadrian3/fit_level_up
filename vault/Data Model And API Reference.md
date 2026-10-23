@@ -52,33 +52,33 @@ Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`.
 
 ## 4. API routes
 
-Every route is declared with `defineRoute` from `@/server/runtime`, which owns auth, the rate limit, input parsing and error mapping; route files contain no `try/catch`. `Auth` is the route's `auth` setting: `user` reads the session cookie (`401` if missing), `cron` compares the bearer token with `CRON_SECRET` in constant time (`401` otherwise), `public` checks nothing. `Rate-limited` routes set `throttle: "standard"`, the shared sliding window of 20 requests per hour per user (`src/lib/auth/rate-limit.ts`); a mutation that is not limited yet sets `throttle: null` explicitly. Errors are shaped by `toErrorResponse` in `src/server/platform/http`: `AppError` subclasses keep their status (`ForbiddenError` is `403`), a `DomainError` from a domain rule becomes `400` (`invalid`) or `409` (`conflict`), `ZodError` becomes `400` with the first issue's message, a malformed JSON body is `400`, a `BSONError` is `404`, and anything else is a logged `500`. A malformed id in a path is `404`. `src/app/api/__tests__/route-table.test.ts` fails when a route is not built with `defineRoute`, when a user mutation does not state its `body` and `throttle`, when a cron or public route is throttled, or when two routes share a name. List routes read `limit` and `page` through `paginationQuery`: an invalid `limit` becomes `5`, a `limit` above `50` becomes `50`, and an invalid `page` becomes `1`.
+Every route is declared with `defineRoute` from `@/server/runtime`, which owns auth, the rate limit, input parsing and error mapping; route files contain no `try/catch`. `Auth` is the route's `auth` setting: `user` reads the session cookie (`401` if missing), `cron` compares the bearer token with `CRON_SECRET` in constant time (`401` otherwise), `public` checks nothing. Every user mutation names a `throttle` tier from `RATE_LIMIT_TIERS` (`src/server/platform/config/rate-limits.ts`): `standard` allows 30 requests per minute and `expensive` allows 10 per hour, and only `POST /api/friends/request` is `expensive`. Each tier is its own Upstash sliding-window limiter (`createRateLimiter`), keyed by route name and user, so a burst on one route never blocks another. A refused request gets `429 { "error": "Too many requests" }` with a `Retry-After` header in whole seconds, taken from the end of the current window, so it is a lower bound for the `expensive` tier. When Upstash errors or times out, the request is allowed and an `[Rate limiter unavailable]` line is logged. GET, cron and public routes are not throttled. Errors are shaped by `toErrorResponse` in `src/server/platform/http`: `AppError` subclasses keep their status (`ForbiddenError` is `403`), a `DomainError` from a domain rule becomes `400` (`invalid`) or `409` (`conflict`), `ZodError` becomes `400` with the first issue's message, a malformed JSON body is `400`, a `BSONError` is `404`, and anything else is a logged `500`. A malformed id in a path is `404`. `src/app/api/__tests__/route-table.test.ts` fails when a route is not built with `defineRoute`, when a user mutation does not state its `body` or name a real `throttle` tier, when a cron or public route is throttled, or when two routes share a name. List routes read `limit` and `page` through `paginationQuery`: an invalid `limit` becomes `5`, a `limit` above `50` becomes `50`, and an invalid `page` becomes `1`.
 
-| Route | Methods | Auth | Rate-limited | Purpose |
+| Route | Methods | Auth | Throttle tier | Purpose |
 |---|---|---|---|---|
 | `/api/auth/[...all]` | all | Better Auth | — | Sign-up, sign-in, sign-out, session; sign-up and `update-user` accept an optional `timeZone` |
 | `/api/health` | GET | none | — | Liveness check |
 | `/api/cron/achievements-sweep` | GET | `CRON_SECRET` bearer token (always required; `401` otherwise) | — | Daily reconciliation of locked achievements, scheduled in `vercel.json` |
 | `/api/user` | GET | yes | — | The signed-in user's profile and game state |
-| `/api/workouts` | GET, POST | yes | POST | Paginated history (`limit` ≤ 50, `page`); log a workout |
-| `/api/workouts/[id]` | PUT, DELETE | yes | — | Edit or delete one of your workouts |
-| `/api/runs` | GET, POST | yes | POST | Paginated history; log a run |
-| `/api/runs/[id]` | PUT, DELETE | yes | — | Edit or delete one of your runs |
+| `/api/workouts` | GET, POST | yes | POST: standard | Paginated history (`limit` ≤ 50, `page`); log a workout |
+| `/api/workouts/[id]` | PUT, DELETE | yes | standard | Edit or delete one of your workouts |
+| `/api/runs` | GET, POST | yes | POST: standard | Paginated history; log a run |
+| `/api/runs/[id]` | PUT, DELETE | yes | standard | Edit or delete one of your runs |
 | `/api/runs/stats` | GET | yes | — | Aggregate run statistics |
-| `/api/workout-templates` | GET, POST | yes | — | List and create templates |
-| `/api/workout-templates/[id]` | DELETE | yes | — | Delete a template |
-| `/api/exercises` | GET, POST | yes | POST | List the user's custom exercises (the built-in list is in `src/lib/constants/exercises.ts`); create a custom one |
+| `/api/workout-templates` | GET, POST | yes | POST: standard | List and create templates |
+| `/api/workout-templates/[id]` | DELETE | yes | standard | Delete a template |
+| `/api/exercises` | GET, POST | yes | POST: standard | List the user's custom exercises (the built-in list is in `src/lib/constants/exercises.ts`); create a custom one |
 | `/api/quests` | GET | yes | — | The user's quests for the current periods |
-| `/api/quests/[id]/claim` | POST | yes | — | Claim a completed quest's XP reward |
+| `/api/quests/[id]/claim` | POST | yes | standard | Claim a completed quest's XP reward |
 | `/api/achievements` | GET | yes | — | Achievements with the user's unlock state |
 | `/api/stats/dashboard` | GET | yes | — | Weekly counts, distance, lifetime XP |
 | `/api/profile/records` | GET | yes | — | Personal records |
 | `/api/friends` | GET | yes | — | Accepted friends |
-| `/api/friends/request` | POST | yes | yes | Send a friend request |
+| `/api/friends/request` | POST | yes | expensive | Send a friend request |
 | `/api/friends/requests` | GET | yes | — | Pending incoming requests |
-| `/api/friends/[id]/accept` | POST | yes | yes | Accept a request |
-| `/api/friends/[id]/decline` | POST | yes | yes | Decline a request |
-| `/api/friends/[id]` | DELETE | yes | yes | Remove a friend |
+| `/api/friends/[id]/accept` | POST | yes | standard | Accept a request |
+| `/api/friends/[id]/decline` | POST | yes | standard | Decline a request |
+| `/api/friends/[id]` | DELETE | yes | standard | Remove a friend |
 | `/api/friends/events` | GET | yes | — | Server-Sent Events stream of friend events; the connection lasts 60 seconds and the browser reconnects |
 
 ## 5. Pages
