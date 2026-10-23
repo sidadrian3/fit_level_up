@@ -17,7 +17,7 @@ Middleware (proxy.ts)
   │
   ▼
 API Route (workouts/route.ts)
-  │  Rate limit check → Zod schema parse
+  │  defineRoute: auth → rate limit → Zod parse → error mapping
   │
   ▼
 Service (log-workout.ts)
@@ -47,7 +47,7 @@ Service (log-workout.ts)
 
 | Layer                    | Location                   | Responsibility                                           |
 | ------------------------ | -------------------------- | -------------------------------------------------------- |
-| **HTTP Boundary**        | `src/app/api/*/route.ts`   | Auth, rate-limit, Zod parse. No business logic.          |
+| **HTTP Boundary**        | `src/app/api/*/route.ts`   | `defineRoute`: auth, rate-limit, Zod parse, errors. No business logic. |
 | **Application Services** | `src/lib/services/**/*.ts` | Orchestrates domain + persistence + side effects.        |
 | **Domain Logic**         | `src/lib/domain/*.ts`      | **Pure functions only.** Zero infrastructure imports.    |
 | **Data Access**          | `src/lib/data/*-db.ts`     | Dumb persistence. Wraps MongoDB. Owns `toXxx()` mappers. |
@@ -84,7 +84,7 @@ Service (log-workout.ts)
 
 **Decorator (Auth Guard)**
 
-- `getAuthUserId()` acts as a consistent auth gate — every API route calls it first as a synchronized cross-cutting concern.
+- `defineRoute({ auth: "user" })` acts as a consistent auth gate — every API route passes through it before its handler runs, and a route-table test fails when a route is not built with it.
 
 ---
 
@@ -120,7 +120,7 @@ Service (log-workout.ts)
 
 **File:** `src/app/api/workouts/route.ts` (and replicated in ~8 other routes)
 
-_Note: This was resolved by implementing the `handleApiError` utility and semantic error classes (`AppError`). Unhandled server crashes now correctly return `500 Internal Server Error`, while domain exceptions return appropriate statuses like `400`, `401`, `404`, and `409`._
+_Note: This was resolved by `toErrorResponse`, applied by `defineRoute`, and the semantic error classes (`AppError`). Unhandled server crashes now correctly return `500 Internal Server Error`, while domain exceptions return appropriate statuses like `400`, `401`, `404`, and `409`._
 
 ```typescript
 // BEFORE (smell) — catch-all returns 400 for everything
@@ -227,31 +227,15 @@ await userState.applyActivity(userId, { xp, workout, stamina }, session);
 
 ---
 
-### Candidate B — Route Error Handler HOF [✅ RESOLVED VIA UTILITY]
+### Candidate B — Route Error Handler HOF [✅ RESOLVED VIA `defineRoute`]
 
-We explored creating a `withApiHandler()` wrapper, but ultimately chose to implement a centralized `handleApiError` utility function. This allowed us to keep the explicit `try/catch` blocks in every route for better debugging traceability, while reducing the catch block to a single, standardized line: `return handleApiError(err);`.
+Every route is built with `defineRoute` (`src/server/platform/http`, wired in `src/server/runtime.ts`). It authenticates, rate-limits, parses params, query and body with Zod, runs the handler and maps any thrown error to a JSON response with `toErrorResponse`, so route files contain no `try/catch`. The explicit per-route `try/catch` that earlier kept stack traces short is gone because routes that had to remember each step skipped it (an unvalidated body, mutations without a rate limit). The cost is one extra frame in a stack trace, and the route name labels every logged error.
 
 ```typescript
-// src/lib/api/with-api-handler.ts
-export function withApiHandler(fn: RouteHandler): RouteHandler {
-  return async (req, ctx) => {
-    try {
-      return await fn(req, ctx);
-    } catch (err) {
-      if (err instanceof Error && err.message === "Unauthorized")
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      if (err instanceof z.ZodError)
-        return NextResponse.json(
-          { error: err.issues[0]?.message },
-          { status: 400 },
-        );
-      return NextResponse.json(
-        { error: "Internal Server Error" },
-        { status: 500 },
-      );
-    }
-  };
-}
+export const POST = defineRoute(
+  { name: "workouts.create", auth: "user", throttle: "standard", body: CreateWorkoutSchema, status: 201 },
+  ({ userId, body }) => logWorkout(body, userId)
+);
 ```
 
 ---
@@ -299,19 +283,19 @@ The application uses **[better-auth](https://better-auth.com/)** with the `mongo
 
 ### Authorization Method: The Decorator Pattern
 
-There is no complex Role-Based Access Control (RBAC) yet. Authorization is handled via a simple but effective decorator-style gatekeeper: `getAuthUserId()`.
+There is no complex Role-Based Access Control (RBAC) yet. Authorization is handled by the route wrapper: `defineRoute({ auth: "user" })`.
 
 1. **The Gatekeeper (`auth-helpers.ts`):**
-   Reads the incoming request headers and checks `auth.api.getSession()`. If no valid session exists, it deliberately throws `new Error("Unauthorized")`.
+   Reads the incoming request headers and checks `auth.api.getSession()` through `getSessionUserId`. If no valid session exists, it throws `UnauthorizedError`.
 2. **The Route Handlers (`route.ts`):**
-   Every protected API route begins by calling `const userId = await getAuthUserId();`.
+   `defineRoute` calls the gatekeeper before anything else and passes the resulting `userId` to the handler; a handler cannot run without one. A `cron` route checks the `CRON_SECRET` bearer token instead, and a `public` route checks nothing.
 3. **The Error Boundary:**
-   The pervasive `try/catch` block in every route handler catches that specific `"Unauthorized"` error string and returns a `401` HTTP response.
+   `defineRoute` catches the `UnauthorizedError` and returns a `401` HTTP response through `toErrorResponse`.
 
 **Architectural Assessment of Auth:**
 
-- **Pros:** It's extremely explicit. You can't accidentally expose a protected route because you must call `getAuthUserId()` to get the `userId` needed for any database query.
-- **Cons:** Initially, it relied on throwing a generic `Error` with a magic string (`"Unauthorized"`). This has since been resolved by introducing a semantic `UnauthorizedError` class and the centralized `handleApiError` utility, which cleanly translates it to a `401` response.
+- **Pros:** A protected route cannot forget its auth check, because the check is part of the route's declaration and the route-table test fails if a route does not use `defineRoute`.
+- **Cons:** Auth is declared in an options object rather than visible as a call at the top of each handler.
 
 ---
 

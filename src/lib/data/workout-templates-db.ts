@@ -1,11 +1,18 @@
-import { ObjectId } from "mongodb";
-import { getCollection, type WorkoutTemplateDoc } from "@/server/platform/database";
-import { parseObjectId } from "@/lib/data/object-id";
-import type { WorkoutTemplate, Exercise } from "@/lib/types";
+import {
+    MAX_FIND_LIMIT,
+    userScopedRepository,
+    type UserOwnedDoc,
+    type WorkoutTemplateDoc,
+} from "@/server/platform/database";
+import type { WorkoutTemplate } from "@/lib/types";
 
-function toWorkoutTemplate(doc: WorkoutTemplateDoc): WorkoutTemplate {
+type OwnedTemplateDoc = WorkoutTemplateDoc & UserOwnedDoc;
+
+const templates = userScopedRepository<OwnedTemplateDoc>("workoutTemplates");
+
+function toWorkoutTemplate(doc: OwnedTemplateDoc): WorkoutTemplate {
     return {
-        id: doc._id!.toString(),
+        id: doc._id.toString(),
         userId: doc.userId,
         name: doc.name,
         exercises: doc.exercises,
@@ -14,28 +21,20 @@ function toWorkoutTemplate(doc: WorkoutTemplateDoc): WorkoutTemplate {
 }
 
 export async function getWorkoutTemplatesFromDb(userId: string): Promise<WorkoutTemplate[]> {
-    const collection = await getCollection<WorkoutTemplateDoc>("workoutTemplates");
-    const docs = await collection.find({ userId }).sort({ createdAt: -1 }).toArray();
-
+    const docs = await templates.find(userId, {}, { limit: MAX_FIND_LIMIT, sort: { createdAt: -1 } });
     return docs.map(toWorkoutTemplate);
 }
 
 export async function getWorkoutTemplateByIdempotencyKeyFromDb(userId: string, idempotencyKey: string): Promise<WorkoutTemplate | null> {
-    const collection = await getCollection<WorkoutTemplateDoc>("workoutTemplates");
-    const doc = await collection.findOne({ userId, idempotencyKey });
+    const doc = await templates.findOne(userId, { idempotencyKey });
     return doc ? toWorkoutTemplate(doc) : null;
 }
 
 export async function createWorkoutTemplateInDb(input: Omit<WorkoutTemplateDoc, "_id">): Promise<WorkoutTemplate> {
-    const collection = await getCollection<WorkoutTemplateDoc>("workoutTemplates");
-    const result = await collection.insertOne({ ...input });
-    return toWorkoutTemplate({ ...input, _id: result.insertedId });
+    const { userId, ...rest } = input;
+    return toWorkoutTemplate(await templates.insertOne(userId, rest));
 }
 
 export async function deleteWorkoutTemplateFromDb(userId: string, templateId: string): Promise<boolean> {
-    const _id = parseObjectId(templateId);
-    if (!_id) return false;
-    const collection = await getCollection<WorkoutTemplateDoc>("workoutTemplates");
-    const result = await collection.deleteOne({ _id, userId });
-    return result.deletedCount === 1;
+    return (await templates.deleteById(userId, templateId)) !== null;
 }

@@ -3,7 +3,7 @@ import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/da
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { publishToUser } from "@/lib/sse/sse-publisher";
 import { after } from "next/server";
-import { NotFoundError, ConflictError, ForbiddenError } from "@/lib/api/errors";
+import { NotFoundError, ConflictError, ForbiddenError } from "@/server/platform/http";
 
 
 export async function acceptFriendRequest(targetUserId: string, userId: string): Promise<Friendship> {

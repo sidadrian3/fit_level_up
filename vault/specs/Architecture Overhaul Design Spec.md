@@ -218,6 +218,11 @@ Module anatomy is audit §6.2, with one change: input schemas live in `src/share
 
 `src/server/platform/http/define-route.ts` exports `createDefineRoute(deps)`. Routes import the wired `defineRoute` from `@/server/runtime` (C9).
 
+**Step 2.2 amendments ([[DefineRoute And UserScopedRepository Plan]]):**
+- `deps` also takes `requireUserId` and `limit`, so the route tests' existing auth and limiter mocks keep applying.
+- `throttle` accepts `null` as an explicit opt-out until 2.3 makes a tier mandatory.
+- Malformed JSON becomes a `BadRequestError` at the body read, instead of mapping every `SyntaxError`.
+
 ```ts
 export type RouteAuth = "user" | "cron" | "public";
 export type ThrottleTier = keyof typeof RATE_LIMIT_TIERS; // "standard" | "expensive"

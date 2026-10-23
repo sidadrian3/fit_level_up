@@ -1,6 +1,10 @@
-import { MongoServerError } from "mongodb";
+import { MongoServerError, ObjectId } from "mongodb";
 
 const DUPLICATE_KEY_CODE = 11000;
+
+export function parseObjectId(id: string): ObjectId | null {
+  return ObjectId.isValid(id) ? new ObjectId(id) : null;
+}
 
 export function isDuplicateKeyError(error: unknown, field: string): boolean {
   return (

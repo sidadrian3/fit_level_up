@@ -1,7 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { Run } from "@/lib/types";
-import { getCollection, type RunDoc } from "@/server/platform/database";
-import { parseObjectId } from "@/lib/data/object-id";
+import { getCollection, parseObjectId, type RunDoc } from "@/server/platform/database";
 import { ClientSession } from "mongodb";
 
 function toRun(doc: RunDoc): Run {

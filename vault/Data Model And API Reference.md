@@ -6,7 +6,7 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 
 ## 1. Conventions
 
-- Every document that belongs to a person carries a `userId`, and every query filters on it. The `userId` comes from the session (`getAuthUserId()`), never from the request.
+- Every document that belongs to a person carries a `userId`, and every query filters on it. The `userId` comes from the session (`defineRoute({ auth: "user" })` hands it to the handler), never from the request.
 - Dates are stored as BSON `Date` and returned to the browser as ISO strings (`DateString`).
 - Creates that a retry could repeat carry a client-generated `idempotencyKey`, backed by a unique partial index.
 - Collection names are fixed in `COLLECTIONS` in `schema.ts`; no environment variable overrides them.
@@ -52,7 +52,7 @@ Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`.
 
 ## 4. API routes
 
-`Auth` is `getAuthUserId()` (session cookie → `401` if missing). `Rate-limited` routes use the shared sliding window of 20 requests per hour per user (`src/lib/auth/rate-limit.ts`). Errors are shaped by `handleApiError`: `AppError` subclasses keep their status (`ForbiddenError` is `403`), a `DomainError` from a domain rule becomes `400` (`invalid`) or `409` (`conflict`), `ZodError` becomes `400`, and anything else is a logged `500`. A malformed id in a path is `404`.
+Every route is declared with `defineRoute` from `@/server/runtime`, which owns auth, the rate limit, input parsing and error mapping; route files contain no `try/catch`. `Auth` is the route's `auth` setting: `user` reads the session cookie (`401` if missing), `cron` compares the bearer token with `CRON_SECRET` in constant time (`401` otherwise), `public` checks nothing. `Rate-limited` routes set `throttle: "standard"`, the shared sliding window of 20 requests per hour per user (`src/lib/auth/rate-limit.ts`); a mutation that is not limited yet sets `throttle: null` explicitly. Errors are shaped by `toErrorResponse` in `src/server/platform/http`: `AppError` subclasses keep their status (`ForbiddenError` is `403`), a `DomainError` from a domain rule becomes `400` (`invalid`) or `409` (`conflict`), `ZodError` becomes `400` with the first issue's message, a malformed JSON body is `400`, a `BSONError` is `404`, and anything else is a logged `500`. A malformed id in a path is `404`. `src/app/api/__tests__/route-table.test.ts` fails when a route is not built with `defineRoute`, when a user mutation does not state its `body` and `throttle`, when a cron or public route is throttled, or when two routes share a name. List routes read `limit` and `page` through `paginationQuery`: an invalid `limit` becomes `5`, a `limit` above `50` becomes `50`, and an invalid `page` becomes `1`.
 
 | Route | Methods | Auth | Rate-limited | Purpose |
 |---|---|---|---|---|

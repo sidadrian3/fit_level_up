@@ -1,7 +1,6 @@
 import { ObjectId, ClientSession } from "mongodb";
 import type { User } from "@/lib/types";
-import { getCollection, type UserDoc } from "@/server/platform/database";
-import { parseObjectId } from "@/lib/data/object-id";
+import { getCollection, parseObjectId, type UserDoc } from "@/server/platform/database";
 
 export function toUser(doc: UserDoc): User {
   const lastActivityStr = doc.lastActivityDate ? doc.lastActivityDate.toISOString().slice(0, 10) : undefined;

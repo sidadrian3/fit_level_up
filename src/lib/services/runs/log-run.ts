@@ -4,10 +4,9 @@ import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
 import { evaluateRun } from "@/lib/domain/run-evaluator";
-import { clientPromise } from "@/server/platform/database";
+import { clientPromise, isDuplicateKeyError } from "@/server/platform/database";
 import { after } from "next/server";
-import { isDuplicateKeyError } from "@/lib/data/mongo-errors";
-import { ConflictError } from "@/lib/api/errors";
+import { ConflictError } from "@/server/platform/http";
 
 export async function logRun(
     input: CreateRunInput,

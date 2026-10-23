@@ -9,7 +9,7 @@ import { getFriends } from '../friends/get-friends';
 import { getFriendRequests } from '../friends/get-friend-requests';
 import { removeFriend } from '../friends/remove-friend';
 import { DomainError } from '@/server/platform/domain';
-import { ConflictError, ForbiddenError } from '@/lib/api/errors';
+import { ConflictError, ForbiddenError } from '@/server/platform/http';
 
 
 describe('friends Service Layer Test', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { createCustomExercise } from '../exercises/create-custom-exercise';
 import { getCollection } from "@/server/platform/database";
-import { ConflictError } from '@/lib/api/errors';
+import { ConflictError } from '@/server/platform/http';
 import { TargetMuscle } from '../../types';
 
 describe('createCustomExercise Integration Test', () => {
