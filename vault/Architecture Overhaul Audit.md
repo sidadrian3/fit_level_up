@@ -426,7 +426,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **1.1** | `/feature`  | Architecture Overhaul Design Spec (spec only)                                       | §7.2                                  | Phase 0    | Done   |
 | **2.1** | `/refactor` | `server/platform/` skeleton, `src/shared/`, `schema.ts`, migration runner, boundary tooling | §3.2 #9                               | 1.1        | Done   |
 | **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated                   | F-12 by construction                  | 2.1        | Done   |
-| **2.3** | `/feature`  | Per-user, per-route rate-limit tiers                                                | F-11                                  | 2.2        | Open   |
+| **2.3** | `/feature`  | Per-user, per-route rate-limit tiers                                                | F-11                                  | 2.2        | Done   |
 | **2.4** | `/feature`  | `Idempotency-Key` header replaces body sniffing                                     | F-20                                  | 2.2        | Open   |
 | **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Open   |
 | **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path writing `xp_ledger`, no `__v` | F-15, §3.2 #1 #4 #6                   | 2.5        | Open   |
