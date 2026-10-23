@@ -42,7 +42,7 @@ export class ForbiddenError extends AppError {
 }
 
 export class TooManyRequestsError extends AppError {
-  constructor(message: string = "Too many requests") {
+  constructor(public retryAfterSeconds: number, message: string = "Too many requests") {
     super(429, message);
   }
 }
@@ -53,6 +53,13 @@ const DOMAIN_ERROR_STATUS: Record<DomainErrorKind, number> = {
 };
 
 export function toErrorResponse(err: unknown, routeName: string): NextResponse {
+  if (err instanceof TooManyRequestsError) {
+    return NextResponse.json(
+      { error: err.message },
+      { status: err.statusCode, headers: { "Retry-After": String(err.retryAfterSeconds) } }
+    );
+  }
+
   if (err instanceof AppError) {
     return NextResponse.json({ error: err.message }, { status: err.statusCode });
   }

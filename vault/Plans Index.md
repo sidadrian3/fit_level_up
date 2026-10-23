@@ -11,3 +11,4 @@ Index of all implementation plans in this vault.
 - [[Per-User Time Zone Plan]] — per-user IANA time zone for streaks, quest periods and the dashboard week (audit F-8, step 0.7)
 - [[Platform Skeleton Plan]] — audit step 2.1: src/server/platform, src/shared, schema.ts with validators, migration runner and boundary tooling
 - [[DefineRoute And UserScopedRepository Plan]] — audit step 2.2: defineRoute() for every API route, route-table test, userScopedRepository<T>
+- [[Rate Limit Tiers Plan]] — audit step 2.3: standard and expensive tiers keyed by route + user, Retry-After, a tier required on every mutation

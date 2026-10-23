@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { POST } from "../route";
-import { RateLimit } from "@/lib/auth/rate-limit";
 import { getCollection } from "@/server/platform/database";
 
 const userId = "exercise-route-user";
@@ -9,9 +8,9 @@ vi.mock("@/lib/auth/auth-helpers", () => ({
   getAuthUserId: vi.fn().mockResolvedValue("exercise-route-user"),
 }));
 
-vi.mock("@/lib/auth/rate-limit", () => ({
-  RateLimit: { limit: vi.fn() },
-}));
+const limit = vi.hoisted(() => vi.fn());
+
+vi.mock("@/server/platform/http/rate-limiter", () => ({ createRateLimiter: () => limit }));
 
 function post(body: unknown) {
   return POST(new Request("http://localhost:3000/api/exercises", { method: "POST", body: JSON.stringify(body) }));
@@ -19,7 +18,7 @@ function post(body: unknown) {
 
 describe("POST /api/exercises", () => {
   beforeEach(() => {
-    vi.mocked(RateLimit.limit).mockResolvedValue({ success: true } as never);
+    limit.mockResolvedValue({ success: true, reset: Date.now() + 60_000 });
   });
 
   afterEach(async () => {
@@ -27,9 +26,13 @@ describe("POST /api/exercises", () => {
   });
 
   it("returns 429 when the rate limit is exceeded", async () => {
-    vi.mocked(RateLimit.limit).mockResolvedValue({ success: false } as never);
+    limit.mockResolvedValue({ success: false, reset: Date.now() + 60_000 });
 
-    expect((await post({ name: "Foo", targetMuscle: "Chest" })).status).toBe(429);
+    const response = await post({ name: "Foo", targetMuscle: "Chest" });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).not.toBeNull();
+    expect(limit).toHaveBeenCalledWith("standard", `exercises.create:${userId}`);
   });
 
   it("returns 400 for a non-string name", async () => {
