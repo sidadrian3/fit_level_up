@@ -12,3 +12,4 @@ Index of all implementation plans in this vault.
 - [[Platform Skeleton Plan]] — audit step 2.1: src/server/platform, src/shared, schema.ts with validators, migration runner and boundary tooling
 - [[DefineRoute And UserScopedRepository Plan]] — audit step 2.2: defineRoute() for every API route, route-table test, userScopedRepository<T>
 - [[Rate Limit Tiers Plan]] — audit step 2.3: standard and expensive tiers keyed by route + user, Retry-After, a tier required on every mutation
+- [[Idempotency Key Header Plan]] — audit step 2.4: Idempotency-Key header, body fingerprint, createOnce replay with Idempotent-Replayed, 422 on reuse, header-only apiFetch retry

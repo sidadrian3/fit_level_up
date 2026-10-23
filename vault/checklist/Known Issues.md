@@ -14,4 +14,16 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 **Found in:** `src/lib/services/friends/send-friend-request.ts`, `src/lib/data/friendships-db.ts`.
 
+---
+
+## 2. A retried custom-exercise create or friend request answers 409
+
+**Where:** `createCustomExercise` and `sendFriendRequest` dedupe on natural keys (`{ userId, name, targetMuscle }`, `pairKey`) and throw `ConflictError` on a duplicate.
+
+**Effect:** no duplicate rows, but when the first attempt succeeded and its response was lost, a manual retry shows "already created" / "Friend request already sent" as an error, so the person thinks it failed.
+
+**Fix:** return the existing exercise or pending request on a duplicate instead of throwing, which needs a product call on whether a deliberate re-add should silently succeed. An `Idempotency-Key` does not fit: the data already defines uniqueness. See [[Idempotency Key Header Design Spec]].
+
+**Found in:** `src/lib/services/exercises/create-custom-exercise.ts`, `src/lib/services/friends/send-friend-request.ts`.
+
 [[Guides Index]]
