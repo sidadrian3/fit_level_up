@@ -71,6 +71,15 @@ describe("defineRoute", () => {
       expect(response.headers.get("Retry-After")).toBe("1");
     });
 
+    it("throttles before the body is parsed", async () => {
+      const { defineRoute } = setup({ limitResult: { success: false, reset: NOW + 1_000 } });
+      const route = defineRoute(
+        { name: "t", auth: "user", throttle: "standard", body: z.object({ a: z.string() }) },
+        async () => ({})
+      );
+      expect((await route(post("{not json"))).status).toBe(429);
+    });
+
     it("allows and logs when the limiter throws", async () => {
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       const failure = new Error("ECONNREFUSED");
