@@ -51,16 +51,13 @@ type ImplementationContext = RouteContext<RouteAuth, unknown, unknown, unknown, 
 const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 const idempotencyKeySchema = z.uuid();
 
-function resolveIdempotency(request: Request, body: unknown): IdempotencyRequest {
-  // The body fallback is transitional and is removed in this PR's last commit.
-  const bodyKey = typeof body === "object" && body !== null && "idempotencyKey" in body ? body.idempotencyKey : undefined;
-  const parsed = idempotencyKeySchema.safeParse(request.headers.get(IDEMPOTENCY_KEY_HEADER) ?? bodyKey);
+function readIdempotencyKey(request: Request): string {
+  const parsed = idempotencyKeySchema.safeParse(request.headers.get(IDEMPOTENCY_KEY_HEADER));
   if (!parsed.success) throw new BadRequestError("Missing or invalid Idempotency-Key header");
-  return {
-    key: parsed.data,
-    fingerprint: createHash("sha256").update(JSON.stringify(body)).digest("hex"),
-  };
+  return parsed.data;
 }
+
+const fingerprintBody = (body: unknown) => createHash("sha256").update(JSON.stringify(body)).digest("hex");
 
 export const idParams = z.object({ id: z.string() });
 
@@ -137,8 +134,10 @@ export function createDefineRoute(deps: DefineRouteDeps) {
         const rawQuery = Object.fromEntries(new URL(request.url).searchParams);
         const query = options.query ? options.query.parse(rawQuery) : undefined;
 
+        const idempotencyKey = options.idempotency === "required" ? readIdempotencyKey(request) : undefined;
+
         const body = options.body ? options.body.parse(await readJsonBody(request)) : undefined;
-        const idempotency = options.idempotency === "required" ? resolveIdempotency(request, body) : undefined;
+        const idempotency = idempotencyKey ? { key: idempotencyKey, fingerprint: fingerprintBody(body) } : undefined;
 
         const result = await handler({ request, userId, body, query, params, idempotency });
         if (result instanceof Response) return result;

@@ -245,7 +245,7 @@ describe("defineRoute", () => {
       name: "t",
       auth: "user",
       throttle: "standard",
-      body: z.object({ a: z.number(), b: z.string(), idempotencyKey: z.uuid().optional() }),
+      body: z.object({ a: z.number(), b: z.string() }),
       idempotency: "required",
       status: 201,
     } as const;
@@ -275,12 +275,14 @@ describe("defineRoute", () => {
       expect(await response.json()).toEqual({ key: KEY });
     });
 
-    it("falls back to body.idempotencyKey when the header is absent", async () => {
+    it("rejects a missing header before reading the body", async () => {
       const { defineRoute } = setup();
-      const handler = vi.fn(async ({ idempotency }) => ({ value: { key: idempotency.key }, replayed: false }));
-      const body = JSON.stringify({ a: 1, b: "x", idempotencyKey: KEY });
-      const response = await defineRoute(options, handler)(idempotentPost(body));
-      expect(await response.json()).toEqual({ key: KEY });
+      const handler = vi.fn(async () => ({ value: {}, replayed: false }));
+      const request = idempotentPost("not json");
+      const response = await defineRoute(options, handler)(request);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "Missing or invalid Idempotency-Key header" });
+      expect(request.bodyUsed).toBe(false);
     });
 
     it("passes a sha256 hex fingerprint of the validated body", async () => {

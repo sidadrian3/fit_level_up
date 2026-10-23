@@ -13,7 +13,6 @@ const validBody = {
   title: "Push Day",
   exercises: [{ name: "Bench Press", targetMuscle: "Chest", sets: 3, reps: 10, weight: 60 }],
   duration: 45,
-  idempotencyKey: "3f2b8c1e-5d4a-4e6f-8a9b-0c1d2e3f4a5b",
 };
 
 function put(id: string) {

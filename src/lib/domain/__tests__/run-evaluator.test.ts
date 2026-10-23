@@ -19,7 +19,6 @@ describe('run-evaluator', () => {
             distance: 5,
             duration: 25,
             difficulty: 'moderate',
-            idempotencyKey: '456'
         };
         const result = evaluateRun(input, 100);
         

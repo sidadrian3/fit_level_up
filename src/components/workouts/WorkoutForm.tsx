@@ -155,7 +155,7 @@ export function WorkoutForm({
             exercises: namedExercises
         };
 
-        const result = CreateWorkoutSchema.omit({ idempotencyKey: true }).safeParse(dataToValidate);
+        const result = CreateWorkoutSchema.safeParse(dataToValidate);
 
         if (!result.success) {
             setError(result.error.issues[0].message);
