@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export function useIdempotencyKey() {
   const [key, setKey] = useState(() => crypto.randomUUID());
-  return { key, rotate: () => setKey(crypto.randomUUID()) };
+  const rotate = useCallback(() => setKey(crypto.randomUUID()), []);
+  return { key, rotate };
 }

@@ -38,6 +38,15 @@ describe("createWorkoutTemplate Integration Test", () => {
         expect(Number.isNaN(Date.parse(template.createdAt))).toBe(false);
     });
 
+    it("stores the fingerprint on the template", async () => {
+        const request = buildRequest("fingerprint-abc");
+
+        await createWorkoutTemplate(buildInput(), userId, request);
+
+        const doc = await (await getCollection("workoutTemplates")).findOne({ userId, idempotencyKey: request.key });
+        expect(doc!.idempotencyFingerprint).toBe("fingerprint-abc");
+    });
+
     it("returns the existing template when the same idempotency key is retried", async () => {
         const input = buildInput();
         const request = buildRequest();

@@ -39,6 +39,15 @@ describe("logRun Integration Test", () => {
     expect((await readUser()).totalDistance).toBe(before.totalDistance + 5);
   });
 
+  it("stores the fingerprint on the run", async () => {
+    const req = request("fingerprint-abc");
+
+    await logRun(runInput, userId, req);
+
+    const doc = await (await getCollection("runs")).findOne({ userId, idempotencyKey: req.key });
+    expect(doc!.idempotencyFingerprint).toBe("fingerprint-abc");
+  });
+
   it("replays a duplicate request without counting the distance twice", async () => {
     const req = request();
     const first = await logRun(runInput, userId, req);
@@ -48,7 +57,9 @@ describe("logRun Integration Test", () => {
 
     expect(second.replayed).toBe(true);
     expect(second.value.id).toBe(first.value.id);
-    expect((await readUser()).totalDistance).toBe(afterFirst.totalDistance);
+    const afterSecond = await readUser();
+    expect(afterSecond.totalDistance).toBe(afterFirst.totalDistance);
+    expect(afterSecond.xp).toBe(afterFirst.xp);
     expect(await (await getCollection("runs")).countDocuments({ userId, idempotencyKey: req.key })).toBe(1);
   });
 

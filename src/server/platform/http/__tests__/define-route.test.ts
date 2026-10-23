@@ -322,6 +322,17 @@ describe("defineRoute", () => {
       expect(response.headers.get("Idempotent-Replayed")).toBeNull();
     });
 
+    it("fingerprints a route that declares no body schema instead of failing", async () => {
+      const { defineRoute } = setup();
+      const handler = vi.fn(async () => ({ value: { id: 1 }, replayed: false }));
+      const response = await defineRoute(
+        { name: "t", auth: "user", throttle: "standard", idempotency: "required", status: 201 },
+        handler
+      )(idempotentPost("", KEY));
+      expect(response.status).toBe(201);
+      expect(handler).toHaveBeenCalledOnce();
+    });
+
     it("leaves non-idempotent routes untouched", async () => {
       const { defineRoute } = setup();
       const response = await defineRoute({ name: "t", auth: "user" }, async () => ({ plain: true }))(get());

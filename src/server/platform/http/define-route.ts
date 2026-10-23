@@ -57,7 +57,7 @@ function readIdempotencyKey(request: Request): string {
   return parsed.data;
 }
 
-const fingerprintBody = (body: unknown) => createHash("sha256").update(JSON.stringify(body)).digest("hex");
+const fingerprintBody = (body: unknown) => createHash("sha256").update(JSON.stringify(body ?? null)).digest("hex");
 
 export const idParams = z.object({ id: z.string() });
 
