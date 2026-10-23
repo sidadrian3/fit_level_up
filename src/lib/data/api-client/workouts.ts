@@ -7,11 +7,13 @@ export async function getWorkouts(page = 1, limit = 4): Promise<PaginatedRespons
 
 export async function createWorkout(
   input: CreateWorkoutInput,
+  idempotencyKey: string,
 ): Promise<Workout> {
   return apiFetch<Workout>("/api/workouts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    idempotencyKey,
   });
 }
 

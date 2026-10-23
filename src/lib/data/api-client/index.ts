@@ -4,6 +4,7 @@
  * keep working unchanged.
  */
 
+export { ApiError } from "./api-fetch";
 export { getUser } from "./user";
 export { getWorkouts, createWorkout, deleteWorkout, updateWorkout } from "./workouts";
 export { getRuns, createRun, deleteRun, updateRun, getRunStats } from "./runs";

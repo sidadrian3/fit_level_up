@@ -11,6 +11,8 @@ import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
 import { CreateExerciseModal } from "./CreateExerciseModal";
 import { useRouter } from "next/navigation";
+import { ApiError } from "@/lib/data/api-client";
+import { useIdempotencyKey } from "@/lib/hooks/useIdempotencyKey";
 
 const emptyExercise: Exercise = {
     name: "",
@@ -28,6 +30,7 @@ export function CreateTemplateForm() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
+    const { key: idempotencyKey, rotate: rotateIdempotencyKey } = useIdempotencyKey();
 
     const { data: customExercises = [] } = useQuery<CustomExercise[]>({
         queryKey: ["customExercises"],
@@ -86,14 +89,14 @@ export function CreateTemplateForm() {
 
         setIsSubmitting(true);
         try {
-            await createWorkoutTemplate({
-                name: name.trim(),
-                exercises: namedExercises,
-                idempotencyKey: crypto.randomUUID()
-            });
+            await createWorkoutTemplate({ name: name.trim(), exercises: namedExercises }, idempotencyKey);
             queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
             router.push("/workouts");
         } catch (err) {
+            if (err instanceof ApiError && err.status === 422) {
+                rotateIdempotencyKey();
+                queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
+            }
             if (err instanceof Error) {
                 setError(err.message);
             } else {

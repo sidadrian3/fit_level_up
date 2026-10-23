@@ -5,11 +5,15 @@ export async function getRuns(page = 1, limit = 4): Promise<PaginatedResponse<Ru
   return apiFetch<PaginatedResponse<Run>>(`/api/runs?page=${page}&limit=${limit}`);
 }
 
-export async function createRun(input: CreateRunInput): Promise<Run> {
+export async function createRun(
+  input: CreateRunInput,
+  idempotencyKey: string,
+): Promise<Run> {
   return apiFetch<Run>("/api/runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    idempotencyKey,
   });
 }
 
