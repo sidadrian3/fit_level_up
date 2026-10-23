@@ -1,16 +1,22 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { env } from "@/server/platform/env";
 import { DomainError } from "@/server/platform/domain";
 import { ForbiddenError, UnauthorizedError, createDefineRoute, idParams } from "..";
+import type { RateLimitResult } from "..";
 
-function setup(options: { limitSuccess?: boolean; userId?: string | Error } = {}) {
-  const { limitSuccess = true, userId = "user-1" } = options;
+const NOW = 1_000_000;
+
+function setup(options: { limitResult?: RateLimitResult | Error; userId?: string | Error } = {}) {
+  const { limitResult = { success: true, reset: 0 }, userId = "user-1" } = options;
   const requireUserId = vi.fn(async () => {
     if (userId instanceof Error) throw userId;
     return userId;
   });
-  const limit = vi.fn(async () => ({ success: limitSuccess }));
+  const limit = vi.fn(async (): Promise<RateLimitResult> => {
+    if (limitResult instanceof Error) throw limitResult;
+    return limitResult;
+  });
   return { requireUserId, limit, defineRoute: createDefineRoute({ requireUserId, limit }) };
 }
 
@@ -27,14 +33,62 @@ describe("defineRoute", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("returns 429 when the limiter refuses, before the handler runs", async () => {
-    const { defineRoute, limit } = setup({ limitSuccess: false });
-    const handler = vi.fn(async () => ({}));
-    const response = await defineRoute({ name: "t", auth: "user", throttle: "standard" }, handler)(get());
-    expect(response.status).toBe(429);
-    expect(await response.json()).toEqual({ error: "Too many requests" });
-    expect(limit).toHaveBeenCalledWith("user-1");
-    expect(handler).not.toHaveBeenCalled();
+  describe("throttle", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(NOW);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    });
+
+    it("keys the limit by route name and user", async () => {
+      const { defineRoute, limit } = setup();
+      await defineRoute({ name: "workouts.create", auth: "user", throttle: "standard" }, async () => ({}))(get());
+      expect(limit).toHaveBeenCalledWith("standard", "workouts.create:user-1");
+    });
+
+    it("sends an expensive route to the expensive limiter", async () => {
+      const { defineRoute, limit } = setup();
+      await defineRoute({ name: "t", auth: "user", throttle: "expensive" }, async () => ({}))(get());
+      expect(limit).toHaveBeenCalledWith("expensive", "t:user-1");
+    });
+
+    it("returns 429 with Retry-After from reset, before the handler runs", async () => {
+      const { defineRoute } = setup({ limitResult: { success: false, reset: NOW + 29_500 } });
+      const handler = vi.fn(async () => ({}));
+      const response = await defineRoute({ name: "t", auth: "user", throttle: "standard" }, handler)(get());
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("30");
+      expect(await response.json()).toEqual({ error: "Too many requests" });
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("floors Retry-After at 1 when reset has passed", async () => {
+      const { defineRoute } = setup({ limitResult: { success: false, reset: NOW - 5_000 } });
+      const response = await defineRoute({ name: "t", auth: "user", throttle: "standard" }, async () => ({}))(get());
+      expect(response.headers.get("Retry-After")).toBe("1");
+    });
+
+    it("allows and logs when the limiter throws", async () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const failure = new Error("ECONNREFUSED");
+      const { defineRoute } = setup({ limitResult: failure });
+      const handler = vi.fn(async () => ({ ok: true }));
+      const response = await defineRoute({ name: "t", auth: "user", throttle: "standard" }, handler)(get());
+      expect(response.status).toBe(200);
+      expect(handler).toHaveBeenCalledOnce();
+      expect(spy).toHaveBeenCalledWith("[Rate limiter unavailable] t", failure);
+    });
+
+    it("logs a limiter timeout and allows the request", async () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { defineRoute } = setup({ limitResult: { success: true, reset: 0, reason: "timeout" } });
+      const response = await defineRoute({ name: "t", auth: "user", throttle: "standard" }, async () => ({}))(get());
+      expect(response.status).toBe(200);
+      expect(spy).toHaveBeenCalledWith("[Rate limiter unavailable] t", "timeout");
+    });
   });
 
   it.each([null, undefined])("does not call limit when throttle is %s", async (throttle) => {

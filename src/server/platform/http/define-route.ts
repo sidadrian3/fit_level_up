@@ -1,11 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { RATE_LIMIT_TIERS } from "@/server/platform/config";
 import { env } from "@/server/platform/env";
 import { BadRequestError, TooManyRequestsError, UnauthorizedError, toErrorResponse } from "./errors";
 
 export type RouteAuth = "user" | "cron" | "public";
-export type ThrottleTier = "standard";
+export type ThrottleTier = keyof typeof RATE_LIMIT_TIERS;
 
 export interface RouteOptions<A, B, Q, P> {
   name: string;
@@ -30,9 +31,16 @@ export type DefinedRoute = ((
   segment?: { params: Promise<Record<string, string>> }
 ) => Promise<Response>) & { definition: RouteOptions<RouteAuth, unknown, unknown, unknown> };
 
+export interface RateLimitResult {
+  success: boolean;
+  /** Unix ms when the current window ends. */
+  reset: number;
+  reason?: string;
+}
+
 interface DefineRouteDeps {
   requireUserId: () => Promise<string>;
-  limit: (identifier: string) => Promise<{ success: boolean }>;
+  limit: (tier: ThrottleTier, identifier: string) => Promise<RateLimitResult>;
 }
 
 export const idParams = z.object({ id: z.string() });
@@ -51,6 +59,29 @@ async function readJsonBody(request: Request): Promise<unknown> {
     return await request.json();
   } catch {
     throw new BadRequestError("Invalid JSON body");
+  }
+}
+
+// Rate limiting is abuse protection, not access control, so a limiter outage lets the request through.
+async function enforceThrottle(
+  deps: DefineRouteDeps,
+  tier: ThrottleTier,
+  routeName: string,
+  userId: string
+): Promise<void> {
+  let result: RateLimitResult;
+  try {
+    result = await deps.limit(tier, `${routeName}:${userId}`);
+  } catch (err) {
+    console.error(`[Rate limiter unavailable] ${routeName}`, err);
+    return;
+  }
+  if (result.reason === "timeout") {
+    console.error(`[Rate limiter unavailable] ${routeName}`, result.reason);
+    return;
+  }
+  if (!result.success) {
+    throw new TooManyRequestsError(Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)));
   }
 }
 
@@ -73,10 +104,7 @@ export function createDefineRoute(deps: DefineRouteDeps) {
         let userId: string | undefined;
         if (options.auth === "user") {
           userId = await deps.requireUserId();
-          if (options.throttle === "standard") {
-            const { success } = await deps.limit(userId);
-            if (!success) throw new TooManyRequestsError();
-          }
+          if (options.throttle) await enforceThrottle(deps, options.throttle, options.name, userId);
         } else if (options.auth === "cron") {
           assertCronAuthorized(request);
         }

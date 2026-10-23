@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DefinedRoute } from "@/server/platform/http";
 
-vi.mock("@/lib/auth/rate-limit", () => ({ RateLimit: { limit: vi.fn() } }));
+vi.mock("@/server/platform/http/rate-limiter", () => ({ createRateLimiter: () => vi.fn() }));
 vi.mock("@/lib/auth/auth-helpers", () => ({ getAuthUserId: vi.fn() }));
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;

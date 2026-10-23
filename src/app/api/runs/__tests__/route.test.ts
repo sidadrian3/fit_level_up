@@ -1,58 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { POST } from "../route"; // The Runs API handler
-import { RateLimit } from "@/lib/auth/rate-limit"; 
+import { POST } from "../route";
 
-// 1. Mock the auth helper
+const limit = vi.hoisted(() => vi.fn());
+
 vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn().mockResolvedValue("fake-user-123")
+  getAuthUserId: vi.fn().mockResolvedValue("fake-user-123"),
 }));
 
-// 2. Mock the rate limiter
-vi.mock("@/lib/auth/rate-limit", () => ({
-  RateLimit: {
-    limit: vi.fn()
-  }
-}));
+vi.mock("@/server/platform/http/rate-limiter", () => ({ createRateLimiter: () => limit }));
+
+const postEmpty = () =>
+  POST(new Request("http://localhost:3000/api/runs", { method: "POST", body: JSON.stringify({}) }));
 
 describe("POST /api/runs - Rate Limiting", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should return 429 Too Many Requests if rate limit is exceeded", async () => {
-    // 1. Simulate the limit being hit
-    vi.mocked(RateLimit.limit).mockResolvedValue({ success: false } as never);
+  it("returns 429 with Retry-After if the rate limit is exceeded", async () => {
+    limit.mockResolvedValue({ success: false, reset: Date.now() + 60_000 });
 
-    // 2. Create a fake request to the RUNS endpoint
-    const request = new Request("http://localhost:3000/api/runs", {
-      method: "POST",
-      body: JSON.stringify({})
-    });
+    const response = await postEmpty();
 
-    // 3. Call the API route handler directly
-    const response = await POST(request);
-    const json = await response.json();
-
-    // 4. Assert it returns 429
     expect(response.status).toBe(429);
-    expect(json.error).toBe("Too many requests");
-    expect(RateLimit.limit).toHaveBeenCalledWith("fake-user-123");
+    expect((await response.json()).error).toBe("Too many requests");
+    expect(response.headers.get("Retry-After")).not.toBeNull();
+    expect(limit).toHaveBeenCalledWith("standard", "runs.create:fake-user-123");
   });
 
-  it("should proceed past rate limiter if limit is not exceeded", async () => {
-    // 1. Simulate the request being allowed
-    vi.mocked(RateLimit.limit).mockResolvedValue({ success: true } as never);
+  it("proceeds past the rate limiter if the limit is not exceeded", async () => {
+    limit.mockResolvedValue({ success: true, reset: Date.now() + 60_000 });
 
-    // 2. Create a fake request to the RUNS endpoint
-    const request = new Request("http://localhost:3000/api/runs", {
-      method: "POST",
-      body: JSON.stringify({}) 
-    });
+    const response = await postEmpty();
 
-    const response = await POST(request);
-    
-    // 3. Getting a 400 (Zod validation error for empty body) means it passed the 429 check
-    expect(response.status).toBe(400); 
-    expect(RateLimit.limit).toHaveBeenCalledWith("fake-user-123");
+    // A 400 from Zod validation means the request passed the limiter.
+    expect(response.status).toBe(400);
+    expect(limit).toHaveBeenCalledWith("standard", "runs.create:fake-user-123");
   });
 });

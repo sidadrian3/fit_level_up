@@ -32,9 +32,10 @@ describe("toErrorResponse", () => {
     expect(await response.json()).toEqual({ error: "Not Found" });
   });
 
-  it("maps TooManyRequestsError to 429", async () => {
-    const response = toErrorResponse(new TooManyRequestsError(), "test");
+  it("maps TooManyRequestsError to 429 with Retry-After", async () => {
+    const response = toErrorResponse(new TooManyRequestsError(42), "test");
     expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("42");
     expect(await response.json()).toEqual({ error: "Too many requests" });
   });
 
