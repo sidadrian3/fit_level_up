@@ -35,6 +35,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class IdempotencyKeyReusedError extends AppError {
+  constructor(message: string) {
+    super(422, message);
+  }
+}
+
 export class ForbiddenError extends AppError {
   constructor(message: string = "Forbidden") {
     super(403, message);
