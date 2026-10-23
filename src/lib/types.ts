@@ -46,7 +46,7 @@ export type CreateWorkoutInput = {
     title: string;
     exercises: Exercise[];
     duration: number;
-    idempotencyKey: string;
+    idempotencyKey?: string;
 }
 
 export interface WorkoutTemplate {
@@ -60,7 +60,7 @@ export interface WorkoutTemplate {
 export type CreateWorkoutTemplateInput = {
     name: string;
     exercises: Exercise[];
-    idempotencyKey: string;
+    idempotencyKey?: string;
 }
 
 
@@ -78,7 +78,7 @@ export type CreateRunInput = {
     distance: number;
     duration: number;
     difficulty: Run["difficulty"];
-    idempotencyKey: string;
+    idempotencyKey?: string;
 }
 
 

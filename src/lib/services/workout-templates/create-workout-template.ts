@@ -1,27 +1,25 @@
 import { WorkoutTemplateSchema } from "@/shared/contracts/template";
 import { createWorkoutTemplateInDb, getWorkoutTemplateByIdempotencyKeyFromDb } from "@/lib/data/workout-templates-db";
-import { isDuplicateKeyError } from "@/server/platform/database";
-import { ConflictError } from "@/server/platform/http";
+import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 import { z } from "zod";
 import type { WorkoutTemplate } from "@/lib/types";
 
-export async function createWorkoutTemplate(
+export function createWorkoutTemplate(
     input: z.infer<typeof WorkoutTemplateSchema>,
-    userId: string
-): Promise<WorkoutTemplate>{
-    try {
-        return await createWorkoutTemplateInDb({
+    userId: string,
+    idempotency: IdempotencyRequest
+): Promise<IdempotentResult<WorkoutTemplate>> {
+    return createOnce({
+        request: idempotency,
+        findExisting: () => getWorkoutTemplateByIdempotencyKeyFromDb(userId, idempotency.key),
+        create: () => createWorkoutTemplateInDb({
             userId,
             name: input.name,
             exercises: input.exercises,
-            idempotencyKey: input.idempotencyKey,
+            idempotencyKey: idempotency.key,
+            idempotencyFingerprint: idempotency.fingerprint,
             createdAt: new Date().toISOString(),
-        });
-    } catch (error: unknown) {
-        if (!isDuplicateKeyError(error, "idempotencyKey")) throw error;
-
-        const existing = await getWorkoutTemplateByIdempotencyKeyFromDb(userId, input.idempotencyKey);
-        if (existing) return existing;
-        throw new ConflictError("This template was already created.");
-    }
+        }),
+        reusedMessage: "This template was already saved with your earlier details. Submit again to save a new one.",
+    });
 }

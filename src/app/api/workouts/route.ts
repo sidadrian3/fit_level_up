@@ -13,6 +13,6 @@ export const GET = defineRoute(
 );
 
 export const POST = defineRoute(
-  { name: "workouts.create", auth: "user", throttle: "standard", body: CreateWorkoutSchema, status: 201 },
-  ({ userId, body }) => logWorkout(body, userId)
+  { name: "workouts.create", auth: "user", throttle: "standard", body: CreateWorkoutSchema, status: 201, idempotency: "required" },
+  ({ userId, body, idempotency }) => logWorkout(body, userId, idempotency)
 );

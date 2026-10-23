@@ -6,11 +6,12 @@ import { getUserQuests } from "../quests/get-user-quests";
 import { getCollection, type UserDoc } from "@/server/platform/database";
 import { TargetMuscle } from "@/lib/types";
 
+const request = () => ({ key: crypto.randomUUID(), fingerprint: "f1" });
+
 const workout = () => ({
   title: "Quest Test",
   duration: 10,
   exercises: [{ name: "Squat", targetMuscle: TargetMuscle.Legs, sets: 1, reps: 1, weight: null }],
-  idempotencyKey: crypto.randomUUID(),
 });
 
 describe("quest progress through logWorkout", () => {
@@ -45,7 +46,7 @@ describe("quest progress through logWorkout", () => {
     const userQuests = await getCollection("userQuests");
     expect(await userQuests.countDocuments({ userId })).toBe(0);
 
-    await logWorkout(workout(), userId);
+    await logWorkout(workout(), userId, request());
 
     const rows = await userQuests.find({ userId }).toArray();
     expect(rows.map(r => r.progress).sort()).toEqual([1, 1]);
@@ -55,8 +56,8 @@ describe("quest progress through logWorkout", () => {
   it("keeps crediting the same rows on later workouts, capped at the target", async () => {
     await seedWorkoutQuestTemplates();
 
-    await logWorkout(workout(), userId);
-    await logWorkout(workout(), userId);
+    await logWorkout(workout(), userId, request());
+    await logWorkout(workout(), userId, request());
 
     const rows = await (await getCollection("userQuests")).find({ userId }).toArray();
     expect(rows).toHaveLength(2);
@@ -68,7 +69,7 @@ describe("quest progress through logWorkout", () => {
     await seedWorkoutQuestTemplates();
 
     await Promise.all([getUserQuests(userId), getUserQuests(userId)]);
-    await logWorkout(workout(), userId);
+    await logWorkout(workout(), userId, request());
     const quests = await getUserQuests(userId);
 
     expect(quests).toHaveLength(2);
@@ -84,7 +85,7 @@ describe("quest progress through logWorkout", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-20T23:00:00Z"));
 
-    await logWorkout(workout(), userId);
+    await logWorkout(workout(), userId, request());
 
     const dailyRow = await (await getCollection("userQuests")).findOne({ userId, target: 1 });
     expect(dailyRow?.periodStart).toBe("2026-10-21");

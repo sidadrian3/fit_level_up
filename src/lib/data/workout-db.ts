@@ -1,3 +1,4 @@
+import type { IdempotentRecord } from "@/server/platform/http";
 import { ObjectId } from "mongodb";
 import type { Exercise, Workout } from "@/lib/types";
 import { ClientSession } from "mongodb";
@@ -120,8 +121,8 @@ export async function getWorkoutDatesInRange(userId: string, from: Date, toExclu
     return docs.map(doc => doc.date);
 }
 
-export async function getWorkoutByIdempotencyKey(userId: string, key: string): Promise<Workout | null> {
+export async function getWorkoutByIdempotencyKey(userId: string, key: string): Promise<IdempotentRecord<Workout> | null> {
     const collection = await getCollection<WorkoutDoc>("workouts");
     const doc = await collection.findOne({ userId, idempotencyKey: key });
-    return doc ? toWorkout(doc) : null;
+    return doc ? { value: toWorkout(doc), fingerprint: doc.idempotencyFingerprint } : null;
 }

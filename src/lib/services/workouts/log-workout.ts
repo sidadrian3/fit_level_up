@@ -6,25 +6,47 @@ import { evaluateWorkout } from "@/lib/domain/workout-evaluator";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
-import { clientPromise, isDuplicateKeyError } from "@/server/platform/database";
+import { clientPromise } from "@/server/platform/database";
 import { after } from "next/server";
-import { ConflictError } from "@/server/platform/http";
+import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 
 export async function logWorkout(
     input: CreateWorkoutInput,
-    userId: string
-): Promise<Workout> {
+    userId: string,
+    idempotency: IdempotencyRequest
+): Promise<IdempotentResult<Workout>> {
+    const result = await createOnce({
+        request: idempotency,
+        findExisting: () => getWorkoutByIdempotencyKey(userId, idempotency.key),
+        create: () => createWorkout(input, userId, idempotency),
+        reusedMessage: "This workout was already saved with your earlier details. Check your history to edit it, or submit again to log a new one.",
+    });
 
+    if (!result.replayed) {
+        // Run achievements evaluation after the response so it never blocks the request
+        after(
+            evaluateAchievements(userId).catch(err => {
+                console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
+            })
+        );
+    }
+
+    return result;
+}
+
+async function createWorkout(
+    input: CreateWorkoutInput,
+    userId: string,
+    idempotency: IdempotencyRequest
+): Promise<Workout> {
     const client = await clientPromise;
     const session = client.startSession();
-    let workoutObj: Workout;
     try {
-        workoutObj = await session.withTransaction(async () => {
+        return await session.withTransaction(async () => {
             const user = await UserStateService.getUser(userId, session);
             const now = new Date();
-            
+
             const evaluation = evaluateWorkout(input, user.stamina);
-            // 3. Persistence
             const workout = await insertWorkout({
                 userId,
                 title: input.title.trim(),
@@ -32,10 +54,10 @@ export async function logWorkout(
                 duration: input.duration,
                 xpEarned: evaluation.finalXpEarned,
                 date: now,
-                idempotencyKey: input.idempotencyKey,
+                idempotencyKey: idempotency.key,
+                idempotencyFingerprint: idempotency.fingerprint,
             }, session);
 
-            // 4. Side-effects (explicitly orchestrated, easy to extend or skip)
             await updateQuestProgress(userId, {
                 type: "workout_created",
                 xpEarned: workout.xpEarned,
@@ -50,25 +72,7 @@ export async function logWorkout(
 
             return workout;
         });
-    } catch (error: unknown) {
-        if (isDuplicateKeyError(error, "idempotencyKey")) {
-            console.log("Duplicate workout request detected. Fetching existing...");
-            const existing = await getWorkoutByIdempotencyKey(userId, input.idempotencyKey);
-            if (existing) return existing;
-            throw new ConflictError("This workout was already logged.");
-        }
-        throw error;
     } finally {
         await session.endSession();
     }
-
-    // 5. Event-Driven Side Effects (Decoupled from transaction)
-    // Run achievements evaluation asynchronously so we don't block the API response
-    after(
-        evaluateAchievements(userId).catch(err => {
-            console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
-        })
-    );
-
-    return workoutObj;
 }

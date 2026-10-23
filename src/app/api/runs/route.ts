@@ -13,6 +13,6 @@ export const GET = defineRoute(
 );
 
 export const POST = defineRoute(
-  { name: "runs.create", auth: "user", throttle: "standard", body: CreateRunSchema, status: 201 },
-  ({ userId, body }) => logRun(body, userId)
+  { name: "runs.create", auth: "user", throttle: "standard", body: CreateRunSchema, status: 201, idempotency: "required" },
+  ({ userId, body, idempotency }) => logRun(body, userId, idempotency)
 );

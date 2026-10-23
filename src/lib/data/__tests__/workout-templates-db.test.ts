@@ -58,7 +58,7 @@ describe("workout-templates-db Data Layer Test", () => {
 
         await expect(createWorkoutTemplateInDb(input)).rejects.toThrowError(/11000/);
         const found = await getWorkoutTemplateByIdempotencyKeyFromDb(userId, input.idempotencyKey);
-        expect(found?.id).toBe(first.id);
+        expect(found?.value.id).toBe(first.id);
     });
 
     it("should retrieve all templates for a user", async () => {
