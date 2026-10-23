@@ -91,9 +91,9 @@ describe("defineRoute", () => {
     });
   });
 
-  it.each([null, undefined])("does not call limit when throttle is %s", async (throttle) => {
+  it("does not call limit when throttle is not set", async () => {
     const { defineRoute, limit } = setup();
-    const response = await defineRoute({ name: "t", auth: "user", throttle }, async () => ({ ok: true }))(get());
+    const response = await defineRoute({ name: "t", auth: "user" }, async () => ({ ok: true }))(get());
     expect(response.status).toBe(200);
     expect(limit).not.toHaveBeenCalled();
   });

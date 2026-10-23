@@ -3,6 +3,6 @@ import { SendFriendRequestSchema } from "@/shared/contracts/friendship";
 import { defineRoute } from "@/server/runtime";
 
 export const POST = defineRoute(
-  { name: "friends.request", auth: "user", throttle: "standard", body: SendFriendRequestSchema, status: 201 },
+  { name: "friends.request", auth: "user", throttle: "expensive", body: SendFriendRequestSchema, status: 201 },
   ({ userId, body }) => sendFriendRequest(userId, body.receiverId)
 );

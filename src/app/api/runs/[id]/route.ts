@@ -5,7 +5,7 @@ import { NotFoundError, idParams } from "@/server/platform/http";
 import { defineRoute } from "@/server/runtime";
 
 export const PUT = defineRoute(
-  { name: "runs.update", auth: "user", throttle: null, body: CreateRunSchema, params: idParams },
+  { name: "runs.update", auth: "user", throttle: "standard", body: CreateRunSchema, params: idParams },
   async ({ userId, body, params }) => {
     const result = await updateRun(params.id, body, userId);
     if (!result) throw new NotFoundError("Run not found or invalid ID");
@@ -14,7 +14,7 @@ export const PUT = defineRoute(
 );
 
 export const DELETE = defineRoute(
-  { name: "runs.delete", auth: "user", throttle: null, body: null, params: idParams },
+  { name: "runs.delete", auth: "user", throttle: "standard", body: null, params: idParams },
   async ({ userId, params }) => {
     const deleted = await deleteRunFromDb(params.id, userId);
     if (!deleted) throw new NotFoundError("Run not found or invalid ID");

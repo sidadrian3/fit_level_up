@@ -3,7 +3,7 @@ import { NotFoundError, idParams } from "@/server/platform/http";
 import { defineRoute } from "@/server/runtime";
 
 export const DELETE = defineRoute(
-  { name: "templates.delete", auth: "user", throttle: null, body: null, params: idParams },
+  { name: "templates.delete", auth: "user", throttle: "standard", body: null, params: idParams },
   async ({ userId, params }) => {
     const deleted = await deleteWorkoutTemplateFromDb(userId, params.id);
     if (!deleted) throw new NotFoundError("Template not found");

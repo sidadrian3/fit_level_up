@@ -14,7 +14,7 @@ export interface RouteOptions<A, B, Q, P> {
   body?: z.ZodType<B> | null;
   query?: z.ZodType<Q>;
   params?: z.ZodType<P>;
-  throttle?: ThrottleTier | null;
+  throttle?: ThrottleTier;
   status?: 200 | 201;
 }
 

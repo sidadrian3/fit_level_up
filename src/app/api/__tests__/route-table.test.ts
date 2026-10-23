@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { describe, expect, it, vi } from "vitest";
+import { RATE_LIMIT_TIERS } from "@/server/platform/config";
 import type { DefinedRoute } from "@/server/platform/http";
 
 vi.mock("@/server/platform/http/rate-limiter", () => ({ createRateLimiter: () => vi.fn() }));
@@ -47,9 +48,11 @@ describe("route table", () => {
       }
       if (definition.auth === "user" && MUTATING_METHODS.has(method)) {
         if (definition.body === undefined) violations.push(`${label}: user mutation must state "body" (a schema or null)`);
-        if (definition.throttle === undefined) violations.push(`${label}: user mutation must state "throttle" (a tier or null)`);
+        if (!(definition.throttle && definition.throttle in RATE_LIMIT_TIERS)) {
+          violations.push(`${label}: user mutation must name a throttle tier (${Object.keys(RATE_LIMIT_TIERS).join(" | ")})`);
+        }
       }
-      if (definition.auth !== "user" && definition.throttle != null) {
+      if (definition.auth !== "user" && definition.throttle !== undefined) {
         violations.push(`${label}: ${definition.auth} route must not set a throttle`);
       }
     }
