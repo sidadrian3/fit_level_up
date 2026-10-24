@@ -129,14 +129,17 @@ describe("/api/runs/[id] with stored rows", () => {
     expect(await rows.countDocuments({ _id: new ObjectId(otherId) })).toBe(1);
   });
 
-  it("DELETE does not change the user's XP or totals", async () => {
+  it("DELETE reverses the run's XP and distance", async () => {
     const id = await insertRow(userId);
-    const before = await readProfile();
+    await (await getCollection("xpLedger")).insertMany([
+      { userId, sourceType: "run", sourceId: id, amount: 1, occurredAt: originalDate, createdAt: originalDate },
+      { userId, sourceType: "workout", sourceId: "older", amount: 749, occurredAt: originalDate, createdAt: originalDate },
+    ] as never[]);
 
     expect((await del(id)).status).toBe(200);
 
     const after = await readProfile();
-    expect(after).toMatchObject(startingProfile);
-    expect(after).toEqual(before);
+    expect(after?.totalXp).toBe(749);
+    expect(after?.totalDistance).toBe(10.5);
   });
 });

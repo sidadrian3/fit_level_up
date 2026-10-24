@@ -46,6 +46,7 @@ export default function RunsPage() {
             queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
             queryClient.invalidateQueries({ queryKey: ["quests"] });
             queryClient.invalidateQueries({ queryKey: ["personal-records"] });
+            queryClient.invalidateQueries({ queryKey: ["user"] });
         },
     });
 

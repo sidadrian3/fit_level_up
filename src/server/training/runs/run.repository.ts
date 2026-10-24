@@ -33,12 +33,18 @@ export async function insertRun(input: Omit<RunDoc, "_id">, session?: ClientSess
     return toRun(await runs.insertOne(userId, rest, { session }));
 }
 
+export async function findRunById(userId: string, id: string, session?: ClientSession): Promise<Run | null> {
+    const doc = await runs.findById(userId, id, { session });
+    return doc ? toRun(doc) : null;
+}
+
 export async function updateRunFields(
     userId: string,
     id: string,
     fields: { distance: number; duration: number; pace: number; difficulty: Run["difficulty"]; xpEarned: number },
+    session?: ClientSession,
 ): Promise<Run | null> {
-    const doc = await runs.updateById(userId, id, { $set: fields });
+    const doc = await runs.updateById(userId, id, { $set: fields }, { session });
     return doc ? toRun(doc) : null;
 }
 
@@ -67,8 +73,9 @@ export async function sumRunDistance(userId: string, range: DateRange | null, se
     return result?.totalDistance ?? 0;
 }
 
-export async function deleteRunById(userId: string, id: string): Promise<boolean> {
-    return (await runs.deleteById(userId, id)) !== null;
+export async function deleteRunById(userId: string, id: string, session?: ClientSession): Promise<Run | null> {
+    const doc = await runs.deleteById(userId, id, { session });
+    return doc ? toRun(doc) : null;
 }
 
 export async function sumDistanceInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {
