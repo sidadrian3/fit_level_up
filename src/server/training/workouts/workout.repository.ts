@@ -3,8 +3,8 @@ import type { IdempotentRecord } from "@/server/platform/http";
 import { userScopedRepository, type UserOwnedDoc, type WorkoutDoc } from "@/server/platform/database";
 import type { Exercise, Workout } from "@/lib/types";
 import type { LiftMax } from "../records/records.rules";
-
-type DateRange = { from: Date; toExclusive: Date };
+import * as dateQueries from "../date-queries";
+import { dateFilter, type DateRange } from "../date-queries";
 
 type OwnedWorkoutDoc = WorkoutDoc & UserOwnedDoc;
 
@@ -41,11 +41,6 @@ export async function insertWorkout(
     return toWorkout(await workouts.insertOne(userId, rest, { session }));
 }
 
-export async function findWorkoutById(userId: string, id: string, session?: ClientSession): Promise<Workout | null> {
-    const doc = await workouts.findById(userId, id, { session });
-    return doc ? toWorkout(doc) : null;
-}
-
 export async function updateWorkoutFields(
     userId: string,
     id: string,
@@ -62,20 +57,15 @@ export async function deleteWorkoutById(userId: string, id: string, session?: Cl
 }
 
 export function countWorkouts(userId: string, range: DateRange | null, session?: ClientSession): Promise<number> {
-    return workouts.count(userId, range ? { date: { $gte: range.from, $lt: range.toExclusive } } : {}, { session });
+    return workouts.count(userId, dateFilter(range), { session });
 }
 
-export async function findActivityDaysSince(userId: string, from: Date, timeZone: string, session?: ClientSession): Promise<string[]> {
-    const rows = await workouts.aggregate<{ _id: string }>(userId, [
-        { $match: { date: { $gte: from } } },
-        { $group: { _id: { $dateToString: { date: "$date", format: "%Y-%m-%d", timezone: timeZone } } } },
-    ], { session });
-    return rows.map((row) => row._id);
+export function findActivityDaysSince(userId: string, from: Date, timeZone: string, session?: ClientSession): Promise<string[]> {
+    return dateQueries.findActivityDaysSince(workouts, userId, from, timeZone, session);
 }
 
-export async function findLatestDate(userId: string, session?: ClientSession): Promise<Date | null> {
-    const [doc] = await workouts.find(userId, {}, { limit: 1, sort: { date: -1 }, projection: { date: 1 }, session });
-    return doc ? doc.date : null;
+export function findLatestDate(userId: string, session?: ClientSession): Promise<Date | null> {
+    return dateQueries.findLatestDate(workouts, userId, session);
 }
 
 export function countWorkoutsInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {

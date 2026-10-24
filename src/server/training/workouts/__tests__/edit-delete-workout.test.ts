@@ -10,6 +10,7 @@ import {
   type UserQuestDoc,
 } from "@/server/platform/database";
 import { deletePlayer, seedPlayer } from "@/testing/players";
+import { levelFromTotalXp } from "@/server/progression";
 import { TargetMuscle } from "@/lib/types";
 
 const lift = { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 3, reps: 10, weight: 60 };
@@ -75,6 +76,52 @@ describe("workout edit and delete reconciliation", () => {
     expect(after.totalXp).toBe(await ledgerSum());
     expect(after.totalXp).toBe(updated!.xpEarned);
     expect(await outbox("progression.leveled-up")).toHaveLength(eventsBefore);
+  });
+
+  it("re-earning a level after an edit down emits no second level-up", async () => {
+    userId = await seedPlayer({ profile: {} });
+    const { value: workout } = await logWorkout(input(300), userId, request());
+    const earnedLevel = (await profile()).highestLevel;
+    expect(earnedLevel).toBeGreaterThanOrEqual(2);
+    expect(await outbox("progression.leveled-up")).toHaveLength(1);
+
+    await updateWorkout(workout.id, input(1), userId);
+    expect(levelFromTotalXp((await profile()).totalXp).level).toBeLessThan(earnedLevel);
+    await updateWorkout(workout.id, input(300), userId);
+
+    expect(levelFromTotalXp((await profile()).totalXp).level).toBe(earnedLevel);
+    expect(await outbox("progression.leveled-up")).toHaveLength(1);
+    expect((await profile()).highestLevel).toBe(earnedLevel);
+  });
+
+  it("re-earning a level after a delete emits no second level-up", async () => {
+    userId = await seedPlayer({ profile: {} });
+    const { value: workout } = await logWorkout(input(300), userId, request());
+    const earnedLevel = (await profile()).highestLevel;
+    expect(await outbox("progression.leveled-up")).toHaveLength(1);
+
+    expect(await deleteWorkout(userId, workout.id)).toBe(true);
+    expect(levelFromTotalXp((await profile()).totalXp).level).toBe(1);
+    await (await getCollection<PlayerProfileDoc>("playerProfiles")).updateOne(
+      { _id: userId },
+      { $set: { stamina: 100, lastStaminaUpdate: new Date() } },
+    );
+    await logWorkout(input(300), userId, request());
+
+    expect(levelFromTotalXp((await profile()).totalXp).level).toBe(earnedLevel);
+    expect(await outbox("progression.leveled-up")).toHaveLength(1);
+    expect((await profile()).highestLevel).toBe(earnedLevel);
+  });
+
+  it("edit and delete succeed for a workout with no ledger row", async () => {
+    userId = await seedPlayer({ profile: { totalWorkouts: 2 } });
+    const toEdit = await seedWorkout(userId, new Date());
+    const toDelete = await seedWorkout(userId, new Date());
+
+    expect(await updateWorkout(toEdit, input(60), userId)).not.toBeNull();
+    expect(await deleteWorkout(userId, toDelete)).toBe(true);
+
+    expect((await profile()).totalXp).toBe(await ledgerSum());
   });
 
   it("an unchanged edit leaves game state as it was", async () => {

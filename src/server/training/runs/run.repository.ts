@@ -2,12 +2,10 @@ import type { ClientSession } from "mongodb";
 import type { IdempotentRecord } from "@/server/platform/http";
 import { userScopedRepository, type RunDoc, type UserOwnedDoc } from "@/server/platform/database";
 import type { Run } from "@/lib/types";
+import * as dateQueries from "../date-queries";
+import { dateFilter, type DateRange } from "../date-queries";
 
 type OwnedRunDoc = RunDoc & UserOwnedDoc;
-
-type DateRange = { from: Date; toExclusive: Date };
-
-const dateFilter = (range: DateRange | null) => (range ? { date: { $gte: range.from, $lt: range.toExclusive } } : {});
 
 const runs = userScopedRepository<OwnedRunDoc>("runs");
 
@@ -48,17 +46,12 @@ export async function updateRunFields(
     return doc ? toRun(doc) : null;
 }
 
-export async function findActivityDaysSince(userId: string, from: Date, timeZone: string, session?: ClientSession): Promise<string[]> {
-    const rows = await runs.aggregate<{ _id: string }>(userId, [
-        { $match: { date: { $gte: from } } },
-        { $group: { _id: { $dateToString: { date: "$date", format: "%Y-%m-%d", timezone: timeZone } } } },
-    ], { session });
-    return rows.map((row) => row._id);
+export function findActivityDaysSince(userId: string, from: Date, timeZone: string, session?: ClientSession): Promise<string[]> {
+    return dateQueries.findActivityDaysSince(runs, userId, from, timeZone, session);
 }
 
-export async function findLatestDate(userId: string, session?: ClientSession): Promise<Date | null> {
-    const [doc] = await runs.find(userId, {}, { limit: 1, sort: { date: -1 }, projection: { date: 1 }, session });
-    return doc ? doc.date : null;
+export function findLatestDate(userId: string, session?: ClientSession): Promise<Date | null> {
+    return dateQueries.findLatestDate(runs, userId, session);
 }
 
 export function countRuns(userId: string, range: DateRange | null, session?: ClientSession): Promise<number> {
