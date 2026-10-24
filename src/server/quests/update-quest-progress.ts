@@ -3,7 +3,7 @@ import { getQuestProgressUpdates, getPeriodForCategory, calcNextProgress, type Q
 import { findActiveQuests, setQuestProgress } from "./quest.repository";
 import { toLocalDay } from "@/shared/time/calendar";
 import { QUEST_ENTRIES, ensureQuestRows } from "./sync-quests";
-import { ClientSession } from "mongodb";
+import type { ClientSession } from "mongodb";
 
 // The session is required: read-then-write is only race-free because a conflicting transaction is aborted and retried
 export async function updateQuestProgress(

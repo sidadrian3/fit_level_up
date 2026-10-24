@@ -42,6 +42,10 @@ async function migrateQuestIds(db: Db): Promise<void> {
 
   const questIdsByTemplateId = await loadQuestIdsByTemplateId(db);
   const userQuests = db.collection<LegacyUserQuest>(COLLECTIONS.userQuests);
+  // An empty catalogue means the titles are gone, not that every row is obsolete: fail the build instead of deleting progress
+  if (questIdsByTemplateId.size === 0 && (await userQuests.countDocuments({ questTemplateId: { $regex: OBJECT_ID_PATTERN } })) > 0) {
+    throw new Error("user_quests has legacy quest template ids but quest_templates maps to none of the quest definitions");
+  }
   const stale = userQuests.find({
     $or: [
       { questTemplateId: { $regex: OBJECT_ID_PATTERN } },

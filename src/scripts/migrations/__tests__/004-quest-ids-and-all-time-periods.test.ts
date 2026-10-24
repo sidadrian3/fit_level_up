@@ -85,6 +85,16 @@ describe("004-quest-ids-and-all-time-periods", () => {
     expect(rowsAfterSecondRun).toEqual(rowsAfterFirstRun);
   });
 
+  it("refuses to run, leaving the rows intact, when no template maps to a quest definition", async () => {
+    const { db, templates, userQuests } = await collections();
+    await templates.deleteMany({});
+    await userQuests.insertOne(row(dailyBurnId.toString(), "2026-10-20", "2026-10-20"));
+
+    await expect(questIdsAndAllTimePeriodsMigration.up(db)).rejects.toThrow(/legacy quest template ids/);
+
+    expect(await userQuests.countDocuments({})).toBe(1);
+  });
+
   it("drops the old row when the new-style row for the same period already exists", async () => {
     const { db, userQuests } = await collections();
     await userQuests.createIndex(
