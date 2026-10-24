@@ -14,6 +14,7 @@ Index of all design specs in this vault.
 - [[Idempotency Key Header Design Spec]] — UUID Idempotency-Key header on create routes, body fingerprint, 201 replay with Idempotent-Replayed, 422 on reuse (audit F-20, step 2.4)
 - [[Transactional Outbox Design Spec]] — typed emit() into an outbox row in the caller's transaction, after() dispatch of own ids, generic daily outbox-sweep cron, dead rows after 8 attempts (step 2.5)
 - [[Edit And Delete Reconciliation Design Spec]] — edit and delete replace or revoke the activity's xp_ledger row and re-sum XP (level can fall), adjust totals, recount quests with claim clawback and the streak on delete, highestLevel high-water mark, ledger backfill (audit F-4, step 3.5)
+- [[Achievements Social And Notifications Design Spec]] — achievements as an outbox listener, social module with a transition table, batched loading, lazy friend records and a 7-day decline cooldown, notifications inbox with polling, bell and single live toast; SSE retired (steps 3.6–3.8)
 
 ## Infra / Meta
 
