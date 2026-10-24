@@ -196,6 +196,7 @@ export const SCHEMA: Record<
     runs: {
         indexes: [
             { key: { userId: 1, date: -1 }, name: "idx_runs_userId_date" },
+            { key: { userId: 1, distance: -1 }, name: "idx_runs_userId_distance" },
             idempotencyIndex("idx_runs_idempotencyKey"),
         ],
         validator: objectSchema(

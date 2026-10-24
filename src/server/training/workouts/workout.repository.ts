@@ -2,6 +2,7 @@ import type { ClientSession } from "mongodb";
 import type { IdempotentRecord } from "@/server/platform/http";
 import { userScopedRepository, type UserOwnedDoc, type WorkoutDoc } from "@/server/platform/database";
 import type { Exercise, Workout } from "@/lib/types";
+import type { LiftMax } from "../records/records.rules";
 
 type OwnedWorkoutDoc = WorkoutDoc & UserOwnedDoc;
 
@@ -66,4 +67,28 @@ export async function findWorkoutDatesInRange(userId: string, from: Date, toExcl
 export async function findWorkoutByIdempotencyKey(userId: string, idempotencyKey: string): Promise<IdempotentRecord<Workout> | null> {
     const doc = await workouts.findOne(userId, { idempotencyKey });
     return doc ? { value: toWorkout(doc), fingerprint: doc.idempotencyFingerprint } : null;
+}
+
+const NEWEST_SET_FIRST = { "exercises.weight": -1, _id: -1, exerciseIndex: 1 } as const;
+
+// Ties on weight resolve to the newest workout, then the earliest exercise in it; equal-weight lifts rank by first appearance, newest first.
+export function findLiftMaxes(userId: string, limit: number): Promise<LiftMax[]> {
+    return workouts.aggregate<LiftMax>(userId, [
+        { $unwind: { path: "$exercises", includeArrayIndex: "exerciseIndex" } },
+        { $match: { "exercises.weight": { $gt: 0 } } },
+        { $addFields: { liftName: { $trim: { input: "$exercises.name" } } } },
+        { $addFields: { liftKey: { $toLower: "$liftName" } } },
+        { $match: { liftKey: { $ne: "" } } },
+        {
+            $group: {
+                _id: "$liftKey",
+                name: { $top: { sortBy: NEWEST_SET_FIRST, output: "$liftName" } },
+                weight: { $max: "$exercises.weight" },
+                firstSeen: { $top: { sortBy: { _id: -1, exerciseIndex: 1 }, output: { workoutId: "$_id", exerciseIndex: "$exerciseIndex" } } },
+            },
+        },
+        { $sort: { weight: -1, "firstSeen.workoutId": -1, "firstSeen.exerciseIndex": 1 } },
+        { $limit: limit },
+        { $project: { _id: 0, name: 1, weight: 1 } },
+    ]);
 }

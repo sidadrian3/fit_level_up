@@ -1,10 +1,10 @@
 import { formatDuration } from "@/lib/utils/formatters";
-import type { PersonalRecord } from "@/lib/utils/records";
+import type { PersonalRecord } from "@/shared/contracts/personal-record";
 
 export const FIVE_K_WINDOW_KM = { min: 4.8, max: 5.2 } as const;
 export const TEN_K_WINDOW_KM = { min: 9.8, max: 10.2 } as const;
 
-const TOP_LIFT_COUNT = 3;
+export const TOP_LIFT_COUNT = 3;
 
 export type LiftMax = { name: string; weight: number };
 

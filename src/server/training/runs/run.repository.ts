@@ -54,3 +54,28 @@ export async function findRunByIdempotencyKey(userId: string, idempotencyKey: st
     const doc = await runs.findOne(userId, { idempotencyKey });
     return doc ? { value: toRun(doc), fingerprint: doc.idempotencyFingerprint } : null;
 }
+
+export type RunStatTotals = { totalDistance: number; totalPace: number; totalRuns: number };
+
+export async function aggregateRunStats(userId: string): Promise<RunStatTotals | null> {
+    const [totals] = await runs.aggregate<RunStatTotals>(userId, [
+        { $group: { _id: null, totalDistance: { $sum: "$distance" }, totalPace: { $sum: "$pace" }, totalRuns: { $sum: 1 } } },
+        { $project: { _id: 0 } },
+    ]);
+    return totals ?? null;
+}
+
+// Ties resolve to the newest run.
+export async function findLongestRun(userId: string): Promise<{ distance: number } | null> {
+    const [run] = await runs.find(userId, {}, { limit: 1, sort: { distance: -1, _id: -1 } });
+    return run ? { distance: run.distance } : null;
+}
+
+export async function findFastestRunInWindow(userId: string, window: { min: number; max: number }): Promise<{ duration: number } | null> {
+    const [run] = await runs.find(
+        userId,
+        { distance: { $gte: window.min, $lte: window.max } },
+        { limit: 1, sort: { duration: 1, _id: -1 } },
+    );
+    return run ? { duration: run.duration } : null;
+}

@@ -1,8 +1,7 @@
 import type { FriendProfile } from "@/lib/types";
 import { getAcceptedFriendshipsFromDb } from "@/lib/data/friendships-db";
 import { getUser } from "@/lib/services/users/get-user";
-import { listAllRuns, listAllWorkouts } from "@/server/training";
-import { calculatePersonalRecords } from "@/lib/utils/records";
+import { getPersonalRecords } from "@/server/training";
 
 export async function getFriends(userId: string): Promise<FriendProfile[]> {
     const friendships = await getAcceptedFriendshipsFromDb(userId);
@@ -12,17 +11,9 @@ export async function getFriends(userId: string): Promise<FriendProfile[]> {
         // Determine the ID of the friend (the other person in the relationship)
         const friendId = friendship.requesterId === userId ? friendship.receiverId : friendship.requesterId;
         
-        // Parallel fetch for speed
-        const [user, workouts, runs] = await Promise.all([
-            getUser(friendId),
-            listAllWorkouts(friendId),
-            listAllRuns(friendId)
-        ]);
+        const [user, personalRecords] = await Promise.all([getUser(friendId), getPersonalRecords(friendId)]);
 
         if (!user) continue;
-
-        // Calculate their personal records on the fly
-        const personalRecords = calculatePersonalRecords(workouts, runs);
 
         profiles.push({
             userId: user.id,

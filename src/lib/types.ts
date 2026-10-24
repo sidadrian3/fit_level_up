@@ -1,4 +1,4 @@
-import { PersonalRecord } from "./utils";
+import type { PersonalRecord } from "@/shared/contracts/personal-record";
 import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 
 export { TargetMuscle };

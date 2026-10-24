@@ -19,4 +19,5 @@ export { updateRun } from "./runs/update-run";
 export { deleteRun } from "./runs/delete-run";
 export { listRuns } from "./runs/list-runs";
 export { getDashboardStats } from "./dashboard/get-dashboard-stats";
-export { listAllWorkouts, listAllRuns } from "./list-all-history";
+export { getPersonalRecords } from "./records/get-personal-records";
+export { getRunStats } from "./records/get-run-stats";
