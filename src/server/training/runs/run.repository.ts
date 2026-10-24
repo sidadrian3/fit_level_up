@@ -5,6 +5,10 @@ import type { Run } from "@/lib/types";
 
 type OwnedRunDoc = RunDoc & UserOwnedDoc;
 
+type DateRange = { from: Date; toExclusive: Date };
+
+const dateFilter = (range: DateRange | null) => (range ? { date: { $gte: range.from, $lt: range.toExclusive } } : {});
+
 const runs = userScopedRepository<OwnedRunDoc>("runs");
 
 function toRun(doc: OwnedRunDoc): Run {
@@ -36,6 +40,31 @@ export async function updateRunFields(
 ): Promise<Run | null> {
     const doc = await runs.updateById(userId, id, { $set: fields });
     return doc ? toRun(doc) : null;
+}
+
+export async function findActivityDaysSince(userId: string, from: Date, timeZone: string, session?: ClientSession): Promise<string[]> {
+    const rows = await runs.aggregate<{ _id: string }>(userId, [
+        { $match: { date: { $gte: from } } },
+        { $group: { _id: { $dateToString: { date: "$date", format: "%Y-%m-%d", timezone: timeZone } } } },
+    ], { session });
+    return rows.map((row) => row._id);
+}
+
+export async function findLatestDate(userId: string, session?: ClientSession): Promise<Date | null> {
+    const [doc] = await runs.find(userId, {}, { limit: 1, sort: { date: -1 }, projection: { date: 1 }, session });
+    return doc ? doc.date : null;
+}
+
+export function countRuns(userId: string, range: DateRange | null, session?: ClientSession): Promise<number> {
+    return runs.count(userId, dateFilter(range), { session });
+}
+
+export async function sumRunDistance(userId: string, range: DateRange | null, session?: ClientSession): Promise<number> {
+    const [result] = await runs.aggregate<{ totalDistance: number }>(userId, [
+        { $match: dateFilter(range) },
+        { $group: { _id: null, totalDistance: { $sum: "$distance" } } },
+    ], { session });
+    return result?.totalDistance ?? 0;
 }
 
 export async function deleteRunById(userId: string, id: string): Promise<boolean> {

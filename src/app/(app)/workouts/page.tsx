@@ -32,6 +32,7 @@ export default function WorkoutsPage() {
             queryClient.invalidateQueries({ queryKey: ["workouts"] });
             queryClient.invalidateQueries({ queryKey: ["quests"] });
             queryClient.invalidateQueries({ queryKey: ["personal-records"] });
+            queryClient.invalidateQueries({ queryKey: ["user"] });
         },
     });
 

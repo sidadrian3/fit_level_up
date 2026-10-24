@@ -4,6 +4,8 @@ import { userScopedRepository, type UserOwnedDoc, type WorkoutDoc } from "@/serv
 import type { Exercise, Workout } from "@/lib/types";
 import type { LiftMax } from "../records/records.rules";
 
+type DateRange = { from: Date; toExclusive: Date };
+
 type OwnedWorkoutDoc = WorkoutDoc & UserOwnedDoc;
 
 const workouts = userScopedRepository<OwnedWorkoutDoc>("workouts");
@@ -39,17 +41,41 @@ export async function insertWorkout(
     return toWorkout(await workouts.insertOne(userId, rest, { session }));
 }
 
+export async function findWorkoutById(userId: string, id: string, session?: ClientSession): Promise<Workout | null> {
+    const doc = await workouts.findById(userId, id, { session });
+    return doc ? toWorkout(doc) : null;
+}
+
 export async function updateWorkoutFields(
     userId: string,
     id: string,
     fields: { title: string; exercises: Exercise[]; duration: number; xpEarned: number },
+    session?: ClientSession,
 ): Promise<Workout | null> {
-    const doc = await workouts.updateById(userId, id, { $set: fields });
+    const doc = await workouts.updateById(userId, id, { $set: fields }, { session });
     return doc ? toWorkout(doc) : null;
 }
 
-export async function deleteWorkoutById(userId: string, id: string): Promise<boolean> {
-    return (await workouts.deleteById(userId, id)) !== null;
+export async function deleteWorkoutById(userId: string, id: string, session?: ClientSession): Promise<Workout | null> {
+    const doc = await workouts.deleteById(userId, id, { session });
+    return doc ? toWorkout(doc) : null;
+}
+
+export function countWorkouts(userId: string, range: DateRange | null, session?: ClientSession): Promise<number> {
+    return workouts.count(userId, range ? { date: { $gte: range.from, $lt: range.toExclusive } } : {}, { session });
+}
+
+export async function findActivityDaysSince(userId: string, from: Date, timeZone: string, session?: ClientSession): Promise<string[]> {
+    const rows = await workouts.aggregate<{ _id: string }>(userId, [
+        { $match: { date: { $gte: from } } },
+        { $group: { _id: { $dateToString: { date: "$date", format: "%Y-%m-%d", timezone: timeZone } } } },
+    ], { session });
+    return rows.map((row) => row._id);
+}
+
+export async function findLatestDate(userId: string, session?: ClientSession): Promise<Date | null> {
+    const [doc] = await workouts.find(userId, {}, { limit: 1, sort: { date: -1 }, projection: { date: 1 }, session });
+    return doc ? doc.date : null;
 }
 
 export function countWorkoutsInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {
