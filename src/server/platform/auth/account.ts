@@ -1,5 +1,5 @@
 import "server-only";
-import type { ClientSession } from "mongodb";
+import type { ClientSession, WithId } from "mongodb";
 import { getCollection, parseObjectId, type UserDoc } from "@/server/platform/database";
 
 export type Account = {
@@ -21,18 +21,29 @@ export async function getUserTimeZone(userId: string, { session }: AccountOption
   return doc?.timeZone ?? "UTC";
 }
 
-export async function getAccount(userId: string, { session }: AccountOptions = {}): Promise<Account | null> {
-  const _id = parseObjectId(userId);
-  if (!_id) return null;
-  const users = await getCollection<UserDoc>("user");
-  const doc = await users.findOne({ _id }, { session });
-  if (!doc) return null;
+function toAccount(doc: WithId<UserDoc>): Account {
   return {
-    id: _id.toString(),
+    id: doc._id.toString(),
     email: doc.email || "",
     name: doc.name || "",
     avatar: doc.avatar || doc.image || "zap",
     joinDate: new Date(doc.createdAt || Date.now()).toISOString().slice(0, 10),
     timeZone: doc.timeZone ?? "UTC",
   };
+}
+
+export async function getAccount(userId: string, { session }: AccountOptions = {}): Promise<Account | null> {
+  const _id = parseObjectId(userId);
+  if (!_id) return null;
+  const users = await getCollection<UserDoc>("user");
+  const doc = await users.findOne({ _id }, { session });
+  return doc && toAccount(doc);
+}
+
+export async function getAccounts(userIds: string[], { session }: AccountOptions = {}): Promise<Account[]> {
+  const ids = userIds.flatMap((userId) => parseObjectId(userId) ?? []);
+  if (ids.length === 0) return [];
+  const users = await getCollection<UserDoc>("user");
+  const docs = await users.find({ _id: { $in: ids } }, { session }).toArray();
+  return docs.map(toAccount);
 }

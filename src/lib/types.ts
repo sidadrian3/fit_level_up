@@ -1,4 +1,5 @@
 import type { PersonalRecord } from "@/shared/contracts/personal-record";
+import type { AchievementRarity } from "@/shared/achievement-definitions";
 import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 
 export { TargetMuscle };
@@ -117,7 +118,7 @@ export interface Achievement {
     title: string;
     description: string;
     icon: string;
-    rarity: "common" | "rare" | "epic" | "legendary";
+    rarity: AchievementRarity;
     unlocked: boolean;
     unlockedDate?: DateString;
 }

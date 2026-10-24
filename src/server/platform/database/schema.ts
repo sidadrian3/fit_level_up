@@ -19,6 +19,7 @@ export const COLLECTIONS = {
     outbox: "outbox",
     playerProfiles: "player_profiles",
     xpLedger: "xp_ledger",
+    notifications: "notifications",
 } as const;
 
 export type CollectionKey = keyof typeof COLLECTIONS;
@@ -145,6 +146,26 @@ export type XpLedgerDoc = {
     createdAt: Date;
 };
 
+export type NotificationType = "friend.requested" | "friend.accepted" | "friend.leveled-up" | "achievement.unlocked";
+
+export type NotificationActor = { userId: string; name: string; avatar: string };
+
+type NotificationBase = {
+    _id: ObjectId;
+    userId: string;
+    sourceEventId: ObjectId;
+    actor: NotificationActor | null;
+    createdAt: Date;
+    readAt: Date | null;
+};
+
+export type NotificationDoc = NotificationBase &
+    (
+        | { type: "friend.requested" | "friend.accepted"; data: { friendshipId: string } }
+        | { type: "friend.leveled-up"; data: { newLevel: number } }
+        | { type: "achievement.unlocked"; data: { achievementId: string } }
+    );
+
 type SchemaCollection = {
     indexes: (IndexDescription & { name: string })[];
     validator?: { $jsonSchema: Document };
@@ -181,7 +202,8 @@ export const SCHEMA: Record<
     | "workoutTemplates"
     | "outbox"
     | "playerProfiles"
-    | "xpLedger",
+    | "xpLedger"
+    | "notifications",
     SchemaCollection
 > = {
     workouts: {
@@ -362,6 +384,30 @@ export const SCHEMA: Record<
                 createdAt: date,
             },
             ["userId", "sourceType", "sourceId", "amount", "occurredAt", "createdAt"]
+        ),
+    },
+    notifications: {
+        indexes: [
+            { key: { userId: 1, sourceEventId: 1 }, name: "idx_notifications_source", unique: true },
+            { key: { userId: 1, createdAt: -1 }, name: "idx_notifications_feed" },
+            { key: { createdAt: 1 }, name: "idx_notifications_ttl", expireAfterSeconds: 7776000 },
+            {
+                key: { userId: 1 },
+                name: "idx_notifications_unread",
+                partialFilterExpression: { readAt: { $type: "null" } },
+            },
+        ],
+        validator: objectSchema(
+            {
+                userId: string,
+                sourceEventId: { bsonType: "objectId" },
+                type: { enum: ["friend.requested", "friend.accepted", "friend.leveled-up", "achievement.unlocked"] satisfies NotificationType[] },
+                data: { bsonType: "object" },
+                actor: { bsonType: ["object", "null"] },
+                createdAt: date,
+                readAt: { bsonType: ["date", "null"] },
+            },
+            ["userId", "sourceEventId", "type", "data", "actor", "createdAt", "readAt"]
         ),
     },
 };

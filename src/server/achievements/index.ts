@@ -1,2 +1,2 @@
-export { ACHIEVEMENT_DEFINITIONS } from "./achievement.definitions";
-export type { AchievementCondition } from "./achievement.definitions";
+export { ACHIEVEMENT_DEFINITIONS } from "@/shared/achievement-definitions";
+export type { AchievementCondition } from "@/shared/achievement-definitions";

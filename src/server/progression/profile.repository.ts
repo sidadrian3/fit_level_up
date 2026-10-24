@@ -53,6 +53,10 @@ export async function findProfile(
   return (await profiles()).findOne({ _id: userId }, { session });
 }
 
+export async function findProfiles(userIds: string[]): Promise<PlayerProfileDoc[]> {
+  return (await profiles()).find({ _id: { $in: userIds } }).toArray();
+}
+
 function totalsIncrements(
   totals: Totals,
 ): Partial<Pick<PlayerProfileDoc, "totalWorkouts" | "totalDistance">> {

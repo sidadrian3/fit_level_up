@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ACHIEVEMENT_DEFINITIONS } from '../achievement.definitions';
+import { ACHIEVEMENT_DEFINITIONS } from '../achievement-definitions';
 
 describe('ACHIEVEMENT_DEFINITIONS', () => {
   it('has unique ids', () => {

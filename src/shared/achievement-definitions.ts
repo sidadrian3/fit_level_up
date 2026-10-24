@@ -1,4 +1,4 @@
-import type { Achievement } from "@/lib/types";
+export type AchievementRarity = "common" | "rare" | "epic" | "legendary";
 
 export type AchievementCondition = {
   metric: "total_workouts" | "total_distance" | "level" | "streak";
@@ -10,7 +10,7 @@ type AchievementDefinition = {
   title: string;
   description: string;
   icon: string;
-  rarity: Achievement["rarity"];
+  rarity: AchievementRarity;
   condition: AchievementCondition;
 };
 
