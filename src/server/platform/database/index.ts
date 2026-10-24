@@ -17,4 +17,5 @@ export type {
     UserAchievementDoc,
     FriendshipDoc,
     UserDoc,
+    OutboxDoc,
 } from "./schema";

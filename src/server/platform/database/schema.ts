@@ -16,6 +16,7 @@ export const COLLECTIONS = {
     friendships: "friendships",
     workoutTemplates: "workout_templates",
     schemaMigrations: "schema_migrations",
+    outbox: "outbox",
 } as const;
 
 export type CollectionKey = keyof typeof COLLECTIONS;
@@ -113,6 +114,19 @@ export type UserDoc = {
     __v?: number;
 };
 
+export type OutboxDoc<T extends string = string, P = Document> = {
+    _id?: ObjectId;
+    type: T;
+    payload: P;
+    status: "pending" | "done" | "dead";
+    availableAt: Date;
+    attempts: number;
+    completedListeners: string[];
+    lastError: string | null;
+    createdAt: Date;
+    processedAt: Date | null;
+};
+
 type SchemaCollection = {
     indexes: (IndexDescription & { name: string })[];
     validator?: { $jsonSchema: Document };
@@ -146,7 +160,8 @@ export const SCHEMA: Record<
     | "userAchievements"
     | "customExercises"
     | "friendships"
-    | "workoutTemplates",
+    | "workoutTemplates"
+    | "outbox",
     SchemaCollection
 > = {
     workouts: {
@@ -263,6 +278,35 @@ export const SCHEMA: Record<
         validator: objectSchema(
             { userId: string, name: string, idempotencyKey: string, idempotencyFingerprint: string, createdAt: string, exercises: array },
             ["userId", "name", "idempotencyKey", "createdAt", "exercises"]
+        ),
+    },
+    outbox: {
+        indexes: [
+            {
+                key: { availableAt: 1 },
+                name: "idx_outbox_pending",
+                partialFilterExpression: { status: "pending" },
+            },
+            {
+                key: { processedAt: 1 },
+                name: "idx_outbox_done_ttl",
+                expireAfterSeconds: 604800,
+                partialFilterExpression: { status: "done" },
+            },
+        ],
+        validator: objectSchema(
+            {
+                type: string,
+                payload: { bsonType: "object" },
+                status: { enum: ["pending", "done", "dead"] },
+                availableAt: date,
+                attempts: number,
+                completedListeners: array,
+                lastError: { bsonType: ["string", "null"] },
+                createdAt: date,
+                processedAt: { bsonType: ["date", "null"] },
+            },
+            ["type", "payload", "status", "availableAt", "attempts", "completedListeners", "lastError", "createdAt", "processedAt"]
         ),
     },
 };
