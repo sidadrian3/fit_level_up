@@ -1,16 +1,14 @@
-import { calcMuscleVolume } from "../muscle-evaluator";
-import { TargetMuscle, Workout } from "../../types";
+import { calcMuscleVolume } from "../muscle-volume";
+import { TargetMuscle } from "@/shared/contracts/exercise";
 import { describe, it, expect } from "vitest";
 
-describe("muscle-evaluator", () => {
+const now = new Date("2026-01-15T12:00:00.000Z");
+
+describe("muscle-volume", () => {
     describe("calcMuscleVolume", () => {
         it("should calculate correct muscle intensity based on pure sets and reps", () => {
-            const mockWorkouts: Workout[] = [{
-                id: "1",
-                title: "Push Day",
-                duration: 60,
-                xpEarned: 100,
-                date: new Date().toISOString(),
+            const mockWorkouts: Parameters<typeof calcMuscleVolume>[0] = [{
+                date: now.toISOString(),
                 exercises: [
                     { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 5, reps: 10, weight: 100 }, // 50 reps -> medium
                     { name: "Tricep Pushdown", targetMuscle: TargetMuscle.Arms, sets: 3, reps: 15, weight: 50 }, // 45 reps -> medium
@@ -18,7 +16,7 @@ describe("muscle-evaluator", () => {
                 ]
             }];
 
-            const result = calcMuscleVolume(mockWorkouts, 7);
+            const result = calcMuscleVolume(mockWorkouts, 7, now);
             
             // Chest is 150 total reps -> high
             expect(result[TargetMuscle.Chest]).toBe("high");
@@ -31,21 +29,16 @@ describe("muscle-evaluator", () => {
         });
 
         it("should filter out workouts older than the specified days", () => {
-            const oldDate = new Date();
-            oldDate.setDate(oldDate.getDate() - 10); // 10 days ago
+            const oldDate = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
 
-            const mockWorkouts: Workout[] = [{
-                id: "1",
-                title: "Leg Day (Old)",
-                duration: 60,
-                xpEarned: 100,
+            const mockWorkouts: Parameters<typeof calcMuscleVolume>[0] = [{
                 date: oldDate.toISOString(),
                 exercises: [
                     { name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 10, reps: 20, weight: 100 } // 200 reps
                 ]
             }];
 
-            const result = calcMuscleVolume(mockWorkouts, 7);
+            const result = calcMuscleVolume(mockWorkouts, 7, now);
             
             // Should be inactive because the workout is 10 days old, but we only asked for 7 days
             expect(result[TargetMuscle.Legs]).toBe("inactive");

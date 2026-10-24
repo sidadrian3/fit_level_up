@@ -4,7 +4,7 @@ import {
     validateRunInput,
     calcRunXP,
     calcPace,
-} from "@/lib/domain/run-rules";
+} from "@/server/training";
 
 export async function updateRun(
     id: string,

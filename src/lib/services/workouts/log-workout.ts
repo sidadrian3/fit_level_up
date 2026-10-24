@@ -2,7 +2,7 @@
 
 import type { CreateWorkoutInput, Workout } from "@/lib/types";
 import { insertWorkout, getWorkoutByIdempotencyKey } from "@/lib/data/workout-db";
-import { evaluateWorkout } from "@/lib/domain/workout-evaluator";
+import { evaluateWorkout } from "@/server/training";
 import { updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { getPlayerState, recordActivity } from "@/server/progression";

@@ -1,9 +1,10 @@
-import { TargetMuscle, Workout } from "../types";
+import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
+
+type DatedWorkout = { date: string; exercises: readonly Exercise[] };
 
 export type MuscleIntensity = "inactive" | "low" | "medium" | "high";
 
-export function calcMuscleVolume(workouts: Workout[], days: number): Record<TargetMuscle, MuscleIntensity> {
-    const now = new Date();
+export function calcMuscleVolume(workouts: readonly DatedWorkout[], days: number, now: Date): Record<TargetMuscle, MuscleIntensity> {
     const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
     
     const recentWorkouts = workouts.filter(w => new Date(w.date) >= cutoff);

@@ -3,6 +3,7 @@
 import type { CreateWorkoutInput, Exercise } from "@/lib/types";
 import { GAME_CONFIG } from "@/server/platform/config";
 import { DomainError } from "@/server/platform/domain";
+import { calcStaminaCost, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
 
 export function validateWorkoutInput(input: CreateWorkoutInput): void {
     if (!input.title.trim()) {
@@ -26,3 +27,20 @@ export function calcWorkoutXP(durationMinutes: number, exerciseCount: number): n
         (exerciseCount * GAME_CONFIG.xp.workout.exerciseMultiplier);
 }
 
+export interface WorkoutEvaluationResult {
+    exercises: Exercise[];
+    baseXpEarned: number;
+    staminaCost: number;
+    finalXpEarned: number;
+}
+
+export function evaluateWorkout(input: CreateWorkoutInput, userStamina: number): WorkoutEvaluationResult {
+    validateWorkoutInput(input);
+
+    const exercises = filterNamedExercises(input.exercises);
+    const baseXpEarned = calcWorkoutXP(input.duration, exercises.length);
+    const staminaCost = calcStaminaCost(input.duration);
+    const finalXpEarned = calcExhaustionDebuff(baseXpEarned, userStamina, staminaCost);
+
+    return { exercises, baseXpEarned, staminaCost, finalXpEarned };
+}

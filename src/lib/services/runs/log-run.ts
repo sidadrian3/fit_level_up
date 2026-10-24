@@ -3,7 +3,7 @@ import { updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { getPlayerState, recordActivity } from "@/server/progression";
 import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
-import { evaluateRun } from "@/lib/domain/run-evaluator";
+import { evaluateRun } from "@/server/training";
 import { clientPromise } from "@/server/platform/database";
 import { emit } from "@/server/platform/events";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";

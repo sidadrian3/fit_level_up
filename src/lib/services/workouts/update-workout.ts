@@ -4,7 +4,7 @@ import {
     validateWorkoutInput,
     filterNamedExercises,
     calcWorkoutXP,
-} from "@/lib/domain/workout-rules";
+} from "@/server/training";
 
 export async function updateWorkout(
     id: string,

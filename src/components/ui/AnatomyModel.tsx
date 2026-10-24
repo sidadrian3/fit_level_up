@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { TargetMuscle } from "@/lib/types";
-import { MuscleIntensity } from "@/lib/domain/muscle-evaluator";
+import { MuscleIntensity } from "@/shared/muscle-volume";
 
 interface Props {
   intensities: Record<TargetMuscle, MuscleIntensity>;

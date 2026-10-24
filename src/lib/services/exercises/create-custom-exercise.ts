@@ -1,7 +1,7 @@
 import { TargetMuscle, CustomExercise } from "@/lib/types";
 import { createCustomExerciseFromDb } from "@/lib/data/custom-exercises-db";
 import { isDuplicateKeyError } from "@/server/platform/database";
-import { formatExerciseName } from "@/lib/domain/exercise-rules";
+import { formatExerciseName } from "@/server/training";
 import { ConflictError } from "@/server/platform/http";
 
 export async function createCustomExercise(userId: string, rawName: string, targetMuscle: TargetMuscle): Promise<CustomExercise> {
