@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { POST } from "../[id]/claim/route";
 import { getCollection } from "@/server/platform/database";
+import { calcLifetimeXp, getPlayerState } from "@/server/progression";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 vi.mock("@/lib/auth/auth-helpers", () => ({
@@ -10,9 +12,14 @@ vi.mock("@/lib/auth/auth-helpers", () => ({
 const userId = "claim-route-user";
 
 function claim(id: string) {
-  return POST(new Request(`http://localhost:3000/api/quests/${id}/claim`, { method: "POST" }), {
-    params: Promise.resolve({ id }),
-  });
+  return POST(
+    new Request(`http://localhost:3000/api/quests/${id}/claim`, {
+      method: "POST",
+    }),
+    {
+      params: Promise.resolve({ id }),
+    },
+  );
 }
 
 describe("POST /api/quests/[id]/claim", () => {
@@ -32,18 +39,79 @@ describe("POST /api/quests/[id]/claim", () => {
   it("returns 400 when the quest is not completed", async () => {
     const templates = await getCollection("questTemplates");
     const { insertedId } = await templates.insertOne({
-      title: "Daily Burn", description: "d", category: "special", metric: "workout_count",
-      target: 1, xpReward: 100, icon: "dumbbell", isActive: true,
+      title: "Daily Burn",
+      description: "d",
+      category: "special",
+      metric: "workout_count",
+      target: 1,
+      xpReward: 100,
+      icon: "dumbbell",
+      isActive: true,
     });
     const userQuests = await getCollection("userQuests");
     const quest = await userQuests.insertOne({
-      userId, questTemplateId: insertedId.toString(), progress: 0, target: 1,
-      completed: false, claimed: false, periodStart: "all-time", periodEnd: "all-time",
+      userId,
+      questTemplateId: insertedId.toString(),
+      progress: 0,
+      target: 1,
+      completed: false,
+      claimed: false,
+      periodStart: "all-time",
+      periodEnd: "all-time",
     });
 
     const response = await claim(quest.insertedId.toString());
 
     expect(response.status).toBe(400);
     expect((await response.json()).error).toBe("Quest is not completed");
+  });
+
+  it("grants the quest XP once and rejects a second claim with 409", async () => {
+    const claimerId = await seedPlayer({
+      email: `claim-${crypto.randomUUID()}@example.com`,
+      name: "Claimer",
+      profile: { totalXp: calcLifetimeXp(1, 450) },
+    });
+    vi.mocked(getAuthUserId).mockResolvedValue(claimerId);
+
+    try {
+      const { insertedId: templateId } = await (
+        await getCollection("questTemplates")
+      ).insertOne({
+        title: "Big Reward",
+        description: "d",
+        category: "special",
+        metric: "workout_count",
+        target: 1,
+        xpReward: 100,
+        icon: "dumbbell",
+        isActive: true,
+      });
+      const quest = await (
+        await getCollection("userQuests")
+      ).insertOne({
+        userId: claimerId,
+        questTemplateId: templateId.toString(),
+        progress: 1,
+        target: 1,
+        completed: true,
+        claimed: false,
+        periodStart: "all-time",
+        periodEnd: "all-time",
+      });
+      const questId = quest.insertedId.toString();
+
+      expect((await claim(questId)).status).toBe(200);
+
+      expect(await getPlayerState(claimerId)).toMatchObject({ level: 2, xp: 50 });
+      expect((await claim(questId)).status).toBe(409);
+    } finally {
+      await (
+        await getCollection("userQuests")
+      ).deleteMany({ userId: claimerId });
+      await (await getCollection("outbox")).deleteMany({});
+      await deletePlayer(claimerId);
+      vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    }
   });
 });

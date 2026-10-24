@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { getCollection } from "@/server/platform/database";
+import { seedPlayer } from "@/testing/players";
 import * as ssePublisher from '@/lib/sse/sse-publisher';
 
 import { sendFriendRequest } from '../friends/send-friend-request';
@@ -23,13 +24,9 @@ describe('friends Service Layer Test', () => {
         const userCol = await getCollection("user");
         await userCol.deleteMany({});
 
-        const resA = await userCol.insertOne({ name: "User A", email: "a@a.com", level: 1, xp: 0, xpToNextLevel: 500, streak: 0, totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date() });
-        const resB = await userCol.insertOne({ name: "User B", email: "b@b.com", level: 1, xp: 0, xpToNextLevel: 500, streak: 0, totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date() });
-        const resC = await userCol.insertOne({ name: "User C", email: "c@c.com", level: 1, xp: 0, xpToNextLevel: 500, streak: 0, totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date() });
-
-        userA = { id: resA.insertedId.toString() };
-        userB = { id: resB.insertedId.toString() };
-        userC = { id: resC.insertedId.toString() };
+        userA = { id: await seedPlayer({ name: "User A", email: "a@a.com" }) };
+        userB = { id: await seedPlayer({ name: "User B", email: "b@b.com" }) };
+        userC = { id: await seedPlayer({ name: "User C", email: "c@c.com" }) };
     });
 
     beforeEach(async () => {

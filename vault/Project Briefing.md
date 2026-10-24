@@ -158,10 +158,10 @@ POST /api/workouts
       4. Domain calculation (pure): how much XP, what stamina cost?
 
       ─── MongoDB Transaction (all-or-nothing) ──────────────────────
-      5. getUserFromDb()           ← read stamina (for debuff calculation)
+      5. getPlayerState()          ← read stamina (for debuff calculation)
       6. insertWorkout()           ← save the workout
       7. updateQuestProgress()     ← update quest counters
-      8. UserStateService.applyActivity() ← atomically update XP, level, streak, stamina, and stats in one DB call
+      8. recordActivity()          ← write the XP ledger row, then update XP, streak, stamina and totals on the player profile; emits progression.leveled-up on a level change
       ───────────────────────────────────────────────────────────────
 
       (the same transaction also writes an `activity.logged` outbox row)
@@ -232,8 +232,8 @@ POST /api/workouts
 **Architectural Refactors (Vercel Compatibility & Deep Modules):**
 
 - **Transactional outbox:** Background side effects (`evaluateAchievements`, `notifyFriendsLevelUp`) are outbox rows written in the caller's transaction and delivered with the Next.js `after()` API once the response is sent, so a function killed after commit delays them but never loses them.
-- **Unified `UserStateService`:** Consolidated 4 fragmented database updates (XP, Streak, Stamina, Stats) into a single deep module. `log-workout.ts` and `log-run.ts` now execute a single atomic `findOneAndUpdate` via `UserStateService.applyActivity()` instead of scattering 4+ separate update calls.
-- **Pure Data Mappers:** Ensuring data mappers (like `toUser`) are strictly dumb type translators. Dynamic state assembly (like calculating stamina recovery or zeroing a broken streak) is properly encapsulated behind the `UserStateService` boundary rather than leaking into the data layer.
+- **Progression module:** `src/server/progression` owns XP, level, streak, stamina and totals in the `player_profiles` collection. `recordActivity` (workouts and runs) and `grantXp` (quest claims) share one XP path that writes an `xp_ledger` row, increments `totalXp` and emits `progression.leveled-up`. Level and `xpToNextLevel` are computed from `totalXp`.
+- **Pure Data Mappers:** Dynamic state assembly (calculating stamina recovery, zeroing a broken streak) happens in progression's `getPlayerState`, not in the data layer; `getUser` in `lib/services/users` composes the account and the player state into the `User` the API returns.
 - **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.
 - **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
 - **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, plus `DomainError` from the domain rules) and built every API route with `defineRoute`, which maps thrown errors in one place (`toErrorResponse`), ensuring consistent HTTP status codes across the app.
@@ -338,9 +338,9 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 | File                                                                                        | What It Does                                                                               |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | [log-workout.ts](file:///z:/Projects/fit_level_up/src/lib/services/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.                           |
-| [user-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/user-rules.ts)              | XP leveling, streak calculation — the core game math.                                      |
+| [progression.rules.ts](file:///z:/Projects/fit_level_up/src/server/progression/progression.rules.ts) | XP leveling, streak calculation, stamina recovery — the core game math.            |
 | [game-config.ts](file:///z:/Projects/fit_level_up/src/lib/config/game-config.ts)            | Every balance constant. Change here to tune the game feel.                                 |
-| [user-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/user-db.ts)                      | MongoDB reads/writes for the user document (XP, streak, stamina).                          |
+| [index.ts](file:///z:/Projects/fit_level_up/src/server/progression/index.ts)                | The progression module's public API: player state, activity and XP writes, level rules.    |
 | [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.                             |
 | [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                              |
 | [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                             |

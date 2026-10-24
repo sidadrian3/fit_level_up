@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { evaluateAchievements } from "../achievements/evaluate-achievements";
-import { getCollection, type UserDoc } from "@/server/platform/database";
+import { getCollection } from "@/server/platform/database";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import type { AchievementDefinitionDoc } from "@/lib/data/achievements-db";
 
 const achievementId = "evaluate_test_level_one";
@@ -9,18 +10,17 @@ describe("evaluateAchievements Integration Test", () => {
   let userId: string;
 
   beforeAll(async () => {
-    const usersCol = await getCollection<UserDoc>("user");
-    const { insertedId } = await usersCol.insertOne({
-      email: "evaluate@example.com", name: "Evaluate", level: 1, xp: 0, xpToNextLevel: 500, streak: 0,
-      totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date(),
-    });
-    userId = insertedId.toString();
+    userId = await seedPlayer({ email: "evaluate@example.com", name: "Evaluate", profile: {} });
 
     const definitions = await getCollection<AchievementDefinitionDoc>("achievements");
     await definitions.insertOne({
       id: achievementId, title: "Level One", description: "Be level 1", icon: "star", rarity: "common",
       condition: { metric: "level", target: 1 },
     });
+  });
+
+  afterAll(async () => {
+    await deletePlayer(userId);
   });
 
   afterEach(async () => {

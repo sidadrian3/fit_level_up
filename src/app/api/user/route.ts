@@ -1,4 +1,4 @@
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUser } from "@/lib/services/users/get-user";
 import { defineRoute } from "@/server/runtime";
 
-export const GET = defineRoute({ name: "user.get", auth: "user" }, ({ userId }) => UserStateService.getUser(userId));
+export const GET = defineRoute({ name: "user.get", auth: "user" }, ({ userId }) => getUser(userId));

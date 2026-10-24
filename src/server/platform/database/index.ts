@@ -18,4 +18,7 @@ export type {
     FriendshipDoc,
     UserDoc,
     OutboxDoc,
+    PlayerProfileDoc,
+    XpLedgerDoc,
+    XpSourceType,
 } from "./schema";

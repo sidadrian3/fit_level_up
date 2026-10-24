@@ -1,6 +1,6 @@
 import type { Friendship } from "@/lib/types";
 import { validateFriendRequest } from "@/lib/domain/friend-rules";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUser } from "@/lib/services/users/get-user";
 import { reopenOrInsertFriendRequestInDb } from "@/lib/data/friendships-db";
 import { isDuplicateKeyError } from "@/server/platform/database";
 import { publishToUser } from "@/lib/sse/sse-publisher";
@@ -11,12 +11,12 @@ import { NotFoundError, ConflictError } from "@/server/platform/http";
 export async function sendFriendRequest(requesterId: string, receiverId: string): Promise<Friendship> {
     validateFriendRequest(requesterId, receiverId);
 
-    const receiver = await UserStateService.getUser(receiverId);
+    const receiver = await getUser(receiverId);
     if (!receiver) {
         throw new NotFoundError("User not found.");
     }
 
-    const requester = await UserStateService.getUser(requesterId);
+    const requester = await getUser(requesterId);
     if (!requester) {
         throw new NotFoundError("Requester not found.");
     }

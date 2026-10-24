@@ -64,7 +64,7 @@ Every feature flows through the same four layers. Read [[Domain Architecture]] b
 
 - A route handler wraps its body in `try/catch` and returns `handleApiError(err)` — this is the single place errors become responses (see Centralized API Error Handling).
 - A service that touches more than one collection uses `client.startSession()` + `session.withTransaction(...)` and passes the `session` into every `-db.ts` call (see `logWorkout`).
-- Services are plain exported functions, not classes. `UserStateService` is the one deliberate exception: a single object that owns every user-state transition (XP, level, streak, stamina), so those rules cannot be applied twice or differently.
+- Services are plain exported functions, not classes. `src/server/progression` owns every game-state transition (XP, level, streak, stamina, totals) through `recordActivity` and `grantXp`, so those rules cannot be applied twice or differently; no other code reads or writes `player_profiles`.
 
 ### Front-end structure (Next.js App Router)
 

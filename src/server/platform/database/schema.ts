@@ -17,6 +17,8 @@ export const COLLECTIONS = {
     workoutTemplates: "workout_templates",
     schemaMigrations: "schema_migrations",
     outbox: "outbox",
+    playerProfiles: "player_profiles",
+    xpLedger: "xp_ledger",
 } as const;
 
 export type CollectionKey = keyof typeof COLLECTIONS;
@@ -100,18 +102,8 @@ export type UserDoc = {
     name: string;
     image?: string;
     avatar?: string;
-    level: number;
-    xp: number;
-    xpToNextLevel: number;
-    streak: number;
-    lastActivityDate?: Date;
-    totalWorkouts: number;
-    totalDistance: number;
     createdAt: Date;
-    stamina: number;
-    lastStaminaUpdate: Date;
     timeZone?: string;
-    __v?: number;
 };
 
 export type OutboxDoc<T extends string = string, P = Document> = {
@@ -125,6 +117,31 @@ export type OutboxDoc<T extends string = string, P = Document> = {
     lastError: string | null;
     createdAt: Date;
     processedAt: Date | null;
+};
+
+export type PlayerProfileDoc = {
+    _id: string;
+    totalXp: number;
+    streak: number;
+    lastActivityDay: string | null;
+    stamina: number;
+    lastStaminaUpdate: Date;
+    totalWorkouts: number;
+    totalDistance: number;
+    createdAt: Date;
+    updatedAt: Date;
+};
+
+export type XpSourceType = "workout" | "run" | "quest_claim";
+
+export type XpLedgerDoc = {
+    _id?: ObjectId;
+    userId: string;
+    sourceType: XpSourceType;
+    sourceId: string;
+    amount: number;
+    occurredAt: Date;
+    createdAt: Date;
 };
 
 type SchemaCollection = {
@@ -161,7 +178,9 @@ export const SCHEMA: Record<
     | "customExercises"
     | "friendships"
     | "workoutTemplates"
-    | "outbox",
+    | "outbox"
+    | "playerProfiles"
+    | "xpLedger",
     SchemaCollection
 > = {
     workouts: {
@@ -307,6 +326,44 @@ export const SCHEMA: Record<
                 processedAt: { bsonType: ["date", "null"] },
             },
             ["type", "payload", "status", "availableAt", "attempts", "completedListeners", "lastError", "createdAt", "processedAt"]
+        ),
+    },
+    playerProfiles: {
+        indexes: [],
+        validator: objectSchema(
+            {
+                _id: string,
+                totalXp: number,
+                streak: number,
+                stamina: number,
+                lastActivityDay: { bsonType: ["string", "null"] },
+                lastStaminaUpdate: date,
+                createdAt: date,
+                updatedAt: date,
+                totalWorkouts: number,
+                totalDistance: number,
+            },
+            ["_id", "totalXp", "streak", "stamina", "lastActivityDay", "lastStaminaUpdate", "createdAt", "updatedAt", "totalWorkouts", "totalDistance"]
+        ),
+    },
+    xpLedger: {
+        indexes: [
+            {
+                key: { userId: 1, sourceType: 1, sourceId: 1 },
+                name: "idx_xpLedger_source",
+                unique: true,
+            },
+        ],
+        validator: objectSchema(
+            {
+                userId: string,
+                sourceType: { enum: ["workout", "run", "quest_claim"] },
+                sourceId: string,
+                amount: { bsonType: "number", minimum: 0 },
+                occurredAt: date,
+                createdAt: date,
+            },
+            ["userId", "sourceType", "sourceId", "amount", "occurredAt", "createdAt"]
         ),
     },
 };

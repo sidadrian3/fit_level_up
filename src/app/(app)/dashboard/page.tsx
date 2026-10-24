@@ -8,7 +8,7 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout-db";
 import { getUserQuests } from "@/lib/services/quests/get-user-quests";
@@ -23,7 +23,7 @@ export default async function DashboardPage() {
 
     const [user, allWorkouts, allQuests] = await
         Promise.all([
-            UserStateService.getUser(userId),
+            getUser(userId),
             getAllWorkoutsFromDb(userId),
             getUserQuests(userId)
         ]);

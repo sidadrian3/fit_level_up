@@ -24,15 +24,12 @@ Service (log-workout.ts)
   │  validateWorkoutInput()   [pure domain]
   │  calcWorkoutXP()          [pure domain]
   │  startSession() → withTransaction()
-  │    ├── getUserFromDb()
+  │    ├── getPlayerState()
   │    ├── calcStaminaCost()       [pure domain]
   │    ├── calcExhaustionDebuff()  [pure domain]
   │    ├── insertWorkout()
   │    ├── updateQuestProgress()
-  │    ├── grantUserXP()
-  │    ├── updateUserStatsInDb()
-  │    ├── updateUserStreakOnActivity()
-  │    └── updateUserStaminaInDb()
+  │    └── recordActivity()        [XP, streak, stamina, totals, ledger row]
   │  ← commit transaction
   │
   │  [After transaction — fire & forget]
@@ -96,7 +93,7 @@ Service (log-workout.ts)
 
 **Optimistic Locking (Retry Loop)**
 
-- `grant-user-xp.ts` and `UserStateService.applyActivity` use a `__v` version field to prevent XP race conditions without full pessimistic locks or advisory locks. A stale version is relabelled `TransientTransactionError`, so the surrounding `withTransaction` retries the whole transaction.
+- `recordActivity` and `grantXp` in `src/server/progression` read the player profile inside the caller's transaction and write it back in one `findOneAndUpdate` (`$inc` for XP and totals, `$set` for streak and stamina). A concurrent transaction on the same profile gets a write conflict and `withTransaction` reruns it, so no separate version field or retry loop exists.
 
 **Observer / Event-Driven**
 
