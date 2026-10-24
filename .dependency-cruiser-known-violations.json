@@ -1,45 +1,6 @@
 [
   {
     "type": "cycle",
-    "from": "src/lib/services/friends/notify-friends-level-up.ts",
-    "to": "src/lib/services/users/user-state.service.ts",
-    "unresolvedTo": "@/lib/services/users/user-state.service",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "src/lib/services/users/user-state.service.ts",
-        "dependencyTypes": [
-          "aliased",
-          "aliased-tsconfig",
-          "aliased-tsconfig-paths",
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "src/lib/services/friends/notify-friends-level-up.ts",
-        "dependencyTypes": [
-          "aliased",
-          "aliased-tsconfig",
-          "aliased-tsconfig-paths",
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
     "from": "src/lib/types.ts",
     "to": "src/lib/utils/index.ts",
     "unresolvedTo": "./utils",
