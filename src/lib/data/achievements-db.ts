@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import type { Achievement } from "@/lib/types";
 import { getCollection, type UserAchievementDoc } from "@/server/platform/database";
 import { ClientSession } from "mongodb";
-import type { AchievementCondition } from "@/lib/domain/achievement-rules";
+import type { AchievementCondition } from "@/server/achievements";
 
 export type AchievementDefinitionDoc = {
     _id?: ObjectId;

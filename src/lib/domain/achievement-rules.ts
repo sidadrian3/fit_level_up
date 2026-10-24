@@ -1,11 +1,7 @@
 // PURE FUNCTION — no imports from infrastructure, no database, no process.env
 
 import type { User } from "@/lib/types";
-
-export type AchievementCondition = {
-  metric: "total_workouts" | "total_distance" | "level" | "streak";
-  target: number;
-};
+import type { AchievementCondition } from "@/server/achievements";
 
 export function isConditionMet(condition: AchievementCondition, user: User): boolean {
   switch (condition.metric) {
