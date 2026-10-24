@@ -18,18 +18,18 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 | Users | `user` | The Better Auth identity only: `email`, `name`, `avatar` (or `image`), `createdAt`, `timeZone`. Game fields written before step 3.1 (`level`, `xp`, `xpToNextLevel`, `streak`, `lastActivityDate`, `totalWorkouts`, `totalDistance`, `stamina`, `lastStaminaUpdate`, `__v`) may still sit on old documents; nothing reads or writes them | `_id` |
 | Player profiles | `player_profiles` | One document per player, `_id` is the user id string: `totalXp` (cache of the ledger sum), `streak`, `lastActivityDay` (`YYYY-MM-DD` in the user's zone, or `null`), `stamina`, `lastStaminaUpdate`, `totalWorkouts`, `totalDistance` (km), `createdAt`, `updatedAt`. Level, in-level XP and `xpToNextLevel` are computed from `totalXp`, never stored. Created by the first write; reads of a missing profile return defaults | `_id` |
 | XP ledger | `xp_ledger` | One row per XP grant: `sourceType` (`workout`, `run`, `quest_claim`), `sourceId`, `amount`, `occurredAt`, `createdAt`; unique per user, source type and source id | `userId` |
-| Workouts | `workouts` | A logged gym session: `title`, `exercises[]`, `duration`, `xpEarned`, `date`, `idempotencyKey`, `idempotencyFingerprint` | `userId` |
-| Runs | `runs` | A logged run: `distance`, `duration`, `pace`, `difficulty`, `xpEarned`, `date`, `idempotencyKey`, `idempotencyFingerprint` | `userId` |
+| Workouts | `workouts` | A logged gym session: `title`, `exercises[]`, `duration`, `xpEarned`, `date` (a BSON date, returned by the API as an ISO instant), `idempotencyKey`, `idempotencyFingerprint` | `userId` |
+| Runs | `runs` | A logged run: `distance`, `duration`, `pace`, `difficulty`, `xpEarned`, `date` (a BSON date, returned by the API as an ISO instant), `idempotencyKey`, `idempotencyFingerprint` | `userId` |
 | Workout templates | `workout_templates` | A saved routine: `name`, `exercises[]`, `createdAt`, `idempotencyKey`, `idempotencyFingerprint` | `userId` |
 | Custom exercises | `custom_exercises` | A user-defined exercise: `name` (stored in canonical title case), `targetMuscle`; unique per user, name and muscle | `userId` |
-| Quest templates | `quest_templates` | The catalogue of quests (`title`, `category`, `metric`, `target`, `xpReward`, `icon`, `isActive`); seeded by `npm run seed` | none (global) |
-| User quests | `user_quests` | One user's instance of a quest for one period: `questTemplateId`, `periodStart`, `periodEnd`, `progress`, `target`, `completed`, `claimed` | `userId` |
-| Achievements | `achievements` | The catalogue of achievements (`id`, `title`, `rarity`, `condition`); seeded by `npm run seed` | none (global) |
+| User quests | `user_quests` | One user's instance of a quest for one period: `questTemplateId` (a quest id from `QUEST_DEFINITIONS`, such as `daily_workout_1`), `periodStart`, `periodEnd` (both `null` for an all-time quest), `progress`, `target`, `completed`, `claimed` | `userId` |
 | User achievements | `user_achievements` | Which achievements a user has unlocked: `achievementId`, `unlockedDate` | `userId` |
 | Outbox | `outbox` | A pending side effect: `type`, `payload`, `status` (`pending`, `done`, `dead`), `availableAt`, `attempts`, `completedListeners[]`, `lastError`, `createdAt`, `processedAt`; written in the same transaction as the change that caused it | none (system-owned) |
 | Friendships | `friendships` | One document per unordered pair of users: `requesterId`, `receiverId`, `pairKey` (the two ids sorted and joined with `:`), `status` (`pending` / `accepted` / `declined`), `createdAt`, `updatedAt`. Re-requesting after a decline reopens the same document as `pending` with the new requester and receiver | `requesterId` / `receiverId` |
 
-`user.timeZone` is an optional IANA zone (for example `Asia/Manila`) declared as a Better Auth `additionalFields` entry and validated by `timeZoneSchema`; a missing value reads as `UTC`. `player_profiles.lastActivityDay` holds the user's *local* calendar day as a `YYYY-MM-DD` string. Quest `periodStart` and `periodEnd` are local-day strings in the same zone.
+`user.timeZone` is an optional IANA zone (for example `Asia/Manila`) declared as a Better Auth `additionalFields` entry and validated by `timeZoneSchema`; a missing value reads as `UTC`. `player_profiles.lastActivityDay` holds the user's *local* calendar day as a `YYYY-MM-DD` string. Quest `periodStart` and `periodEnd` are local-day strings in the same zone, or `null` for an all-time quest.
+
+Quest and achievement definitions are typed constants in code (`QUEST_DEFINITIONS` in `src/server/quests`, `ACHIEVEMENT_DEFINITIONS` in `src/server/achievements`), reviewed in git with stable string ids, not rows in a collection. The `quest_templates` and `achievements` collections are no longer read or written; they stay in the database until the step 5.1 cleanup.
 
 Better Auth also manages its own `session`, `account` and `verification` collections through its MongoDB adapter. Never write to them directly.
 
@@ -44,10 +44,10 @@ Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`.
 | workouts | `{ userId, date: -1 }` | History and date-range queries |
 | workouts | `{ userId, idempotencyKey }` unique, partial | Duplicate-submit protection |
 | runs | `{ userId, date: -1 }` | History and date-range queries |
+| runs | `{ userId, distance: -1 }` | Longest run and the 5K and 10K record windows |
 | runs | `{ userId, idempotencyKey }` unique, partial | Duplicate-submit protection |
 | user_quests | `{ userId, questTemplateId, periodStart, periodEnd }` unique | One row per user, quest and period; exact-match sync lookup |
 | user_quests | `{ userId }` | Listing a user's quests |
-| quest_templates | `{ isActive, metric }` | Finding quests a new activity advances |
 | user_achievements | `{ userId, achievementId }` unique | Listing unlocked achievements (the `userId` prefix); an achievement unlocks once per user |
 | custom_exercises | `{ userId, name, targetMuscle }` unique | Listing a user's exercises (the `userId` prefix); duplicate protection |
 | friendships | `{ pairKey }` unique; receiver + status; requester + status; status | One document per pair; friend lists and pending requests |
@@ -68,7 +68,7 @@ Every route is declared with `defineRoute` from `@/server/runtime`, which owns a
 | `/api/workouts/[id]` | PUT, DELETE | yes | standard | Edit or delete one of your workouts |
 | `/api/runs` | GET, POST | yes | POST: standard | Paginated history; log a run (needs `Idempotency-Key`) |
 | `/api/runs/[id]` | PUT, DELETE | yes | standard | Edit or delete one of your runs |
-| `/api/runs/stats` | GET | yes | — | Aggregate run statistics |
+| `/api/runs/stats` | GET | yes | — | Aggregate run statistics (total km, run count, average pace) computed in the database |
 | `/api/workout-templates` | GET, POST | yes | POST: standard | List and create templates (create needs `Idempotency-Key`) |
 | `/api/workout-templates/[id]` | DELETE | yes | standard | Delete a template |
 | `/api/exercises` | GET, POST | yes | POST: standard | List the user's custom exercises (the built-in list is in `src/lib/constants/exercises.ts`); create a custom one |

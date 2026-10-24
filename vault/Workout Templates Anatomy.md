@@ -114,20 +114,14 @@ export async function POST(req: Request) {
 }
 ```
 
-**3. The Data Layer (`src/lib/data/workout-templates-db.ts`)**
-Simply receives the validated object and saves it as a document in MongoDB.
+**3. The Data Layer (`src/server/training/templates/template.repository.ts`)**
+Receives the validated object and saves it as a document in MongoDB through a user-scoped repository, which stamps the `userId` on the insert.
 ```typescript
-export async function createWorkoutTemplateInDb(input: Omit<WorkoutTemplate, "id"> & { idempotencyKey: string }) {
-    const col = await getCollection("workoutTemplatesCollection");
-    const result = await col.insertOne({
-        ...input,
-        _id: new ObjectId(),
-    });
+const templates = userScopedRepository<OwnedTemplateDoc>("workoutTemplates");
 
-    return {
-        id: result.insertedId.toString(),
-        ...input
-    };
+export async function insertTemplate(input: Omit<WorkoutTemplateDoc, "_id">): Promise<WorkoutTemplate> {
+    const { userId, ...rest } = input;
+    return toWorkoutTemplate(await templates.insertOne(userId, rest));
 }
 ```
 
