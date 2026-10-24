@@ -7,17 +7,17 @@ import { PersonalRecords } from "@/components/profile/PersonalRecords";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats } from "@/server/training";
-import { getAllAchievementsForUser } from "@/lib/data/achievements-db";
+import { countUnlockedAchievements, listAchievements } from "@/server/achievements";
 
 export default async function ProfilePage() {
     const userId = await getAuthUserId();
 
     const [user, achievements] = await Promise.all([
         getUser(userId),
-        getAllAchievementsForUser(userId)
+        listAchievements(userId)
     ]);
 
-    const stats = await getDashboardStats(userId, user);
+    const stats = await getDashboardStats(userId, user, { countAchievements: countUnlockedAchievements });
 
     return (
         <div className="space-y-6 pb-12">

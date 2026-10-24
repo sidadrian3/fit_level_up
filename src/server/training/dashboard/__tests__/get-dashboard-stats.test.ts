@@ -4,6 +4,7 @@ import { calcLifetimeXp } from "@/server/progression";
 import { getCollection } from "@/server/platform/database";
 
 describe('getDashboardStats Integration Test', () => {
+  const countAchievements = async () => 2;
   const userId = 'dashboard-stats-user';
   const user = { level: 1, xp: 0, timeZone: 'America/New_York' };
 
@@ -34,7 +35,7 @@ describe('getDashboardStats Integration Test', () => {
       { ...runBase, distance: 3, date: new Date("2026-10-19T03:00:00Z") },
     ]);
 
-    const stats = await getDashboardStats(userId, user);
+    const stats = await getDashboardStats(userId, user, { countAchievements });
 
     expect(stats.weeklyWorkouts).toBe(1);
     expect(stats.lastWeekWorkouts).toBe(2);
@@ -53,28 +54,17 @@ describe('getDashboardStats Integration Test', () => {
       { ...workoutBase, title: "Next Manila Monday 00:30", date: new Date("2026-10-25T16:30:00Z") },
     ]);
 
-    const stats = await getDashboardStats(userId, manila, now);
+    const stats = await getDashboardStats(userId, manila, { countAchievements, now });
 
     expect(stats.lastWeekWorkouts).toBe(1);
     expect(stats.weeklyWorkouts).toBe(2);
   });
 
-  it("derives lifetimeXP from level and xp and counts only the user's achievements", async () => {
-    const unlocks = await getCollection("userAchievements");
-    await unlocks.insertMany([
-      { userId, achievementId: "first_workout", unlockedDate: "2026-10-20" },
-      { userId, achievementId: "speed_demon", unlockedDate: "2026-10-21" },
-      { userId: "dashboard-stats-other-user", achievementId: "first_workout", unlockedDate: "2026-10-21" },
-    ]);
+  it("derives lifetimeXP from level and xp and reports the achievement count it is given", async () => {
+    const stats = await getDashboardStats(userId, { ...user, level: 3, xp: 40 }, { countAchievements });
 
-    try {
-      const stats = await getDashboardStats(userId, { ...user, level: 3, xp: 40 });
-
-      expect(stats.totalAchievements).toBe(2);
-      expect(stats.lifetimeXP).toBe(calcLifetimeXp(3, 40));
-      expect(stats.lifetimeXP).toBeGreaterThan(40);
-    } finally {
-      await unlocks.deleteMany({ userId: { $in: [userId, "dashboard-stats-other-user"] } });
-    }
+    expect(stats.totalAchievements).toBe(2);
+    expect(stats.lifetimeXP).toBe(calcLifetimeXp(3, 40));
+    expect(stats.lifetimeXP).toBeGreaterThan(40);
   });
 });

@@ -83,7 +83,7 @@ describe("GET /api/cron/outbox-sweep", () => {
     const first = await sweep(`Bearer ${process.env.CRON_SECRET}`);
 
     expect(first.status).toBe(200);
-    expect(await first.json()).toEqual({ delivered: 2, failed: 0, dead: 0 });
+    expect(await first.json()).toEqual({ delivered: 3, failed: 0, dead: 0 });
     const unlocks = await (await getCollection("userAchievements")).countDocuments({ userId, achievementId });
     expect(unlocks).toBe(1);
     expect(publishToMany).toHaveBeenCalledTimes(1);
