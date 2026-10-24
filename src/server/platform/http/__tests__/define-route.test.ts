@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
+import { ObjectId } from "mongodb";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { env } from "@/server/platform/env";
+import { recordEmitted } from "@/server/platform/events";
 import { DomainError } from "@/server/platform/domain";
-import { ForbiddenError, UnauthorizedError, createDefineRoute, idParams } from "..";
+import { ConflictError, ForbiddenError, UnauthorizedError, createDefineRoute, idParams } from "..";
 import type { RateLimitResult } from "..";
 
 const NOW = 1_000_000;
@@ -18,7 +20,8 @@ function setup(options: { limitResult?: RateLimitResult | Error; userId?: string
     if (limitResult instanceof Error) throw limitResult;
     return limitResult;
   });
-  return { requireUserId, limit, defineRoute: createDefineRoute({ requireUserId, limit }) };
+  const dispatchEvents = vi.fn<(ids: ObjectId[]) => Promise<void>>(async () => {});
+  return { requireUserId, limit, dispatchEvents, defineRoute: createDefineRoute({ requireUserId, limit, dispatchEvents }) };
 }
 
 const post = (body: string, url = "http://localhost/api/x") =>
@@ -338,6 +341,45 @@ describe("defineRoute", () => {
       const response = await defineRoute({ name: "t", auth: "user" }, async () => ({ plain: true }))(get());
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({ plain: true });
+    });
+  });
+
+  describe("event dispatch", () => {
+    it("dispatches the ids a 2xx handler emitted", async () => {
+      const { defineRoute, dispatchEvents } = setup();
+      const id = new ObjectId();
+      await defineRoute({ name: "t", auth: "user" }, async () => {
+        recordEmitted(id);
+        return {};
+      })(get());
+      expect(dispatchEvents).toHaveBeenCalledOnce();
+      expect(dispatchEvents).toHaveBeenCalledWith([id]);
+    });
+
+    it("does not dispatch when the handler throws", async () => {
+      const { defineRoute, dispatchEvents } = setup();
+      const response = await defineRoute({ name: "t", auth: "user" }, async () => {
+        recordEmitted(new ObjectId());
+        throw new ConflictError("x");
+      })(get());
+      expect(response.status).toBe(409);
+      expect(dispatchEvents).not.toHaveBeenCalled();
+    });
+
+    it("does not dispatch when nothing was emitted", async () => {
+      const { defineRoute, dispatchEvents } = setup();
+      await defineRoute({ name: "t", auth: "user" }, async () => ({}))(get());
+      expect(dispatchEvents).not.toHaveBeenCalled();
+    });
+
+    it("dispatches when the handler returns its own Response", async () => {
+      const { defineRoute, dispatchEvents } = setup();
+      const response = await defineRoute({ name: "t", auth: "user" }, async () => {
+        recordEmitted(new ObjectId());
+        return new Response(null, { status: 204 });
+      })(get());
+      expect(response.status).toBe(204);
+      expect(dispatchEvents).toHaveBeenCalledOnce();
     });
   });
 });
