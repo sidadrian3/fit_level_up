@@ -141,7 +141,7 @@ Ranked most severe first. "F-n" ids are referenced from §5. Findings marked _Fi
 
 **F-3. The quest-sync cooldown never works.** _Fixed in step 0.5: the cooldown is removed; the sync is an idempotent upsert._ `get-user-quests.ts:7` creates the `syncCooldowns` map _inside_ the function, so it is always empty and every `GET /api/quests` (and every dashboard render) runs a full `bulkWrite` upsert.
 
-**F-4. Editing or deleting an activity doesn't reconcile game state.** _Open by design: step 3.5._ `updateWorkout`/`updateRun` recompute `xpEarned` on the activity but never adjust the user's XP, level, totals or quest progress; deletes go straight to `*-db.ts` from the route. A user can log a 300-minute workout, collect the XP and level-up, then edit it to 1 minute or delete it and keep everything.
+**F-4. Editing or deleting an activity doesn't reconcile game state.** _Fixed in step 3.5._ `updateWorkout`/`updateRun` recompute `xpEarned` on the activity but never adjust the user's XP, level, totals or quest progress; deletes go straight to `*-db.ts` from the route. A user can log a 300-minute workout, collect the XP and level-up, then edit it to 1 minute or delete it and keep everything.
 
 **F-5. Duplicate rows are possible under concurrency.** _Fixed in step 0.4: unique indexes, upserting unlocks and duplicate-key recovery, with a pre-index cleanup in `prepare-unique-indexes.ts`._ `evaluateAchievements` can run twice at once (the `after()` fast path and the cron sweep, or two quick activities). With only a non-unique index on `user_achievements.userId` (`ensure-indexes.ts:47`), both inserts succeed and `totalAchievements` counts twice. `createCustomExercise` has the same read-then-insert race with no unique index (`ensure-indexes.ts:74`). `createWorkoutTemplateInDb` checks then inserts, so a racing retry gets a raw duplicate-key 500.
 
@@ -433,7 +433,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **3.2** | `/refactor` | Quest and achievement definitions as typed constants                                | §5.3                                  | 2.1        | Done   |
 | **3.3** | `/refactor` | `quests` module                                                                     | F-17 (quests)                         | 3.1, 3.2   | Done   |
 | **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records)                   | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3   | Done   |
-| **3.5** | `/feature`  | Ledger backfill; edit and delete reconcile XP, level, totals, quests                | **F-4**, §3.2 #3 #10                  | 3.4        | Open   |
+| **3.5** | `/feature`  | Ledger backfill; edit and delete reconcile XP, level, totals, quests                | **F-4**, §3.2 #3 #10                  | 3.4        | Done   |
 | **3.6** | `/refactor` | `achievements` module as an outbox listener                                         | F-5 (finish), F-16                    | 3.4, 2.5   | Open   |
 | **3.7** | `/refactor` | `social` module, transition table, no N+1                                           | F-9 (friends), F-16                   | 2.5        | Open   |
 | **3.8** | `/feature`  | `notification` module: inbox + polling delivery (SSE retires)                       | F-10, F-18 (SSE)                      | 3.6, 3.7   | Open   |
