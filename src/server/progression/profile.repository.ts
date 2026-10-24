@@ -17,6 +17,7 @@ export function newProfileDefaults(
 ): Omit<PlayerProfileDoc, "_id" | "updatedAt"> {
   return {
     totalXp: 0,
+    highestLevel: 1,
     streak: 0,
     lastActivityDay: null,
     stamina: 100,
@@ -113,4 +114,14 @@ export async function incrementTotalXp(
   );
   if (!after) throw new Error("Profile upsert returned no document");
   return after;
+}
+
+export async function raiseHighestLevel(
+  userId: string,
+  level: number,
+  session: ClientSession,
+): Promise<void> {
+  await (
+    await profiles()
+  ).updateOne({ _id: userId }, { $max: { highestLevel: level } }, { session });
 }

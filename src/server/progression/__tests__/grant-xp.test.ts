@@ -68,6 +68,38 @@ describe("grantXp", () => {
     });
   });
 
+  it("does not level up again below the highest level reached", async () => {
+    await deletePlayer(userId);
+    userId = await seedPlayer({ profile: { totalXp: 450, highestLevel: 2 } });
+
+    const { player, leveledUp } = await inTransaction((session) =>
+      grantXp(grant(100), session),
+    );
+
+    expect(leveledUp).toBe(false);
+    expect(player.level).toBe(2);
+    expect(
+      await (await outbox()).countDocuments({ type: "progression.leveled-up" }),
+    ).toBe(0);
+  });
+
+  it("reports the previous highest level in the event", async () => {
+    await deletePlayer(userId);
+    userId = await seedPlayer({ profile: { totalXp: 950, highestLevel: 2 } });
+
+    await inTransaction((session) => grantXp(grant(600), session));
+
+    const events = await (await outbox())
+      .find({ type: "progression.leveled-up" })
+      .toArray();
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toEqual({ userId, previousLevel: 2, newLevel: 3 });
+    const profile = await (
+      await getCollection("playerProfiles")
+    ).findOne({ _id: userId as never });
+    expect(profile?.highestLevel).toBe(3);
+  });
+
   it("emits nothing below the threshold", async () => {
     const { leveledUp } = await inTransaction((session) =>
       grantXp(grant(10), session),

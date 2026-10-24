@@ -2,7 +2,7 @@ import type { ClientSession } from "mongodb";
 import type { PlayerProfileDoc } from "@/server/platform/database";
 import { emit } from "@/server/platform/events";
 import { levelFromTotalXp } from "./progression.rules";
-import { incrementTotalXp } from "./profile.repository";
+import { incrementTotalXp, raiseHighestLevel } from "./profile.repository";
 import { recordXp, type XpSource } from "./xp-ledger.repository";
 
 export type XpGrant = {
@@ -19,15 +19,24 @@ export async function addXp(
   await recordXp(userId, { source, amount, occurredAt }, session);
   const profile = await incrementTotalXp(userId, amount, session);
 
-  const previousLevel = levelFromTotalXp(profile.totalXp - amount).level;
-  const newLevel = levelFromTotalXp(profile.totalXp).level;
-  const leveledUp = newLevel !== previousLevel;
-  if (leveledUp)
-    await emit(
-      "progression.leveled-up",
-      { userId, previousLevel, newLevel },
-      { session },
-    );
+  const leveledUp = await settleLevelUp(userId, profile, session);
 
   return { profile, leveledUp };
+}
+
+export async function settleLevelUp(
+  userId: string,
+  profile: PlayerProfileDoc,
+  session: ClientSession,
+): Promise<boolean> {
+  const newLevel = levelFromTotalXp(profile.totalXp).level;
+  if (newLevel <= profile.highestLevel) return false;
+
+  await raiseHighestLevel(userId, newLevel, session);
+  await emit(
+    "progression.leveled-up",
+    { userId, previousLevel: profile.highestLevel, newLevel },
+    { session },
+  );
+  return true;
 }

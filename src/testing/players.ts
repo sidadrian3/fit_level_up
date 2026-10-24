@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { levelFromTotalXp } from "@/server/progression";
 import {
   getCollection,
   type PlayerProfileDoc,
@@ -36,6 +37,7 @@ export async function seedPlayer({
     const profiles = await getCollection<PlayerProfileDoc>("playerProfiles");
     await profiles.insertOne({
       totalXp: 0,
+      highestLevel: levelFromTotalXp(profile.totalXp ?? 0).level,
       streak: 0,
       lastActivityDay: null,
       stamina: 100,
