@@ -1,30 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { ClientSession } from "mongodb";
 import { recordActivity } from "../record-activity";
 import {
-  clientPromise,
   getCollection,
   type PlayerProfileDoc,
   type XpLedgerDoc,
 } from "@/server/platform/database";
 import { deletePlayer, seedPlayer } from "@/testing/players";
+import { inTransaction } from "@/testing/transactions";
 
 const MANILA = "Asia/Manila";
 // 2026-03-10 12:00 in Manila
 const NOW = new Date("2026-03-10T04:00:00Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-async function inTransaction<T>(
-  work: (session: ClientSession) => Promise<T>,
-): Promise<T> {
-  const client = await clientPromise;
-  const session = client.startSession();
-  try {
-    return (await session.withTransaction(() => work(session))) as T;
-  } finally {
-    await session.endSession();
-  }
-}
 
 const storedProfile = async (userId: string) =>
   (await getCollection<PlayerProfileDoc>("playerProfiles")).findOne({
