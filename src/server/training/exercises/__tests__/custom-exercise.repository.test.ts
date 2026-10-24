@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { getAllCustomExercisesFromDb, createCustomExerciseFromDb } from '../custom-exercises-db';
+import { listCustomExercisesForUser, insertCustomExercise } from '../custom-exercise.repository';
 import { getCollection } from "@/server/platform/database";
-import { TargetMuscle } from '../../types';
+import { TargetMuscle } from '@/lib/types';
 
-describe('custom-exercises-db Data Layer Test', () => {
+describe('custom-exercise repository Test', () => {
     const userId = "db-user-id";
 
     beforeAll(async () => {
@@ -17,22 +17,21 @@ describe('custom-exercises-db Data Layer Test', () => {
     });
 
     it('should create an exercise and assign an _id', async () => {
-        const doc = await createCustomExerciseFromDb({
+        const doc = await insertCustomExercise({
             userId,
             name: "DB Test Exercise",
             targetMuscle: TargetMuscle.Core
         });
         
-        expect(doc._id).toBeDefined();
+        expect(doc.id).toBeDefined();
         expect(doc.userId).toBe(userId);
     });
 
-    it('getAllCustomExercisesFromDb should map _id to id correctly', async () => {
-        const exercises = await getAllCustomExercisesFromDb(userId);
+    it('listCustomExercisesForUser should map _id to id correctly', async () => {
+        const exercises = await listCustomExercisesForUser(userId);
         
         expect(exercises.length).toBe(1);
         expect(exercises[0].id).toBeDefined();
-        // @ts-expect-error: verify _id is stripped
-        expect(exercises[0]._id).toBeUndefined(); // Should not leak internal _id
+        expect(exercises[0]).not.toHaveProperty("_id");
     });
 });

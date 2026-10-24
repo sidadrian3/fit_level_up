@@ -21,21 +21,21 @@ function toWorkoutTemplate(doc: OwnedTemplateDoc): WorkoutTemplate {
     };
 }
 
-export async function getWorkoutTemplatesFromDb(userId: string): Promise<WorkoutTemplate[]> {
+export async function listTemplatesForUser(userId: string): Promise<WorkoutTemplate[]> {
     const docs = await templates.find(userId, {}, { limit: MAX_FIND_LIMIT, sort: { createdAt: -1 } });
     return docs.map(toWorkoutTemplate);
 }
 
-export async function getWorkoutTemplateByIdempotencyKeyFromDb(userId: string, idempotencyKey: string): Promise<IdempotentRecord<WorkoutTemplate> | null> {
+export async function findTemplateByIdempotencyKey(userId: string, idempotencyKey: string): Promise<IdempotentRecord<WorkoutTemplate> | null> {
     const doc = await templates.findOne(userId, { idempotencyKey });
     return doc ? { value: toWorkoutTemplate(doc), fingerprint: doc.idempotencyFingerprint } : null;
 }
 
-export async function createWorkoutTemplateInDb(input: Omit<WorkoutTemplateDoc, "_id">): Promise<WorkoutTemplate> {
+export async function insertTemplate(input: Omit<WorkoutTemplateDoc, "_id">): Promise<WorkoutTemplate> {
     const { userId, ...rest } = input;
     return toWorkoutTemplate(await templates.insertOne(userId, rest));
 }
 
-export async function deleteWorkoutTemplateFromDb(userId: string, templateId: string): Promise<boolean> {
+export async function deleteTemplateById(userId: string, templateId: string): Promise<boolean> {
     return (await templates.deleteById(userId, templateId)) !== null;
 }

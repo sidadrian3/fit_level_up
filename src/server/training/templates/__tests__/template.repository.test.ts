@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { getCollection, type WorkoutTemplateDoc } from "@/server/platform/database";
 import { 
-    getWorkoutTemplatesFromDb, 
-    createWorkoutTemplateInDb, 
-    getWorkoutTemplateByIdempotencyKeyFromDb,
-    deleteWorkoutTemplateFromDb
-} from '../workout-templates-db';
+    listTemplatesForUser, 
+    insertTemplate, 
+    findTemplateByIdempotencyKey,
+    deleteTemplateById
+} from '../template.repository';
 import { TargetMuscle } from '@/lib/types';
 import crypto from 'crypto';
 
-describe("workout-templates-db Data Layer Test", () => {
+describe("template repository Test", () => {
     const userId = "db-user-id";
 
     beforeAll(async () => {
@@ -27,7 +27,7 @@ describe("workout-templates-db Data Layer Test", () => {
 
     it("should create a workout template and assign an id", async () => {
         const idempotencyKey = crypto.randomUUID();
-        const template = await createWorkoutTemplateInDb({
+        const template = await insertTemplate({
             userId,
             name: "Push Day",
             exercises: [
@@ -54,15 +54,15 @@ describe("workout-templates-db Data Layer Test", () => {
             createdAt: new Date().toISOString()
         };
 
-        const first = await createWorkoutTemplateInDb(input);
+        const first = await insertTemplate(input);
 
-        await expect(createWorkoutTemplateInDb(input)).rejects.toThrowError(/11000/);
-        const found = await getWorkoutTemplateByIdempotencyKeyFromDb(userId, input.idempotencyKey);
+        await expect(insertTemplate(input)).rejects.toThrowError(/11000/);
+        const found = await findTemplateByIdempotencyKey(userId, input.idempotencyKey);
         expect(found?.value.id).toBe(first.id);
     });
 
     it("should retrieve all templates for a user", async () => {
-        await createWorkoutTemplateInDb({
+        await insertTemplate({
             userId,
             name: "Template 1",
             exercises: [],
@@ -70,7 +70,7 @@ describe("workout-templates-db Data Layer Test", () => {
             createdAt: "2024-01-01T12:00:00Z"
         });
 
-        await createWorkoutTemplateInDb({
+        await insertTemplate({
             userId,
             name: "Template 2",
             exercises: [],
@@ -78,7 +78,7 @@ describe("workout-templates-db Data Layer Test", () => {
             createdAt: "2024-01-02T12:00:00Z"
         });
 
-        const docs = await getWorkoutTemplatesFromDb(userId);
+        const docs = await listTemplatesForUser(userId);
         expect(docs).toHaveLength(2);
         // Sorted by createdAt descending
         expect(docs[0].name).toBe("Template 2");
@@ -86,7 +86,7 @@ describe("workout-templates-db Data Layer Test", () => {
     });
 
     it("should delete a template if it belongs to the user", async () => {
-        const template = await createWorkoutTemplateInDb({
+        const template = await insertTemplate({
             userId,
             name: "To Delete",
             exercises: [],
@@ -94,15 +94,15 @@ describe("workout-templates-db Data Layer Test", () => {
             createdAt: new Date().toISOString()
         });
 
-        const deleted = await deleteWorkoutTemplateFromDb(userId, template.id);
+        const deleted = await deleteTemplateById(userId, template.id);
         expect(deleted).toBe(true);
 
-        const docs = await getWorkoutTemplatesFromDb(userId);
+        const docs = await listTemplatesForUser(userId);
         expect(docs).toHaveLength(0);
     });
 
     it("should not delete a template if it belongs to another user", async () => {
-        const template = await createWorkoutTemplateInDb({
+        const template = await insertTemplate({
             userId: "other-user-id",
             name: "Other User's Template",
             exercises: [],
@@ -110,7 +110,7 @@ describe("workout-templates-db Data Layer Test", () => {
             createdAt: new Date().toISOString()
         });
 
-        const deleted = await deleteWorkoutTemplateFromDb(userId, template.id);
+        const deleted = await deleteTemplateById(userId, template.id);
         expect(deleted).toBe(false); // Can't delete another user's template
     });
 });

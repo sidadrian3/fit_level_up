@@ -3,3 +3,8 @@ export type { WorkoutEvaluationResult } from "./workouts/workout.rules";
 export { evaluateRun, validateRunInput, calcRunXP, calcPace } from "./runs/run.rules";
 export type { RunEvaluationResult } from "./runs/run.rules";
 export { formatExerciseName } from "./exercises/exercise.rules";
+export { createWorkoutTemplate } from "./templates/create-workout-template";
+export { listTemplates } from "./templates/list-templates";
+export { deleteTemplate } from "./templates/delete-template";
+export { createCustomExercise } from "./exercises/create-custom-exercise";
+export { getCustomExercises } from "./exercises/get-custom-exercises";

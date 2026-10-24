@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import crypto from "crypto";
-import { createWorkoutTemplate } from "../workout-templates/create-workout-template";
+import { createWorkoutTemplate } from "../create-workout-template";
 import { IdempotencyKeyReusedError } from "@/server/platform/http";
 import { getCollection } from "@/server/platform/database";
 import { TargetMuscle } from "@/lib/types";

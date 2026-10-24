@@ -1,5 +1,5 @@
 import { WorkoutTemplateSchema } from "@/shared/contracts/template";
-import { createWorkoutTemplateInDb, getWorkoutTemplateByIdempotencyKeyFromDb } from "@/lib/data/workout-templates-db";
+import { insertTemplate, findTemplateByIdempotencyKey } from "./template.repository";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 import { z } from "zod";
 import type { WorkoutTemplate } from "@/lib/types";
@@ -11,8 +11,8 @@ export function createWorkoutTemplate(
 ): Promise<IdempotentResult<WorkoutTemplate>> {
     return createOnce({
         request: idempotency,
-        findExisting: () => getWorkoutTemplateByIdempotencyKeyFromDb(userId, idempotency.key),
-        create: () => createWorkoutTemplateInDb({
+        findExisting: () => findTemplateByIdempotencyKey(userId, idempotency.key),
+        create: () => insertTemplate({
             userId,
             name: input.name,
             exercises: input.exercises,

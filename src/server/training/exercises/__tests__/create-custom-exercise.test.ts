@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
-import { createCustomExercise } from '../exercises/create-custom-exercise';
+import { createCustomExercise } from '../create-custom-exercise';
 import { getCollection } from "@/server/platform/database";
 import { ConflictError } from '@/server/platform/http';
-import { TargetMuscle } from '../../types';
+import { TargetMuscle } from '@/lib/types';
 
 describe('createCustomExercise Integration Test', () => {
     const userId = "test-user-id-123";

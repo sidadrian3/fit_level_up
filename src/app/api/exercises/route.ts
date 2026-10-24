@@ -1,5 +1,4 @@
-import { getCustomExercises } from "@/lib/services/exercises/get-custom-exercises";
-import { createCustomExercise } from "@/lib/services/exercises/create-custom-exercise";
+import { createCustomExercise, getCustomExercises } from "@/server/training";
 import { CreateCustomExerciseSchema } from "@/shared/contracts/exercise";
 import { defineRoute } from "@/server/runtime";
 

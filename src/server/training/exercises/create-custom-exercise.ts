@@ -1,20 +1,14 @@
-import { TargetMuscle, CustomExercise } from "@/lib/types";
-import { createCustomExerciseFromDb } from "@/lib/data/custom-exercises-db";
+import type { TargetMuscle, CustomExercise } from "@/lib/types";
 import { isDuplicateKeyError } from "@/server/platform/database";
-import { formatExerciseName } from "@/server/training";
 import { ConflictError } from "@/server/platform/http";
+import { insertCustomExercise } from "./custom-exercise.repository";
+import { formatExerciseName } from "./exercise.rules";
 
 export async function createCustomExercise(userId: string, rawName: string, targetMuscle: TargetMuscle): Promise<CustomExercise> {
     const name = formatExerciseName(rawName);
 
     try {
-        const doc = await createCustomExerciseFromDb({ userId, name, targetMuscle });
-        return {
-            id: doc._id!.toString(),
-            userId: doc.userId,
-            name: doc.name,
-            targetMuscle: doc.targetMuscle,
-        };
+        return await insertCustomExercise({ userId, name, targetMuscle });
     } catch (error: unknown) {
         if (isDuplicateKeyError(error, "name")) {
             throw new ConflictError("You already created an exercise with this name for this muscle group.");
