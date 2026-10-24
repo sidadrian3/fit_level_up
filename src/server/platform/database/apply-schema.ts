@@ -13,7 +13,9 @@ export async function applySchema(db: Db): Promise<void> {
         } else if (validator) {
             await db.command({ collMod: name, ...validation });
         }
-        await db.collection(name).createIndexes(indexes);
+        if (indexes.length > 0) {
+            await db.collection(name).createIndexes(indexes);
+        }
     }
 
     for (const { collection, name } of RETIRED_INDEXES) {
