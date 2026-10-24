@@ -8,7 +8,6 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { calcLifetimeXp } from "@/server/progression";
 import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout-db";
@@ -32,7 +31,7 @@ export default async function DashboardPage() {
     const now = new Date();
     const { thisWeekFrom, nextWeekFrom } = weekInstants(now, user.timeZone);
     const [stats, weekWorkoutDates] = await Promise.all([
-        getDashboardStats(userId, { timeZone: user.timeZone, totalXp: calcLifetimeXp(user.level, user.xp) }, now),
+        getDashboardStats(userId, user, now),
         getWorkoutDatesInRange(userId, thisWeekFrom, nextWeekFrom),
     ]);
 

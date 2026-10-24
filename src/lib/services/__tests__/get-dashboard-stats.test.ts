@@ -4,7 +4,7 @@ import { getCollection } from "@/server/platform/database";
 
 describe('getDashboardStats Integration Test', () => {
   const userId = 'dashboard-stats-user';
-  const user = { totalXp: 0, timeZone: 'America/New_York' };
+  const user = { level: 1, xp: 0, timeZone: 'America/New_York' };
 
   beforeAll(async () => {
   });

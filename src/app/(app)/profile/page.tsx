@@ -5,7 +5,6 @@ import { AchievementGrid } from "@/components/profile/AchievementGrid";
 import { PersonalRecords } from "@/components/profile/PersonalRecords";
 
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { calcLifetimeXp } from "@/server/progression";
 import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllAchievementsForUser } from "@/lib/data/achievements-db";
@@ -18,7 +17,7 @@ export default async function ProfilePage() {
         getAllAchievementsForUser(userId)
     ]);
 
-    const stats = await getDashboardStats(userId, { timeZone: user.timeZone, totalXp: calcLifetimeXp(user.level, user.xp) });
+    const stats = await getDashboardStats(userId, user);
 
     return (
         <div className="space-y-6 pb-12">

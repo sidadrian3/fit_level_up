@@ -2,10 +2,11 @@ import { weekInstants } from "@/shared/time/calendar";
 import { countWorkoutsInRange } from "@/lib/data/workout-db";
 import { getTotalDistanceInRange } from "@/lib/data/runs-db";
 import { countUserAchievements } from "@/lib/data/achievements-db";
-import type { DashboardStats } from "@/lib/types";
+import { calcLifetimeXp } from "@/server/progression";
+import type { DashboardStats, User } from "@/lib/types";
 
-export async function getDashboardStats(userId: string, { timeZone, totalXp }: { timeZone: string; totalXp: number }, now: Date = new Date()): Promise<DashboardStats> {
-    const { lastWeekFrom, thisWeekFrom, nextWeekFrom } = weekInstants(now, timeZone);
+export async function getDashboardStats(userId: string, user: Pick<User, "timeZone" | "level" | "xp">, now: Date = new Date()): Promise<DashboardStats> {
+    const { lastWeekFrom, thisWeekFrom, nextWeekFrom } = weekInstants(now, user.timeZone);
 
     // Fire all DB queries concurrently for maximum performance
     const [
@@ -25,6 +26,6 @@ export async function getDashboardStats(userId: string, { timeZone, totalXp }: {
         lastWeekWorkouts,
         weeklyDistance,
         totalAchievements,
-        lifetimeXP: totalXp,
+        lifetimeXP: calcLifetimeXp(user.level, user.xp),
     };
 }
