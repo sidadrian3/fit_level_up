@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import crypto from "crypto";
-import { logRun } from "../runs/log-run";
+import { logRun } from "../log-run";
 import { getCollection, type PlayerProfileDoc } from "@/server/platform/database";
 import { getPlayerState } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";

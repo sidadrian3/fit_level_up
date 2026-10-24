@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
-import { logWorkout } from '../workouts/log-workout';
-import { updateWorkout } from '../workouts/update-workout';
+import { logWorkout } from '../log-workout';
+import { updateWorkout } from '../update-workout';
 import { IdempotencyKeyReusedError } from '@/server/platform/http';
 import { getCollection, type PlayerProfileDoc, type UserDoc } from "@/server/platform/database";
 import { getPlayerState } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { ObjectId } from 'mongodb';
-import { TargetMuscle } from '../../types';
+import { TargetMuscle } from '@/lib/types';
 import crypto from 'crypto';
 
 describe('logWorkout Integration Test', () => {

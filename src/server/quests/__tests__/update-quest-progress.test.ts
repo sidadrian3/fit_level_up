@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
-import { logWorkout } from "@/lib/services/workouts/log-workout";
+import { logWorkout } from "@/server/training";
 import { getQuests } from "../get-quests";
 import { getCollection, type UserDoc } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";

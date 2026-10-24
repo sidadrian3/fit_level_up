@@ -1,5 +1,4 @@
-import { getPaginatedWorkoutsFromDb } from "@/lib/data/workout-db";
-import { logWorkout } from "@/lib/services/workouts/log-workout";
+import { listWorkouts, logWorkout } from "@/server/training";
 import { CreateWorkoutSchema } from "@/shared/contracts/workout";
 import { paginationQuery } from "@/shared/contracts/pagination";
 import { defineRoute } from "@/server/runtime";
@@ -7,7 +6,7 @@ import { defineRoute } from "@/server/runtime";
 export const GET = defineRoute(
   { name: "workouts.list", auth: "user", query: paginationQuery },
   async ({ userId, query: { limit, page } }) => {
-    const { data, totalCount } = await getPaginatedWorkoutsFromDb(userId, limit, (page - 1) * limit);
+    const { data, totalCount } = await listWorkouts(userId, page, limit);
     return { data, totalCount, totalPages: Math.ceil(totalCount / limit), currentPage: page };
   }
 );

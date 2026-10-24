@@ -9,8 +9,7 @@ import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getUser } from "@/lib/services/users/get-user";
-import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
-import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout-db";
+import { getDashboardStats, getRecentWorkouts, getWorkoutDatesInRange } from "@/server/training";
 import { getQuests } from "@/server/quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 import { calcActiveDays } from "@/lib/domain/user-rules";
@@ -21,10 +20,10 @@ export default async function DashboardPage() {
 
     const userId = await getAuthUserId();
 
-    const [user, allWorkouts, allQuests] = await
+    const [user, recentWorkouts, allQuests] = await
         Promise.all([
             getUser(userId),
-            getAllWorkoutsFromDb(userId),
+            getRecentWorkouts(userId, 3),
             getQuests(userId)
         ]);
 
@@ -35,7 +34,6 @@ export default async function DashboardPage() {
         getWorkoutDatesInRange(userId, thisWeekFrom, nextWeekFrom),
     ]);
 
-    const recentWorkouts = allWorkouts.slice(0, 3);
     const activeDays = calcActiveDays(weekWorkoutDates, now, user.timeZone);
 
     // Filter for daily quests first, then limit to top 5

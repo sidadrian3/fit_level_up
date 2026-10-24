@@ -2,11 +2,11 @@ import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { getPlayerState, recordActivity } from "@/server/progression";
-import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
-import { evaluateRun } from "@/server/training";
 import { clientPromise } from "@/server/platform/database";
 import { emit } from "@/server/platform/events";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
+import { evaluateRun } from "./run.rules";
+import { findRunByIdempotencyKey, insertRun } from "./run.repository";
 
 export async function logRun(
     input: CreateRunInput,
@@ -15,7 +15,7 @@ export async function logRun(
 ): Promise<IdempotentResult<Run>> {
     return createOnce({
         request: idempotency,
-        findExisting: () => getRunByIdempotencyKey(userId, idempotency.key),
+        findExisting: () => findRunByIdempotencyKey(userId, idempotency.key),
         create: () => createRun(input, userId, idempotency),
         reusedMessage: "This run was already saved with your earlier details. Check your history to edit it, or submit again to log a new one.",
     });

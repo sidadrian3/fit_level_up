@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
-import { getDashboardStats } from '../users/get-dashboard-stats';
+import { getDashboardStats } from '../get-dashboard-stats';
 import { calcLifetimeXp } from "@/server/progression";
 import { getCollection } from "@/server/platform/database";
 

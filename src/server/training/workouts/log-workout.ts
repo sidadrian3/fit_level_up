@@ -1,14 +1,12 @@
-// APPLICATION SERVICE — orchestrates domain logic + persistence + side effects
-
 import type { CreateWorkoutInput, Workout } from "@/lib/types";
-import { insertWorkout, getWorkoutByIdempotencyKey } from "@/lib/data/workout-db";
-import { evaluateWorkout } from "@/server/training";
 import { updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { getPlayerState, recordActivity } from "@/server/progression";
 import { clientPromise } from "@/server/platform/database";
 import { emit } from "@/server/platform/events";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
+import { evaluateWorkout } from "./workout.rules";
+import { findWorkoutByIdempotencyKey, insertWorkout } from "./workout.repository";
 
 export async function logWorkout(
     input: CreateWorkoutInput,
@@ -17,7 +15,7 @@ export async function logWorkout(
 ): Promise<IdempotentResult<Workout>> {
     return createOnce({
         request: idempotency,
-        findExisting: () => getWorkoutByIdempotencyKey(userId, idempotency.key),
+        findExisting: () => findWorkoutByIdempotencyKey(userId, idempotency.key),
         create: () => createWorkout(input, userId, idempotency),
         reusedMessage: "This workout was already saved with your earlier details. Check your history to edit it, or submit again to log a new one.",
     });

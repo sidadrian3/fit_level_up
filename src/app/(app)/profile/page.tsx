@@ -6,7 +6,7 @@ import { PersonalRecords } from "@/components/profile/PersonalRecords";
 
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getUser } from "@/lib/services/users/get-user";
-import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
+import { getDashboardStats } from "@/server/training";
 import { getAllAchievementsForUser } from "@/lib/data/achievements-db";
 
 export default async function ProfilePage() {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
+import { getDashboardStats } from "@/server/training";
 import { getUser } from "@/lib/services/users/get-user";
 import { defineRoute } from "@/server/runtime";
 

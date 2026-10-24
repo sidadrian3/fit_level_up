@@ -1,23 +1,17 @@
 import { weekInstants } from "@/shared/time/calendar";
-import { countWorkoutsInRange } from "@/lib/data/workout-db";
-import { getTotalDistanceInRange } from "@/lib/data/runs-db";
 import { countUserAchievements } from "@/lib/data/achievements-db";
 import { calcLifetimeXp } from "@/server/progression";
 import type { DashboardStats, User } from "@/lib/types";
+import { countWorkoutsInRange } from "../workouts/workout.repository";
+import { sumDistanceInRange } from "../runs/run.repository";
 
 export async function getDashboardStats(userId: string, user: Pick<User, "timeZone" | "level" | "xp">, now: Date = new Date()): Promise<DashboardStats> {
     const { lastWeekFrom, thisWeekFrom, nextWeekFrom } = weekInstants(now, user.timeZone);
 
-    // Fire all DB queries concurrently for maximum performance
-    const [
-        weeklyWorkouts,
-        lastWeekWorkouts,
-        weeklyDistance,
-        totalAchievements,
-    ] = await Promise.all([
+    const [weeklyWorkouts, lastWeekWorkouts, weeklyDistance, totalAchievements] = await Promise.all([
         countWorkoutsInRange(userId, thisWeekFrom, nextWeekFrom),
         countWorkoutsInRange(userId, lastWeekFrom, thisWeekFrom),
-        getTotalDistanceInRange(userId, thisWeekFrom, nextWeekFrom),
+        sumDistanceInRange(userId, thisWeekFrom, nextWeekFrom),
         countUserAchievements(userId),
     ]);
 
