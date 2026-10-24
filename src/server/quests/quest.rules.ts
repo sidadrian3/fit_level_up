@@ -2,6 +2,8 @@ import { DomainError } from "@/server/platform/domain";
 import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
 import { toLocalDay, addDays, startOfWeek } from "@/shared/time/calendar";
 
+export type QuestCalendar = { now: Date; timeZone: string };
+
 export type QuestPeriod = { periodStart: string | null; periodEnd: string | null };
 
 export function getPeriodForCategory(category: QuestCategory, now: Date, timeZone: string): QuestPeriod {
@@ -53,7 +55,7 @@ type QuestActivityHandler<T extends QuestActivity> = (activity: T) => QuestProgr
 const QUEST_ACTIVITY_UPDATES: {
   [K in QuestActivity["type"]]: QuestActivityHandler<Extract<QuestActivity, { type: K }>>
 } = {
-  workout_created: (_activity) => [
+  workout_created: () => [
     {
       metric: "workout_count",
       amount: 1,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getPeriodForCategory } from "../quest-rules";
+import { getPeriodForCategory } from "../quest.rules";
 
 describe("getPeriodForCategory", () => {
   const instant = new Date("2026-10-25T17:00:00Z");

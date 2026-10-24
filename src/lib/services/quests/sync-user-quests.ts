@@ -1,9 +1,5 @@
-import { bulkUpsertUserQuestsToDb } from "@/lib/data/quests-db";
-import { getPeriodForCategory } from "@/lib/domain/quest-rules";
-import { QUEST_DEFINITIONS, getQuestDefinition, type QuestId } from "@/server/quests";
+import { QUEST_DEFINITIONS, getQuestDefinition, getPeriodForCategory, upsertQuestRows, type QuestCalendar, type QuestId } from "@/server/quests";
 import type { ClientSession } from "mongodb";
-
-export type QuestCalendar = { now: Date; timeZone: string };
 
 export type QuestEntry = { id: QuestId } & ReturnType<typeof getQuestDefinition>;
 
@@ -26,7 +22,6 @@ export async function ensureUserQuestRows(
     const { periodStart, periodEnd } = getPeriodForCategory(entry.category, calendar.now, calendar.timeZone);
 
     return {
-      userId,
       questTemplateId: entry.id,
       progress: 0,
       target: entry.target,
@@ -37,7 +32,7 @@ export async function ensureUserQuestRows(
     };
   });
 
-  await bulkUpsertUserQuestsToDb(rows, session);
+  await upsertQuestRows(userId, rows, session);
 }
 
 export async function syncUserQuests(userId: string, calendar: QuestCalendar): Promise<void> {

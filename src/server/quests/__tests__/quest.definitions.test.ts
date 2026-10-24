@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getQuestProgressUpdates } from '@/lib/domain/quest-rules';
+import { getQuestProgressUpdates } from '../quest.rules';
 import { QUEST_DEFINITIONS } from '../quest.definitions';
 
 const definitions = Object.values(QUEST_DEFINITIONS);
