@@ -35,7 +35,7 @@
 ### Task 1: `highestLevel` and the level-up high-water rule
 
 **Layer:** data + service. **Group:** A.
-**Files:** `src/server/platform/database/schema.ts`, `src/server/progression/profile.repository.ts`, `src/server/progression/add-xp.ts`, `src/testing/players.ts`, `src/server/progression/__tests__/grant-xp.test.ts`
+**Files:** `src/server/platform/database/schema.ts`, `src/server/progression/profile.repository.ts`, `src/server/progression/add-xp.ts`, `src/testing/players.ts`, `src/server/progression/__tests__/grant-xp.test.ts`, `src/scripts/migrations/003-backfill-player-profiles.ts`
 
 **Interfaces:**
 - Consumes: `levelFromTotalXp` (existing), `emit` (existing).
@@ -45,6 +45,7 @@
   - `raiseHighestLevel(userId: string, level: number, session: ClientSession): Promise<void>` in `profile.repository.ts` (`$max: { highestLevel: level }`).
   - `settleLevelUp(userId: string, profile: PlayerProfileDoc, session: ClientSession): Promise<boolean>` exported from `add-xp.ts`: computes `levelFromTotalXp(profile.totalXp).level`; if it exceeds `profile.highestLevel`, raises it and emits `progression.leveled-up` with `{ userId, previousLevel: profile.highestLevel, newLevel }`; returns whether it did. `addXp` uses it in place of its current before/after comparison. Task 3 reuses it.
   - `seedPlayer` defaults `highestLevel` to `levelFromTotalXp(profile.totalXp ?? 0).level`, so existing fixtures keep their level-up behaviour.
+  - Migration 003's `$setOnInsert` also sets `highestLevel: levelFromTotalXp(calcLifetimeXp(level, xp)).level`, because the validator now requires the field and 003 runs before 005 on a fresh database. No new test: the existing 003 tests cover it by passing the validator.
 
 - [ ] **Step 1: Write the failing tests** in `grant-xp.test.ts`:
   - `"does not level up again below the highest level reached"`: seed `{ totalXp: 450, highestLevel: 2 }`, grant 100 → `leveledUp === false`, no `progression.leveled-up` row, `player.level === 2`.
