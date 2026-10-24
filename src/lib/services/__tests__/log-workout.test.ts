@@ -114,6 +114,30 @@ describe('logWorkout Integration Test', () => {
     expect(user!.lastActivityDate!.toISOString()).toBe("2026-10-21T00:00:00.000Z");
   });
 
+  it("applies two concurrent workouts without losing either update", async () => {
+    const usersCol = await getCollection<UserDoc>("user");
+    await usersCol.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { totalWorkouts: 0, xp: 0, level: 1, xpToNextLevel: 500, stamina: 100, lastStaminaUpdate: new Date() } }
+    );
+    const input = {
+      title: "Parallel",
+      duration: 30,
+      exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 100 }],
+    };
+
+    const [first, second] = await Promise.all([
+      logWorkout(input, userId, request()),
+      logWorkout(input, userId, request()),
+    ]);
+
+    const user = await usersCol.findOne({ _id: new ObjectId(userId) });
+    expect(user!.totalWorkouts).toBe(2);
+    expect(user!.xp).toBe(first.value.xpEarned + second.value.xpEarned);
+    // 30 min -> 10 + 6 = 16 stamina per workout
+    expect(user!.stamina).toBe(100 - 2 * 16);
+  });
+
   describe('idempotency', () => {
     const idempotentInput = {
       title: "Evening Run",
