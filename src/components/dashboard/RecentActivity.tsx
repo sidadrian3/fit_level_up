@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import { Card } from "@/components/ui/Card";
-import { formatDate, formatDuration } from "@/lib/utils";
+import { formatDuration } from "@/lib/utils";
+import { useActivityDateFormatter } from "@/lib/hooks/useActivityDateFormatter";
 import type { Workout } from "@/lib/types";
 import { Dumbbell } from "lucide-react";
 
@@ -10,6 +13,8 @@ export interface RecentActivityProps {
 }
 
 export function RecentActivity({ workouts, className = "" }: RecentActivityProps) {
+    const formatDate = useActivityDateFormatter();
+
     if (!workouts || workouts.length === 0) {
         return (
             <Card className={className}>

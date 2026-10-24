@@ -15,7 +15,7 @@ function toRun(doc: OwnedRunDoc): Run {
         pace: doc.pace,
         difficulty: doc.difficulty,
         xpEarned: doc.xpEarned,
-        date: new Date(doc.date).toISOString().slice(0, 10),
+        date: new Date(doc.date).toISOString(),
     };
 }
 

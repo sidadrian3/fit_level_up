@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import { Card } from "@/components/ui/Card";
-import { formatDate, formatDuration, formatPace } from "@/lib/utils";
+import { formatDuration, formatPace } from "@/lib/utils";
+import { useActivityDateFormatter } from "@/lib/hooks/useActivityDateFormatter";
 import type { Run } from "@/lib/types";
 import { Footprints, Edit2, Trash2 } from "lucide-react";
 
@@ -29,6 +32,7 @@ export function RunCard({
     onDelete,
     onUpdate,
 }: RunCardProps) {
+    const formatDate = useActivityDateFormatter();
     const diff = difficultyColors[run.difficulty] || difficultyColors.easy;
 
     return (

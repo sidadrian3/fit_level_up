@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { Dumbbell, Edit, Trash2, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { formatDate, formatDuration } from "@/lib/utils";
+import { formatDuration } from "@/lib/utils";
+import { useActivityDateFormatter } from "@/lib/hooks/useActivityDateFormatter";
 import type { Workout, Exercise } from "@/lib/types";
 
 export interface WorkoutCardProps {
@@ -42,6 +43,7 @@ export function WorkoutCard({
   onDelete,
   onUpdate,
 }: WorkoutCardProps) {
+  const formatDate = useActivityDateFormatter();
   const primaryFocus = getPrimaryFocus(workout.exercises);
   const [isExpanded, setIsExpanded] = useState(false);
 

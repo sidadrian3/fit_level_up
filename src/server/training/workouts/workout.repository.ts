@@ -17,7 +17,7 @@ function toWorkout(doc: OwnedWorkoutDoc): Workout {
         exercises: doc.exercises,
         duration: doc.duration,
         xpEarned: doc.xpEarned,
-        date: new Date(doc.date).toISOString().slice(0, 10),
+        date: new Date(doc.date).toISOString(),
     };
 }
 

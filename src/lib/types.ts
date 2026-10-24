@@ -4,7 +4,7 @@ import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 export { TargetMuscle };
 export type { Exercise };
 
-/** Type alias for ISO date strings — makes refactoring to Date objects easier later */
+/** Type alias for ISO date strings (activity `date`s are full instants; `joinDate` is date-only) — makes refactoring to Date objects easier later */
 export type DateString = string;
 
 export interface User {

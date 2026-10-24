@@ -12,6 +12,16 @@ export function formatDate(dateStr: string): string {
   });
 }
 
+/** Formats an activity instant as the calendar day it falls on in `timeZone`. */
+export function formatActivityDate(isoInstant: string, timeZone: string): string {
+  return new Date(isoInstant).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone,
+  });
+}
+
 export function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;

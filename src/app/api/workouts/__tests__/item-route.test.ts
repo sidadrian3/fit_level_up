@@ -92,7 +92,7 @@ describe("/api/workouts/[id] with stored rows", () => {
 
     expect(response.status).toBe(200);
     expect(updated).toMatchObject({ title: "Push Day", duration: 45, xpEarned: 105 });
-    expect(updated.date).toBe("2026-03-04");
+    expect(updated.date).toBe(originalDate.toISOString());
     const stored = await (await getCollection("workouts")).findOne({ _id: new ObjectId(id) });
     expect(stored).toMatchObject({ xpEarned: 105 });
     expect(stored?.date).toEqual(originalDate);

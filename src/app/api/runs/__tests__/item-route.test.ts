@@ -92,7 +92,7 @@ describe("/api/runs/[id] with stored rows", () => {
 
     expect(response.status).toBe(200);
     expect(updated).toMatchObject({ distance: 5, duration: 30, difficulty: "moderate", xpEarned: 132 });
-    expect(updated.date).toBe("2026-03-04");
+    expect(updated.date).toBe(originalDate.toISOString());
     const stored = await (await getCollection("runs")).findOne({ _id: new ObjectId(id) });
     expect(stored).toMatchObject({ xpEarned: 132 });
     expect(stored?.date).toEqual(originalDate);
