@@ -1,12 +1,13 @@
-import { QUEST_ENTRY_BY_ID, syncUserQuests } from "@/lib/services/quests/sync-user-quests";
+import { QUEST_ENTRY_BY_ID, syncQuests } from "./sync-quests";
 import { getUserTimeZone } from "@/server/platform/auth";
-import { validateQuestClaim, findQuestById, markQuestClaimed } from "@/server/quests";
+import { validateQuestClaim } from "./quest.rules";
+import { findQuestById, markQuestClaimed } from "./quest.repository";
 import { grantXp, type PlayerState } from "@/server/progression";
 import { clientPromise } from "@/server/platform/database";
 import { NotFoundError, ConflictError } from "@/server/platform/http";
 
-export async function claimQuestReward(userId: string, questId: string): Promise<{ player: PlayerState; leveledUp: boolean } | undefined> {
-  await syncUserQuests(userId, { now: new Date(), timeZone: await getUserTimeZone(userId) });
+export async function claimQuest(userId: string, questId: string): Promise<{ player: PlayerState; leveledUp: boolean } | undefined> {
+  await syncQuests(userId, { now: new Date(), timeZone: await getUserTimeZone(userId) });
 
   const quest = await findQuestById(userId, questId);
 

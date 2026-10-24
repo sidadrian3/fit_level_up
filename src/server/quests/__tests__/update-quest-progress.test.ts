@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
-import { logWorkout } from "../workouts/log-workout";
-import { getUserQuests } from "../quests/get-user-quests";
+import { logWorkout } from "@/lib/services/workouts/log-workout";
+import { getQuests } from "../get-quests";
 import { getCollection, type UserDoc } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { TargetMuscle } from "@/lib/types";
@@ -56,9 +56,9 @@ describe("quest progress through logWorkout", () => {
 
   it("does not duplicate rows when quests are listed repeatedly", async () => {
 
-    await Promise.all([getUserQuests(userId), getUserQuests(userId)]);
+    await Promise.all([getQuests(userId), getQuests(userId)]);
     await logWorkout(workout(), userId, request());
-    const quests = await getUserQuests(userId);
+    const quests = await getQuests(userId);
 
     expect(quests).toHaveLength(5);
     expect(await (await getCollection("userQuests")).countDocuments({ userId })).toBe(5);
@@ -77,7 +77,7 @@ describe("quest progress through logWorkout", () => {
     const dailyRow = await (await getCollection("userQuests")).findOne({ userId, target: 1 });
     expect(dailyRow?.periodStart).toBe("2026-10-21");
     expect(dailyRow?.progress).toBe(1);
-    const quests = await getUserQuests(userId);
+    const quests = await getQuests(userId);
     expect(quests.find(q => q.target === 1)?.progress).toBe(1);
   });
 });

@@ -11,7 +11,7 @@ import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout-db";
-import { getUserQuests } from "@/lib/services/quests/get-user-quests";
+import { getQuests } from "@/server/quests";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 import { calcActiveDays } from "@/lib/domain/user-rules";
 import { weekInstants } from "@/shared/time/calendar";
@@ -25,7 +25,7 @@ export default async function DashboardPage() {
         Promise.all([
             getUser(userId),
             getAllWorkoutsFromDb(userId),
-            getUserQuests(userId)
+            getQuests(userId)
         ]);
 
     const now = new Date();

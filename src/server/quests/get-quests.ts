@@ -1,8 +1,8 @@
 import type { Quest } from "@/lib/types";
 import { toLocalDay } from "@/shared/time/calendar";
 import { getUserTimeZone } from "@/server/platform/auth";
-import { QUEST_ENTRY_BY_ID, syncUserQuests, type QuestEntry } from "@/lib/services/quests/sync-user-quests";
-import { findActiveQuests } from "@/server/quests";
+import { QUEST_ENTRY_BY_ID, syncQuests, type QuestEntry } from "./sync-quests";
+import { findActiveQuests } from "./quest.repository";
 import type { UserQuestDoc } from "@/server/platform/database";
 
 function toQuestView(id: string, userQuest: UserQuestDoc, entry: QuestEntry): Quest {
@@ -20,9 +20,9 @@ function toQuestView(id: string, userQuest: UserQuestDoc, entry: QuestEntry): Qu
   };
 }
 
-export async function getUserQuests(userId: string): Promise<Quest[]> {
+export async function getQuests(userId: string): Promise<Quest[]> {
   const calendar = { now: new Date(), timeZone: await getUserTimeZone(userId) };
-  await syncUserQuests(userId, calendar);
+  await syncQuests(userId, calendar);
 
   const userQuests = await findActiveQuests(userId, toLocalDay(calendar.now, calendar.timeZone));
 

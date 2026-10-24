@@ -1,5 +1,5 @@
 import type { CreateRunInput, Run } from "@/lib/types";
-import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
+import { updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { getPlayerState, recordActivity } from "@/server/progression";
 import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";

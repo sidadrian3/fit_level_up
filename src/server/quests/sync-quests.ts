@@ -1,4 +1,6 @@
-import { QUEST_DEFINITIONS, getQuestDefinition, getPeriodForCategory, upsertQuestRows, type QuestCalendar, type QuestId } from "@/server/quests";
+import { QUEST_DEFINITIONS, getQuestDefinition, type QuestId } from "./quest.definitions";
+import { getPeriodForCategory, type QuestCalendar } from "./quest.rules";
+import { upsertQuestRows } from "./quest.repository";
 import type { ClientSession } from "mongodb";
 
 export type QuestEntry = { id: QuestId } & ReturnType<typeof getQuestDefinition>;
@@ -12,7 +14,7 @@ export const QUEST_ENTRIES: QuestEntry[] = (Object.keys(QUEST_DEFINITIONS) as Qu
 export const QUEST_ENTRY_BY_ID: ReadonlyMap<string, QuestEntry> = new Map(QUEST_ENTRIES.map((entry) => [entry.id, entry]));
 
 // Idempotent: $setOnInsert never touches a row that already exists
-export async function ensureUserQuestRows(
+export async function ensureQuestRows(
   userId: string,
   entries: QuestEntry[],
   calendar: QuestCalendar,
@@ -35,6 +37,6 @@ export async function ensureUserQuestRows(
   await upsertQuestRows(userId, rows, session);
 }
 
-export async function syncUserQuests(userId: string, calendar: QuestCalendar): Promise<void> {
-  await ensureUserQuestRows(userId, QUEST_ENTRIES, calendar);
+export async function syncQuests(userId: string, calendar: QuestCalendar): Promise<void> {
+  await ensureQuestRows(userId, QUEST_ENTRIES, calendar);
 }
