@@ -1,8 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileTabs } from "@/components/layout/MobileTabs";
 import { LevelUpManager } from "@/components/notifications/LevelUpManager";
-import { AchievementManager } from "@/components/notifications/AchievementManager";
-import { FriendEventManager } from "@/components/notifications/FriendEventManager";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { TimeZoneSync } from "@/components/auth/TimeZoneSync";
 import { UserProvider } from "@/lib/context/UserContext";
 
@@ -26,8 +25,7 @@ export default function AppLayout({
 
         {/* Global Toast Manager */}
         <LevelUpManager />
-        <AchievementManager />
-        <FriendEventManager />
+        <NotificationCenter />
         <TimeZoneSync />
       </div>
     </UserProvider>

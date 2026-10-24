@@ -9,7 +9,6 @@ import { FriendRequestCard } from "@/components/friends/FriendRequestCard";
 import { AddFriendSection } from "@/components/friends/AddFriendSection";
 import { FriendProfileModal } from "@/components/friends/FriendProfileModal";
 import type { FriendProfile } from "@/lib/types";
-import { useFriendEvents } from "@/lib/hooks/useFriendEvents";
 import {
   getFriends,
   getFriendRequests,
@@ -24,7 +23,6 @@ export default function FriendsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("friends");
   const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
   const queryClient = useQueryClient();
-  const { isReconnecting } = useFriendEvents();
 
   // Queries
   const { data: friends = [], isLoading: loadingFriends } = useQuery({
@@ -70,12 +68,6 @@ export default function FriendsPage() {
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader title="Friends" subtitle="Compete and train with your squad." />
-        {isReconnecting && (
-          <div className="flex items-center gap-2 text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full text-xs font-medium self-start sm:self-auto">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span>Reconnecting feed...</span>
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
