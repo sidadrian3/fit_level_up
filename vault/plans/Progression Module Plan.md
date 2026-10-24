@@ -39,7 +39,7 @@ Commit: `test(progression): characterize user read, quest claim XP and concurren
   - `calcNewStreak` and `calcDisplayStreak`, moved verbatim;
   - `calcRecoveredStamina`, moved verbatim.
 - [ ] Unit tests in `src/server/progression/__tests__/progression.rules.test.ts`:
-  - the existing `calcLevelUp` cases restated as totals (`450 + 50` → level 1, 500; `450 + 100` → level 2, 50; `450 + 2000` → the same level and remainder as today's test);
+  - the existing `calcLevelUp` cases restated as totals (`100 + 50` → level 1, 150; `450 + 100` → level 2, 50; `450 + 2000` → the same level and remainder as today's test);
   - the existing streak, stamina and `calcLifetimeXp` cases, moved;
   - a round trip: `levelFromTotalXp(calcLifetimeXp(L, x))` returns `L, x` for `L` in 1..20 and `x` in `{0, L × 500 − 1}`;
   - `levelFromTotalXp(0)` → level 1, 0, 500.

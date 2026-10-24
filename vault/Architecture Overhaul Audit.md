@@ -429,7 +429,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **2.3** | `/feature`  | Per-user, per-route rate-limit tiers                                                | F-11                                  | 2.2        | Done   |
 | **2.4** | `/feature`  | `Idempotency-Key` header replaces body sniffing                                     | F-20                                  | 2.2        | Done   |
 | **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Open   |
-| **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path writing `xp_ledger`, no `__v` | F-15, §3.2 #1 #4 #6                   | 2.5        | Open   |
+| **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path writing `xp_ledger`, no `__v` | F-15, §3.2 #1 #4 #6                   | 2.5        | Done   |
 | **3.2** | `/refactor` | Quest and achievement definitions as typed constants                                | §5.3                                  | 2.1        | Open   |
 | **3.3** | `/refactor` | `quests` module                                                                     | F-17 (quests)                         | 3.1, 3.2   | Open   |
 | **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records)                   | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3   | Open   |

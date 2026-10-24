@@ -70,10 +70,11 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
     
     // Execute inside a single ACID transaction
     const workoutObj = await session.withTransaction(async () => {
-        const user = await UserStateService.getUser(userId, session);
+        const player = await getPlayerState(userId, { now, session });
+        const timeZone = await getUserTimeZone(userId, { session });
         
         // Ask Domain Layer to do the math
-        const evaluation = evaluateWorkout(input, user.stamina);
+        const evaluation = evaluateWorkout(input, player.stamina);
         
         // Persist to Data Layer
         const workout = await insertWorkout({ ...input, xpEarned: evaluation.finalXpEarned }, session);
@@ -82,8 +83,9 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
         await emit("activity.logged", { userId, activity: { type: "workout", id: workout.id }, occurredAt: now }, { session });
 
         // Orchestrate Side-Effects
-        await updateQuestProgress(userId, { type: "workout_created" }, { now, timeZone: user.timeZone }, session);
-        await UserStateService.applyActivity(userId, { /* XP and Stamina updates */ }, session);
+        await updateQuestProgress(userId, { type: "workout_created" }, { now, timeZone }, session);
+        // One write for XP, streak, stamina and totals; emits progression.leveled-up on a level change
+        await recordActivity({ userId, source: { type: "workout", id: workout.id }, xp: workout.xpEarned, staminaCost: evaluation.staminaCost, totals: { workouts: 1 }, occurredAt: now }, session);
 
         return workout;
     });
