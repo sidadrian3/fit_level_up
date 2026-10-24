@@ -11,7 +11,7 @@ import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
 import { CreateExerciseModal } from "./CreateExerciseModal";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@/lib/data/api-client";
+import { isIdempotencyKeyReused } from "@/lib/data/api-client";
 import { useIdempotencyKey } from "@/lib/hooks/useIdempotencyKey";
 
 const emptyExercise: Exercise = {
@@ -93,7 +93,7 @@ export function CreateTemplateForm() {
             queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
             router.push("/workouts");
         } catch (err) {
-            if (err instanceof ApiError && err.status === 422) {
+            if (isIdempotencyKeyReused(err)) {
                 rotateIdempotencyKey();
                 queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
             }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "@/lib/data/api-client";
+import { isIdempotencyKeyReused } from "@/lib/data/api-client";
 import { useIdempotencyKey } from "./useIdempotencyKey";
 
 type UseEntityFormOptions<TInput, TEntity> = {
@@ -78,7 +78,7 @@ export function useEntityForm<TInput, TEntity>({
       
       onSuccess?.();
     } catch (err) {
-      if (!isEditMode && err instanceof ApiError && err.status === 422) {
+      if (!isEditMode && isIdempotencyKeyReused(err)) {
         rotateIdempotencyKey();
         await queryClient.invalidateQueries({ queryKey: ["user"] });
         onAlreadySaved?.();

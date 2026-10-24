@@ -8,6 +8,13 @@ export class ApiError extends Error {
   }
 }
 
+const UNPROCESSABLE_ENTITY = 422;
+
+/** The server refuses an Idempotency-Key that was already used with a different body. */
+export function isIdempotencyKeyReused(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === UNPROCESSABLE_ENTITY;
+}
+
 const SAFE_METHODS = ["GET", "HEAD"];
 
 export async function apiFetch<T>(

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiFetch } from "../api-fetch";
+import { ApiError, apiFetch, isIdempotencyKeyReused } from "../api-fetch";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -97,5 +97,13 @@ describe("apiFetch", () => {
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).status).toBe(422);
     expect((err as ApiError).message).toBe("msg");
+  });
+});
+
+describe("isIdempotencyKeyReused", () => {
+  it("is true only for a 422 ApiError", () => {
+    expect(isIdempotencyKeyReused(new ApiError(422, "reused"))).toBe(true);
+    expect(isIdempotencyKeyReused(new ApiError(409, "conflict"))).toBe(false);
+    expect(isIdempotencyKeyReused(new Error("reused"))).toBe(false);
   });
 });
