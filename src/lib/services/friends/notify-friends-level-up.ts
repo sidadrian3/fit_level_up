@@ -1,12 +1,12 @@
 import { getAcceptedFriendIdsFromDb } from "@/lib/data/friendships-db";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUser } from "@/lib/services/users/get-user";
 import { publishToMany } from "@/lib/sse/sse-publisher";
 
 export async function notifyFriendsLevelUp(userId: string, newLevel: number): Promise<void> {
   const friendIds = await getAcceptedFriendIdsFromDb(userId);
   if (friendIds.length === 0) return;
 
-  const user = await UserStateService.getUser(userId);
+  const user = await getUser(userId);
   if (!user) return;
 
   await publishToMany(friendIds, {

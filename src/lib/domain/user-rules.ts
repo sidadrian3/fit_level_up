@@ -1,38 +1,4 @@
-import { GAME_CONFIG } from "@/server/platform/config";
 import { addDays, startOfWeek, toLocalDay } from "@/shared/time/calendar";
-
-export type LevelUpResult = {
-  newXp: number;
-  newLevel: number;
-  newXpToNextLevel: number;
-  levelUp: boolean;
-};
-
-export function calcLevelUp(
-  currentXp: number,
-  currentLevel: number,
-  currentXpToNextLevel: number,
-  addedXp: number
-): LevelUpResult {
-  let newXp = currentXp + addedXp;
-  let newLevel = currentLevel;
-  let newXpToNextLevel = currentXpToNextLevel;
-  let levelUp = false;
-
-  while (newXp >= newXpToNextLevel) {
-    newXp -= newXpToNextLevel;
-    newLevel += 1;
-    newXpToNextLevel = newLevel * GAME_CONFIG.leveling.xpPerLevelMultiplier;
-    levelUp = true;
-  }
-
-  return {
-    newXp,
-    newLevel,
-    newXpToNextLevel,
-    levelUp,
-  };
-}
 
 /** Which days of the user's current local week (Monday-Sunday) had activity. */
 export function calcActiveDays(activityInstants: Date[], now: Date, timeZone: string): boolean[] {

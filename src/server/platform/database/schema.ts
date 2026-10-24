@@ -102,18 +102,8 @@ export type UserDoc = {
     name: string;
     image?: string;
     avatar?: string;
-    level: number;
-    xp: number;
-    xpToNextLevel: number;
-    streak: number;
-    lastActivityDate?: Date;
-    totalWorkouts: number;
-    totalDistance: number;
     createdAt: Date;
-    stamina: number;
-    lastStaminaUpdate: Date;
     timeZone?: string;
-    __v?: number;
 };
 
 export type OutboxDoc<T extends string = string, P = Document> = {

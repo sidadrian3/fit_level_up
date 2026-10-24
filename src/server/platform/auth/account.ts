@@ -32,7 +32,7 @@ export async function getAccount(userId: string, { session }: AccountOptions = {
     email: doc.email || "",
     name: doc.name || "",
     avatar: doc.avatar || doc.image || "zap",
-    joinDate: new Date(doc.createdAt).toISOString().slice(0, 10),
+    joinDate: new Date(doc.createdAt || Date.now()).toISOString().slice(0, 10),
     timeZone: doc.timeZone ?? "UTC",
   };
 }

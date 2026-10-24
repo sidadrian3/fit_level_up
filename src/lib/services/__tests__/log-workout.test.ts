@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { logWorkout } from '../workouts/log-workout';
 import { updateWorkout } from '../workouts/update-workout';
 import { IdempotencyKeyReusedError } from '@/server/platform/http';
-import { getCollection, type UserDoc } from "@/server/platform/database";
+import { getCollection, type PlayerProfileDoc, type UserDoc } from "@/server/platform/database";
+import { getPlayerState } from "@/server/progression";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { ObjectId } from 'mongodb';
 import { TargetMuscle } from '../../types';
 import crypto from 'crypto';
@@ -12,25 +14,22 @@ describe('logWorkout Integration Test', () => {
   const request = (fingerprint = 'f1') => ({ key: crypto.randomUUID(), fingerprint });
 
   beforeAll(async () => {
-    // Setup a dummy user in the empty in-memory db
-    const usersCol = await getCollection<UserDoc>("user");
-    const result = await usersCol.insertOne({
-      email: "test@example.com",
-      name: "Test User",
-      level: 1,
-      xp: 0,
-      xpToNextLevel: 500,
-      streak: 0,
-      totalWorkouts: 0,
-      totalDistance: 0,
-      stamina: 100,
-      lastStaminaUpdate: new Date(),
-      createdAt: new Date(),
-    });
-    userId = result.insertedId.toString();
+    userId = await seedPlayer({ email: "test@example.com", name: "Test User", profile: {} });
 
     // Ensure MongoDB indexes are created in the test DB (especially the idempotency index)
   });
+
+  afterAll(async () => {
+    await deletePlayer(userId);
+  });
+
+  async function readProfile() {
+    return (await (await getCollection<PlayerProfileDoc>("playerProfiles")).findOne({ _id: userId }))!;
+  }
+
+  async function setProfile(patch: Partial<PlayerProfileDoc>) {
+    await (await getCollection<PlayerProfileDoc>("playerProfiles")).updateOne({ _id: userId }, { $set: patch });
+  }
 
   beforeEach(async () => {
     await (await getCollection("outbox")).deleteMany({});
@@ -62,13 +61,12 @@ describe('logWorkout Integration Test', () => {
     expect(workout.xpEarned).toBeGreaterThan(0);
 
     // 2. Verify user stats were updated
-    const usersCol = await getCollection<UserDoc>("user");
-    const user = await usersCol.findOne({ _id: new ObjectId(userId) });
+    const profile = await readProfile();
 
-    expect(user).toBeDefined();
-    expect(user!.totalWorkouts).toBe(1); // incremented
-    expect(user!.xp).toBe(workout.xpEarned); // XP granted
-    expect(user!.streak).toBe(1); // Streak started
+    expect(profile).toBeDefined();
+    expect(profile.totalWorkouts).toBe(1); // incremented
+    expect((await getPlayerState(userId)).xp).toBe(workout.xpEarned); // XP granted
+    expect(profile.streak).toBe(1); // Streak started
   });
 
   it("emits activity.logged with the workout", async () => {
@@ -96,10 +94,8 @@ describe('logWorkout Integration Test', () => {
 
   it("extends the streak on the user's local day", async () => {
     const usersCol = await getCollection<UserDoc>("user");
-    await usersCol.updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { timeZone: "Asia/Manila", streak: 3, lastActivityDate: new Date("2026-10-20T00:00:00Z") } }
-    );
+    await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { timeZone: "Asia/Manila" } });
+    await setProfile({ streak: 3, lastActivityDay: "2026-10-20" });
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-20T23:30:00Z"));
 
@@ -109,17 +105,13 @@ describe('logWorkout Integration Test', () => {
       exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 100 }]
     }, userId, request());
 
-    const user = await usersCol.findOne({ _id: new ObjectId(userId) });
-    expect(user!.streak).toBe(4);
-    expect(user!.lastActivityDate!.toISOString()).toBe("2026-10-21T00:00:00.000Z");
+    const profile = await readProfile();
+    expect(profile.streak).toBe(4);
+    expect(profile.lastActivityDay).toBe("2026-10-21");
   });
 
   it("applies two concurrent workouts without losing either update", async () => {
-    const usersCol = await getCollection<UserDoc>("user");
-    await usersCol.updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { totalWorkouts: 0, xp: 0, level: 1, xpToNextLevel: 500, stamina: 100, lastStaminaUpdate: new Date() } }
-    );
+    await setProfile({ totalWorkouts: 0, totalXp: 0, stamina: 100, lastStaminaUpdate: new Date() });
     const input = {
       title: "Parallel",
       duration: 30,
@@ -131,11 +123,11 @@ describe('logWorkout Integration Test', () => {
       logWorkout(input, userId, request()),
     ]);
 
-    const user = await usersCol.findOne({ _id: new ObjectId(userId) });
-    expect(user!.totalWorkouts).toBe(2);
-    expect(user!.xp).toBe(first.value.xpEarned + second.value.xpEarned);
+    const profile = await readProfile();
+    expect(profile.totalWorkouts).toBe(2);
+    expect((await getPlayerState(userId)).xp).toBe(first.value.xpEarned + second.value.xpEarned);
     // 30 min -> 10 + 6 = 16 stamina per workout
-    expect(user!.stamina).toBe(100 - 2 * 16);
+    expect(profile.stamina).toBe(100 - 2 * 16);
   });
 
   describe('idempotency', () => {
@@ -146,8 +138,8 @@ describe('logWorkout Integration Test', () => {
     };
 
     async function readUser() {
-      const usersCol = await getCollection<UserDoc>("user");
-      return (await usersCol.findOne({ _id: new ObjectId(userId) }))!;
+      const profile = await readProfile();
+      return { xp: (await getPlayerState(userId)).xp, totalWorkouts: profile.totalWorkouts };
     }
 
     it('replays the existing workout on a duplicate request without re-applying side effects', async () => {
@@ -207,8 +199,7 @@ describe('logWorkout Integration Test', () => {
   describe('Stamina System Integration', () => {
     it('should correctly deduct stamina for a normal workout', async () => {
       // 1. Arrange: Update the dummy user to have 100 stamina
-      const usersCol = await getCollection<UserDoc>("user");
-      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 100, lastStaminaUpdate: new Date() } });
+      await setProfile({ stamina: 100, lastStaminaUpdate: new Date() });
 
       const workoutInput = {
         title: "Normal Workout",
@@ -220,14 +211,13 @@ describe('logWorkout Integration Test', () => {
       await logWorkout(workoutInput, userId, request());
 
       // 3. Assert
-      const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
-      expect(userAfter!.stamina).toBe(78); // 100 - 22 = 78
+      const userAfter = await readProfile();
+      expect(userAfter.stamina).toBe(78); // 100 - 22 = 78
     });
 
     it('should apply exhaustion debuff if stamina is 0', async () => {
       // 1. Arrange: Update the dummy user to have 0 stamina
-      const usersCol = await getCollection<UserDoc>("user");
-      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 0, lastStaminaUpdate: new Date() } });
+      await setProfile({ stamina: 0, lastStaminaUpdate: new Date() });
 
       const workoutInput = {
         title: "Exhausted Workout",
@@ -239,8 +229,8 @@ describe('logWorkout Integration Test', () => {
       const { value: workout } = await logWorkout(workoutInput, userId, request());
 
       // 3. Assert
-      const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
-      expect(userAfter!.stamina).toBe(0); // Can't go below 0
+      const userAfter = await readProfile();
+      expect(userAfter.stamina).toBe(0); // Can't go below 0
       expect(workout.xpEarned).toBe(Math.round(135 * 0.5)); // 68
     });
 
@@ -249,8 +239,7 @@ describe('logWorkout Integration Test', () => {
       const twoDaysAgo = new Date();
       twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
 
-      const usersCol = await getCollection<UserDoc>("user");
-      await usersCol.updateOne({ _id: new ObjectId(userId) }, { $set: { stamina: 10, lastStaminaUpdate: twoDaysAgo } });
+      await setProfile({ stamina: 10, lastStaminaUpdate: twoDaysAgo });
 
       const workoutInput = {
         title: "Recovered Workout",
@@ -264,8 +253,8 @@ describe('logWorkout Integration Test', () => {
       // 3. Assert
       // Recovery: 10 + (2*100) = 210 -> 100
       // Cost: 100 - 22 = 78
-      const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
-      expect(userAfter!.stamina).toBe(78);
+      const userAfter = await readProfile();
+      expect(userAfter.stamina).toBe(78);
     });
   });
 });

@@ -4,7 +4,8 @@ import type { CreateWorkoutInput, Workout } from "@/lib/types";
 import { insertWorkout, getWorkoutByIdempotencyKey } from "@/lib/data/workout-db";
 import { evaluateWorkout } from "@/lib/domain/workout-evaluator";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUserTimeZone } from "@/server/platform/auth";
+import { getPlayerState, recordActivity } from "@/server/progression";
 import { clientPromise } from "@/server/platform/database";
 import { emit } from "@/server/platform/events";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
@@ -31,10 +32,11 @@ async function createWorkout(
     const session = client.startSession();
     try {
         return await session.withTransaction(async () => {
-            const user = await UserStateService.getUser(userId, session);
             const now = new Date();
+            const player = await getPlayerState(userId, { now, session });
+            const timeZone = await getUserTimeZone(userId, { session });
 
-            const evaluation = evaluateWorkout(input, user.stamina);
+            const evaluation = evaluateWorkout(input, player.stamina);
             const workout = await insertWorkout({
                 userId,
                 title: input.title.trim(),
@@ -50,13 +52,15 @@ async function createWorkout(
             await updateQuestProgress(userId, {
                 type: "workout_created",
                 xpEarned: workout.xpEarned,
-            }, { now, timeZone: user.timeZone }, session);
+            }, { now, timeZone }, session);
 
-            await UserStateService.applyActivity(userId, {
-                xpEarned: workout.xpEarned,
-                activityAt: now,
+            await recordActivity({
+                userId,
+                source: { type: "workout", id: workout.id },
+                xp: workout.xpEarned,
                 staminaCost: evaluation.staminaCost,
-                stats: { incrementWorkouts: 1 }
+                totals: { workouts: 1 },
+                occurredAt: now,
             }, session);
 
             return workout;

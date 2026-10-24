@@ -1,6 +1,7 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUserTimeZone } from "@/server/platform/auth";
+import { getPlayerState, recordActivity } from "@/server/progression";
 import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
 import { evaluateRun } from "@/lib/domain/run-evaluator";
 import { clientPromise } from "@/server/platform/database";
@@ -29,9 +30,10 @@ async function createRun(
     const session = client.startSession();
     try {
         return await session.withTransaction(async () => {
-            const user = await UserStateService.getUser(userId, session);
             const now = new Date();
-            const evaluation = evaluateRun(input, user.stamina);
+            const player = await getPlayerState(userId, { now, session });
+            const timeZone = await getUserTimeZone(userId, { session });
+            const evaluation = evaluateRun(input, player.stamina);
 
             const run = await insertRun({
                 userId,
@@ -50,13 +52,15 @@ async function createRun(
                 type: "run_created",
                 distance: run.distance,
                 xpEarned: run.xpEarned,
-            }, { now, timeZone: user.timeZone }, session);
+            }, { now, timeZone }, session);
 
-            await UserStateService.applyActivity(userId, {
-                xpEarned: run.xpEarned,
-                activityAt: now,
+            await recordActivity({
+                userId,
+                source: { type: "run", id: run.id },
+                xp: run.xpEarned,
                 staminaCost: evaluation.staminaCost,
-                stats: { incrementDistance: run.distance }
+                totals: { distanceKm: run.distance },
+                occurredAt: now,
             }, session);
 
             return run;

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { ObjectId } from "mongodb";
 import { POST } from "../[id]/claim/route";
-import { getCollection, type UserDoc } from "@/server/platform/database";
+import { getCollection } from "@/server/platform/database";
+import { calcLifetimeXp, getPlayerState } from "@/server/progression";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 
 vi.mock("@/lib/auth/auth-helpers", () => ({
@@ -66,21 +67,11 @@ describe("POST /api/quests/[id]/claim", () => {
   });
 
   it("grants the quest XP once and rejects a second claim with 409", async () => {
-    const users = await getCollection<UserDoc>("user");
-    const { insertedId: realUserId } = await users.insertOne({
+    const claimerId = await seedPlayer({
       email: `claim-${crypto.randomUUID()}@example.com`,
       name: "Claimer",
-      level: 1,
-      xp: 450,
-      xpToNextLevel: 500,
-      streak: 0,
-      totalWorkouts: 0,
-      totalDistance: 0,
-      stamina: 100,
-      lastStaminaUpdate: new Date(),
-      createdAt: new Date(),
+      profile: { totalXp: calcLifetimeXp(1, 450) },
     });
-    const claimerId = realUserId.toString();
     vi.mocked(getAuthUserId).mockResolvedValue(claimerId);
 
     try {
@@ -112,15 +103,14 @@ describe("POST /api/quests/[id]/claim", () => {
 
       expect((await claim(questId)).status).toBe(200);
 
-      const user = await users.findOne({ _id: realUserId });
-      expect(user).toMatchObject({ level: 2, xp: 50 });
+      expect(await getPlayerState(claimerId)).toMatchObject({ level: 2, xp: 50 });
       expect((await claim(questId)).status).toBe(409);
     } finally {
       await (
         await getCollection("userQuests")
       ).deleteMany({ userId: claimerId });
       await (await getCollection("outbox")).deleteMany({});
-      await users.deleteOne({ _id: new ObjectId(claimerId) });
+      await deletePlayer(claimerId);
       vi.mocked(getAuthUserId).mockResolvedValue(userId);
     }
   });

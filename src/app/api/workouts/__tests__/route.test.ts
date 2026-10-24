@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ObjectId } from "mongodb";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { getCollection, type UserDoc } from "@/server/platform/database";
+import { getCollection } from "@/server/platform/database";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { POST } from "../route";
 
 const limit = vi.hoisted(() => vi.fn());
@@ -60,18 +60,13 @@ describe("POST /api/workouts - Idempotency-Key", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     limit.mockResolvedValue({ success: true, reset: Date.now() + 60_000 });
-    const usersCol = await getCollection<UserDoc>("user");
-    const { insertedId } = await usersCol.insertOne({
-      email: `wk-${crypto.randomUUID()}@example.com`, name: "Route User", level: 1, xp: 0, xpToNextLevel: 500, streak: 0,
-      totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date(),
-    });
-    userId = insertedId.toString();
+    userId = await seedPlayer({ email: `wk-${crypto.randomUUID()}@example.com`, name: "Route User", profile: {} });
     vi.mocked(getAuthUserId).mockResolvedValue(userId);
   });
 
   afterEach(async () => {
     await (await getCollection("workouts")).deleteMany({ userId });
-    await (await getCollection<UserDoc>("user")).deleteOne({ _id: new ObjectId(userId) });
+    await deletePlayer(userId);
   });
 
   it("returns 400 without an Idempotency-Key header", async () => {

@@ -23,7 +23,6 @@ export interface User {
     stamina: number;
     lastStaminaUpdate: DateString;
     timeZone: string;
-    __v?: number;
 }
 
 export interface CustomExercise {

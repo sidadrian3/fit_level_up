@@ -8,7 +8,8 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { calcLifetimeXp } from "@/server/progression";
+import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats } from "@/lib/services/users/get-dashboard-stats";
 import { getAllWorkoutsFromDb, getWorkoutDatesInRange } from "@/lib/data/workout-db";
 import { getUserQuests } from "@/lib/services/quests/get-user-quests";
@@ -23,7 +24,7 @@ export default async function DashboardPage() {
 
     const [user, allWorkouts, allQuests] = await
         Promise.all([
-            UserStateService.getUser(userId),
+            getUser(userId),
             getAllWorkoutsFromDb(userId),
             getUserQuests(userId)
         ]);
@@ -31,7 +32,7 @@ export default async function DashboardPage() {
     const now = new Date();
     const { thisWeekFrom, nextWeekFrom } = weekInstants(now, user.timeZone);
     const [stats, weekWorkoutDates] = await Promise.all([
-        getDashboardStats(userId, user, now),
+        getDashboardStats(userId, { timeZone: user.timeZone, totalXp: calcLifetimeXp(user.level, user.xp) }, now),
         getWorkoutDatesInRange(userId, thisWeekFrom, nextWeekFrom),
     ]);
 

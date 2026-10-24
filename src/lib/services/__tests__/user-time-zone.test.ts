@@ -3,7 +3,8 @@ import { ObjectId } from "mongodb";
 import crypto from "crypto";
 import { auth, getAccount, getUserTimeZone } from "@/server/platform/auth";
 import { getCollection, type UserDoc } from "@/server/platform/database";
-import { getUserFromDb } from "@/lib/data/user-db";
+import { getUser } from "../users/get-user";
+import { seedPlayer } from "@/testing/players";
 
 describe("user time zone", () => {
   const createdEmails: string[] = [];
@@ -46,24 +47,11 @@ describe("user time zone", () => {
   });
 
   it("reads UTC when the field is missing", async () => {
-    const users = await getCollection<UserDoc>("user");
-    const { insertedId } = await users.insertOne({
-      email: uniqueEmail(),
-      name: "No TZ",
-      level: 1,
-      xp: 0,
-      xpToNextLevel: 500,
-      streak: 0,
-      totalWorkouts: 0,
-      totalDistance: 0,
-      stamina: 100,
-      lastStaminaUpdate: new Date(),
-      createdAt: new Date(),
-    });
-    createdIds.push(insertedId);
+    const userId = await seedPlayer({ email: uniqueEmail(), name: "No TZ" });
+    createdIds.push(new ObjectId(userId));
 
-    expect(await getUserTimeZone(insertedId.toString())).toBe("UTC");
-    expect((await getUserFromDb(insertedId.toString()))?.timeZone).toBe("UTC");
+    expect(await getUserTimeZone(userId)).toBe("UTC");
+    expect((await getUser(userId)).timeZone).toBe("UTC");
   });
 
   it("getAccount returns identity fields only, defaulting timeZone to UTC", async () => {
@@ -73,14 +61,6 @@ describe("user time zone", () => {
       email,
       name: "Acct",
       image: "bolt",
-      level: 7,
-      xp: 10,
-      xpToNextLevel: 500,
-      streak: 0,
-      totalWorkouts: 0,
-      totalDistance: 0,
-      stamina: 100,
-      lastStaminaUpdate: new Date(),
       createdAt: new Date("2025-03-04T10:00:00Z"),
     });
     createdIds.push(insertedId);

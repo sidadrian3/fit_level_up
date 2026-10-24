@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import crypto from "crypto";
-import { ObjectId } from "mongodb";
 import { logRun } from "../runs/log-run";
-import { getCollection, type UserDoc } from "@/server/platform/database";
+import { getCollection, type PlayerProfileDoc } from "@/server/platform/database";
+import { getPlayerState } from "@/server/progression";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { IdempotencyKeyReusedError } from "@/server/platform/http";
 
 const runInput = { distance: 5, duration: 30, difficulty: "moderate" as const };
@@ -12,17 +13,16 @@ describe("logRun Integration Test", () => {
   let userId: string;
 
   async function readUser() {
-    const usersCol = await getCollection<UserDoc>("user");
-    return (await usersCol.findOne({ _id: new ObjectId(userId) }))!;
+    const profile = (await (await getCollection<PlayerProfileDoc>("playerProfiles")).findOne({ _id: userId }))!;
+    return { totalDistance: profile.totalDistance, xp: (await getPlayerState(userId)).xp };
   }
 
   beforeAll(async () => {
-    const usersCol = await getCollection<UserDoc>("user");
-    const { insertedId } = await usersCol.insertOne({
-      email: "runner@example.com", name: "Runner", level: 1, xp: 0, xpToNextLevel: 500, streak: 0,
-      totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date(),
-    });
-    userId = insertedId.toString();
+    userId = await seedPlayer({ email: "runner@example.com", name: "Runner", profile: {} });
+  });
+
+  afterAll(async () => {
+    await deletePlayer(userId);
   });
 
   beforeEach(async () => {

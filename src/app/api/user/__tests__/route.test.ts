@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ObjectId } from "mongodb";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { getCollection, type UserDoc } from "@/server/platform/database";
+import { getCollection, type PlayerProfileDoc } from "@/server/platform/database";
+import { calcLifetimeXp } from "@/server/progression";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { GAME_CONFIG } from "@/server/platform/config";
 import { GET } from "../route";
 
@@ -19,25 +20,23 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 describe("GET /api/user", () => {
   let userId: string;
 
-  async function seedUser(overrides: Partial<UserDoc> = {}) {
-    const users = await getCollection<UserDoc>("user");
-    const { insertedId } = await users.insertOne({
+  async function seedUser(profile: Partial<PlayerProfileDoc> = {}) {
+    userId = await seedPlayer({
       email: `user-route-${crypto.randomUUID()}@example.com`,
       name: "Route User",
-      level: 3,
-      xp: 200,
-      xpToNextLevel: 1500,
-      streak: 4,
-      stamina: 40,
-      totalWorkouts: 12,
-      totalDistance: 7.5,
       timeZone: "Asia/Manila",
-      lastActivityDate: new Date("2026-10-19T00:00:00Z"),
-      lastStaminaUpdate: NOW,
       createdAt: new Date("2026-01-05T12:00:00Z"),
-      ...overrides,
+      profile: {
+        totalXp: calcLifetimeXp(3, 200),
+        streak: 4,
+        stamina: 40,
+        totalWorkouts: 12,
+        totalDistance: 7.5,
+        lastActivityDay: "2026-10-19",
+        lastStaminaUpdate: NOW,
+        ...profile,
+      },
     });
-    userId = insertedId.toString();
     vi.mocked(getAuthUserId).mockResolvedValue(userId);
   }
 
@@ -54,9 +53,7 @@ describe("GET /api/user", () => {
 
   afterEach(async () => {
     vi.useRealTimers();
-    await (
-      await getCollection<UserDoc>("user")
-    ).deleteOne({ _id: new ObjectId(userId) });
+    await deletePlayer(userId);
   });
 
   it("returns the exact user shape with formatted dates", async () => {
@@ -81,7 +78,6 @@ describe("GET /api/user", () => {
         "stamina",
         "lastStaminaUpdate",
         "timeZone",
-        "__v",
       ].sort(),
     );
     expect(body).toMatchObject({
@@ -99,13 +95,13 @@ describe("GET /api/user", () => {
   });
 
   it("keeps the streak when the last activity was yesterday in the user's time zone", async () => {
-    await seedUser({ lastActivityDate: new Date("2026-10-19T00:00:00Z") });
+    await seedUser({ lastActivityDay: "2026-10-19" });
 
     expect((await getBody()).streak).toBe(4);
   });
 
   it("displays a zero streak when the last activity was two days ago", async () => {
-    await seedUser({ lastActivityDate: new Date("2026-10-18T00:00:00Z") });
+    await seedUser({ lastActivityDay: "2026-10-18" });
 
     expect((await getBody()).streak).toBe(0);
   });

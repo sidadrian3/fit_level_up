@@ -1,7 +1,7 @@
 // APPLICATION SERVICE — orchestrates domain logic + persistence for achievement evaluation
 
 import type { Achievement } from "@/lib/types";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUser } from "@/lib/services/users/get-user";
 import {
   getAchievementDefinitions,
   getUserUnlocks,
@@ -16,7 +16,7 @@ export async function evaluateAchievements(
   session?: ClientSession
 ): Promise<Achievement[]> {
   // Get user data with evaluated stamina/streak
-  const user = await UserStateService.getUser(userId, session);
+  const user = await getUser(userId, { session });
 
   // Fetch all definitions and user's existing unlocks
   const [definitions, unlocked] = await Promise.all([

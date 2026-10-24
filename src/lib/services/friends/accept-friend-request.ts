@@ -1,6 +1,6 @@
 import type { Friendship } from "@/lib/types";
 import { getFriendshipBetweenFromDb, updateFriendshipStatusInDb } from "@/lib/data/friendships-db";
-import { UserStateService } from "@/lib/services/users/user-state.service";
+import { getUser } from "@/lib/services/users/get-user";
 import { publishToUser } from "@/lib/sse/sse-publisher";
 import { after } from "next/server";
 import { NotFoundError, ConflictError, ForbiddenError } from "@/server/platform/http";
@@ -31,7 +31,7 @@ export async function acceptFriendRequest(targetUserId: string, userId: string):
 
     // 5. Side Effects (fire-and-forget via Redis queue)
     // We fetch the current user to get their name and avatar for the notification payload.
-    UserStateService.getUser(userId).then(user => {
+    getUser(userId).then(user => {
         if (user) {
             after(
                 publishToUser(updated.requesterId, {

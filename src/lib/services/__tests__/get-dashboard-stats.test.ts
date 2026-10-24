@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { getDashboardStats } from '../users/get-dashboard-stats';
 import { getCollection } from "@/server/platform/database";
-import type { User } from '../../types';
 
 describe('getDashboardStats Integration Test', () => {
   const userId = 'dashboard-stats-user';
-  const user = { level: 1, xp: 0, timeZone: 'America/New_York' } as User;
+  const user = { totalXp: 0, timeZone: 'America/New_York' };
 
   beforeAll(async () => {
   });

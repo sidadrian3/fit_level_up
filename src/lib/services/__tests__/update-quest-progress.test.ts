@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { logWorkout } from "../workouts/log-workout";
 import { getUserQuests } from "../quests/get-user-quests";
 import { getCollection, type UserDoc } from "@/server/platform/database";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { TargetMuscle } from "@/lib/types";
 
 const request = () => ({ key: crypto.randomUUID(), fingerprint: "f1" });
@@ -18,12 +19,11 @@ describe("quest progress through logWorkout", () => {
   let userId: string;
 
   beforeAll(async () => {
-    const usersCol = await getCollection<UserDoc>("user");
-    const { insertedId } = await usersCol.insertOne({
-      email: "quests@example.com", name: "Quests", level: 1, xp: 0, xpToNextLevel: 500, streak: 0,
-      totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date(),
-    });
-    userId = insertedId.toString();
+    userId = await seedPlayer({ email: "quests@example.com", name: "Quests", profile: {} });
+  });
+
+  afterAll(async () => {
+    await deletePlayer(userId);
   });
 
   afterEach(async () => {

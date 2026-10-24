@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ObjectId } from "mongodb";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { publishToMany } from "@/lib/sse/sse-publisher";
 import { buildFriendshipPairKey } from "@/lib/domain/friend-rules";
 import type { AchievementDefinitionDoc } from "@/lib/data/achievements-db";
-import { getCollection, type FriendshipDoc, type UserDoc } from "@/server/platform/database";
+import { getCollection, type FriendshipDoc } from "@/server/platform/database";
+import { calcLifetimeXp } from "@/server/progression";
+import { seedPlayer, deletePlayer } from "@/testing/players";
 import { POST } from "@/app/api/workouts/route";
 import { GET } from "../outbox-sweep/route";
 
@@ -31,11 +32,6 @@ const sweep = (authorization?: string) =>
     headers: authorization ? { authorization } : {},
   }));
 
-const newUser = (name: string, xp: number): UserDoc => ({
-  email: `${crypto.randomUUID()}@example.com`, name, level: 1, xp, xpToNextLevel: 500, streak: 0,
-  totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date(),
-});
-
 describe("GET /api/cron/outbox-sweep", () => {
   let userId: string;
   let friendId: string;
@@ -43,9 +39,8 @@ describe("GET /api/cron/outbox-sweep", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await (await getCollection("outbox")).deleteMany({});
-    const users = await getCollection<UserDoc>("user");
-    userId = (await users.insertOne(newUser("Lifter", 499))).insertedId.toString();
-    friendId = (await users.insertOne(newUser("Friend", 0))).insertedId.toString();
+    userId = await seedPlayer({ name: "Lifter", profile: { totalXp: calcLifetimeXp(1, 499) } });
+    friendId = await seedPlayer({ name: "Friend", profile: {} });
     vi.mocked(getAuthUserId).mockResolvedValue(userId);
 
     const now = new Date();
@@ -65,9 +60,8 @@ describe("GET /api/cron/outbox-sweep", () => {
     await (await getCollection("userAchievements")).deleteMany({ userId });
     await (await getCollection("achievements")).deleteOne({ id: achievementId });
     await (await getCollection("friendships")).deleteMany({ requesterId: userId });
-    await (await getCollection<UserDoc>("user")).deleteMany({
-      _id: { $in: [new ObjectId(userId), new ObjectId(friendId)] },
-    });
+    await deletePlayer(userId);
+    await deletePlayer(friendId);
   });
 
   it("returns 401 without a bearer token", async () => {
