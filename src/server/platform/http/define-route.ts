@@ -102,14 +102,17 @@ async function enforceThrottle(
 }
 
 export function createDefineRoute(deps: DefineRouteDeps) {
+  // Idempotent create route: the handler gets { key, fingerprint } and must say whether it replayed.
   function defineRoute<B = undefined, Q = undefined, P = undefined, T = unknown>(
     options: RouteOptions<"user", B, Q, P> & { idempotency: "required" },
     handler: (ctx: RouteContext<"user", B, Q, P, IdempotencyRequest>) => Promise<IdempotentResult<T>>
   ): DefinedRoute;
+  // Every other route: the handler returns a plain value (sent as JSON) or its own Response.
   function defineRoute<A extends RouteAuth, B = undefined, Q = undefined, P = undefined, T = unknown>(
     options: RouteOptions<A, B, Q, P> & { idempotency?: undefined },
     handler: (ctx: RouteContext<A, B, Q, P>) => Promise<T | Response>
   ): DefinedRoute;
+  // Implementation, hidden from callers: accepts both shapes, so the handler is cast back to one wide type.
   function defineRoute(
     options: RouteOptions<RouteAuth, unknown, unknown, unknown>,
     overloadHandler: (ctx: never) => Promise<unknown>
