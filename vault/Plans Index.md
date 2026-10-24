@@ -16,3 +16,4 @@ Index of all implementation plans in this vault.
 - [[Transactional Outbox Plan]] — audit step 2.5: transactional emit(), lease-based dispatcher with per-listener retry and dead rows, defineRoute after() dispatch, generic outbox-sweep cron, npm run outbox
 - [[Progression Module Plan]] — audit step 3.1: src/server/progression, player_profiles with computed level, xp_ledger from day one, one XP path, no __v, expand-only backfill
 - [[Quests And Training Modules Plan]] — audit steps 3.2–3.4: quest and achievement definitions as typed constants, quests module, training module with aggregated records, user-zone activity dates
+- [[Edit And Delete Reconciliation Plan]] — audit step 3.5: highestLevel high-water mark, replaceSourceXp/revokeSource with ledger re-sum and streak recount, quest recount with claim clawback, transactional workout and run edit/delete, migration 005 ledger backfill

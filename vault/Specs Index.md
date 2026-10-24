@@ -13,6 +13,7 @@ Index of all design specs in this vault.
 - [[Rate Limit Tiers Design Spec]] — standard and expensive Upstash tiers keyed by route + user on every mutation, with Retry-After (audit F-11, step 2.3)
 - [[Idempotency Key Header Design Spec]] — UUID Idempotency-Key header on create routes, body fingerprint, 201 replay with Idempotent-Replayed, 422 on reuse (audit F-20, step 2.4)
 - [[Transactional Outbox Design Spec]] — typed emit() into an outbox row in the caller's transaction, after() dispatch of own ids, generic daily outbox-sweep cron, dead rows after 8 attempts (step 2.5)
+- [[Edit And Delete Reconciliation Design Spec]] — edit and delete replace or revoke the activity's xp_ledger row and re-sum XP (level can fall), adjust totals, recount quests with claim clawback and the streak on delete, highestLevel high-water mark, ledger backfill (audit F-4, step 3.5)
 
 ## Infra / Meta
 
