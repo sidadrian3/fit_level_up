@@ -122,6 +122,7 @@ export type OutboxDoc<T extends string = string, P = Document> = {
 export type PlayerProfileDoc = {
     _id: string;
     totalXp: number;
+    highestLevel: number;
     streak: number;
     lastActivityDay: string | null;
     stamina: number;
@@ -330,6 +331,7 @@ export const SCHEMA: Record<
             {
                 _id: string,
                 totalXp: number,
+                highestLevel: number,
                 streak: number,
                 stamina: number,
                 lastActivityDay: { bsonType: ["string", "null"] },
@@ -339,7 +341,7 @@ export const SCHEMA: Record<
                 totalWorkouts: number,
                 totalDistance: number,
             },
-            ["_id", "totalXp", "streak", "stamina", "lastActivityDay", "lastStaminaUpdate", "createdAt", "updatedAt", "totalWorkouts", "totalDistance"]
+            ["_id", "totalXp", "highestLevel", "streak", "stamina", "lastActivityDay", "lastStaminaUpdate", "createdAt", "updatedAt", "totalWorkouts", "totalDistance"]
         ),
     },
     xpLedger: {

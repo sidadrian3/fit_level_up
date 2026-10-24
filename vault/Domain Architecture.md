@@ -155,8 +155,9 @@ export async function insertWorkout(input: Omit<WorkoutDoc, "_id">, session?: Cl
     return toWorkout(await workouts.insertOne(userId, rest, { session }));
 }
 
-export async function deleteWorkoutById(userId: string, id: string): Promise<boolean> {
-    return (await workouts.deleteById(userId, id)) !== null;
+export async function deleteWorkoutById(userId: string, id: string, session?: ClientSession): Promise<Workout | null> {
+    const doc = await workouts.deleteById(userId, id, { session });
+    return doc ? toWorkout(doc) : null;
 }
 ```
 

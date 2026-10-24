@@ -187,7 +187,7 @@ POST /api/workouts
 - Stamina system with daily recovery and exhaustion XP debuff
 - Dashboard with weekly workout/run stats
 - Custom exercises (create, reuse across workouts)
-- Full CRUD for workouts and runs (create, list with pagination, edit, delete)
+- Full CRUD for workouts and runs (create, list with pagination, edit, delete; both reverse the activity's XP, totals, quest progress and, on delete, the streak)
 - Profile page with personal records
 - **UI & UX Overhaul (Modern Athletic Style):**
   - Transitioned from generic SaaS design to a high-contrast, gamified athletic HUD aesthetic.
@@ -232,7 +232,7 @@ POST /api/workouts
 **Architectural Refactors (Vercel Compatibility & Deep Modules):**
 
 - **Transactional outbox:** Background side effects (`evaluateAchievements`, `notifyFriendsLevelUp`) are outbox rows written in the caller's transaction and delivered with the Next.js `after()` API once the response is sent, so a function killed after commit delays them but never loses them.
-- **Progression module:** `src/server/progression` owns XP, level, streak, stamina and totals in the `player_profiles` collection. `recordActivity` (workouts and runs) and `grantXp` (quest claims) share one XP path that writes an `xp_ledger` row, increments `totalXp` and emits `progression.leveled-up`. Level and `xpToNextLevel` are computed from `totalXp`.
+- **Progression module:** `src/server/progression` owns XP, level, streak, stamina and totals in the `player_profiles` collection. `recordActivity` (workouts and runs) and `grantXp` (quest claims) share one XP path that writes an `xp_ledger` row, increments `totalXp` and emits `progression.leveled-up` when the level passes `highestLevel`, so a level lost and re-earned announces nothing. Editing or deleting an activity goes through `replaceSourceXp` and `revokeSource`, which replace or remove the activity's ledger row and set `totalXp` to the ledger sum, so the level can fall. Level and `xpToNextLevel` are computed from `totalXp`.
 - **Quests and training modules:** `src/server/quests` owns the quest definitions (typed constants with stable string ids), period rules, sync, progress and claim. `src/server/training` owns workouts, runs, templates, custom exercises and records; personal records and run stats are computed by database aggregation. Workout and run dates are returned as ISO instants and formatted in the user's time zone by the client.
 - **Pure Data Mappers:** Dynamic state assembly (calculating stamina recovery, zeroing a broken streak) happens in progression's `getPlayerState`, not in the data layer; `getUser` in `lib/services/users` composes the account and the player state into the `User` the API returns.
 - **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.

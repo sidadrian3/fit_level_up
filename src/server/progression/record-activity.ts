@@ -7,13 +7,14 @@ import {
   applyActivityToProfile,
   findProfile,
   newProfileDefaults,
+  type Totals,
 } from "./profile.repository";
 import { calcNewStreak, calcRecoveredStamina } from "./progression.rules";
 
 export type RecordActivityInput = Omit<XpGrant, "amount"> & {
   xp: number;
   staminaCost: number;
-  totals: { workouts?: number; distanceKm?: number };
+  totals: Totals;
 };
 
 export async function recordActivity(

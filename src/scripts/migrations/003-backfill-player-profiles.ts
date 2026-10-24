@@ -1,6 +1,6 @@
 import type { AnyBulkWriteOperation, Db, ObjectId } from "mongodb";
 import { COLLECTIONS } from "@/server/platform/database";
-import { calcLifetimeXp } from "@/server/progression";
+import { calcLifetimeXp, levelFromTotalXp } from "@/server/progression";
 import type { Migration } from "./run-migrations";
 
 const BATCH_SIZE = 500;
@@ -33,12 +33,14 @@ const LEGACY_GAME_PROJECTION = {
 } as const;
 
 function toProfileUpsert(user: LegacyGameUser, now: Date): ProfileUpsert {
+  const totalXp = calcLifetimeXp(user.level, user.xp ?? 0);
   return {
     updateOne: {
       filter: { _id: user._id.toString() },
       update: {
         $setOnInsert: {
-          totalXp: calcLifetimeXp(user.level, user.xp ?? 0),
+          totalXp,
+          highestLevel: levelFromTotalXp(totalXp).level,
           streak: user.streak ?? 0,
           lastActivityDay: user.lastActivityDate?.toISOString().slice(0, 10) ?? null,
           stamina: user.stamina ?? 100,

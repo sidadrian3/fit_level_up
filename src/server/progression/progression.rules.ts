@@ -76,3 +76,13 @@ export function calcRecoveredStamina(currentStamina: number, lastUpdateDate: Dat
   const newStamina = currentStamina + (diffDays * GAME_CONFIG.stamina.dailyRecovery);
   return Math.min(100, newStamina);
 }
+
+export function recountStreak(days: readonly string[]): { streak: number; lastActivityDay: string } {
+  const distinctDays = new Set(days);
+  const lastActivityDay = [...distinctDays].sort().at(-1)!;
+
+  let streak = 1;
+  while (distinctDays.has(addDays(lastActivityDay, -streak))) streak += 1;
+
+  return { streak, lastActivityDay };
+}

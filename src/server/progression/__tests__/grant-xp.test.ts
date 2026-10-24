@@ -1,24 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import type { ClientSession } from "mongodb";
 import { grantXp } from "../grant-xp";
 import {
-  clientPromise,
   getCollection,
   type XpLedgerDoc,
 } from "@/server/platform/database";
 import { deletePlayer, seedPlayer } from "@/testing/players";
-
-async function inTransaction<T>(
-  work: (session: ClientSession) => Promise<T>,
-): Promise<T> {
-  const client = await clientPromise;
-  const session = client.startSession();
-  try {
-    return (await session.withTransaction(() => work(session))) as T;
-  } finally {
-    await session.endSession();
-  }
-}
+import { inTransaction } from "@/testing/transactions";
 
 const outbox = async () => getCollection("outbox");
 const ledgerRows = async (userId: string) =>
@@ -66,6 +53,38 @@ describe("grantXp", () => {
       previousLevel: 1,
       newLevel: 2,
     });
+  });
+
+  it("does not level up again below the highest level reached", async () => {
+    await deletePlayer(userId);
+    userId = await seedPlayer({ profile: { totalXp: 450, highestLevel: 2 } });
+
+    const { player, leveledUp } = await inTransaction((session) =>
+      grantXp(grant(100), session),
+    );
+
+    expect(leveledUp).toBe(false);
+    expect(player.level).toBe(2);
+    expect(
+      await (await outbox()).countDocuments({ type: "progression.leveled-up" }),
+    ).toBe(0);
+  });
+
+  it("reports the previous highest level in the event", async () => {
+    await deletePlayer(userId);
+    userId = await seedPlayer({ profile: { totalXp: 950, highestLevel: 2 } });
+
+    await inTransaction((session) => grantXp(grant(600), session));
+
+    const events = await (await outbox())
+      .find({ type: "progression.leveled-up" })
+      .toArray();
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toEqual({ userId, previousLevel: 2, newLevel: 3 });
+    const profile = await (
+      await getCollection("playerProfiles")
+    ).findOne({ _id: userId as never });
+    expect(profile?.highestLevel).toBe(3);
   });
 
   it("emits nothing below the threshold", async () => {

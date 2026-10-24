@@ -32,3 +32,45 @@ export async function recordXp(
     { session },
   );
 }
+
+export async function upsertXp(
+  userId: string,
+  {
+    source,
+    amount,
+    occurredAt,
+  }: { source: XpSource; amount: number; occurredAt: Date },
+  session: ClientSession,
+): Promise<void> {
+  await ledger.updateOne(
+    userId,
+    { sourceType: source.type, sourceId: source.id },
+    { $set: { amount }, $setOnInsert: { occurredAt, createdAt: new Date() } },
+    { session, upsert: true },
+  );
+}
+
+export async function deleteXp(
+  userId: string,
+  source: XpSource,
+  session: ClientSession,
+): Promise<void> {
+  const row = await ledger.findOne(
+    userId,
+    { sourceType: source.type, sourceId: source.id },
+    { session },
+  );
+  if (row) await ledger.deleteById(userId, row._id.toString(), { session });
+}
+
+export async function sumXp(
+  userId: string,
+  session: ClientSession,
+): Promise<number> {
+  const [result] = await ledger.aggregate<{ total: number }>(
+    userId,
+    [{ $group: { _id: null, total: { $sum: "$amount" } } }],
+    { session },
+  );
+  return result?.total ?? 0;
+}

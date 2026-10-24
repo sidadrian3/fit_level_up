@@ -141,7 +141,7 @@ Ranked most severe first. "F-n" ids are referenced from §5. Findings marked _Fi
 
 **F-3. The quest-sync cooldown never works.** _Fixed in step 0.5: the cooldown is removed; the sync is an idempotent upsert._ `get-user-quests.ts:7` creates the `syncCooldowns` map _inside_ the function, so it is always empty and every `GET /api/quests` (and every dashboard render) runs a full `bulkWrite` upsert.
 
-**F-4. Editing or deleting an activity doesn't reconcile game state.** _Open by design: step 3.5._ `updateWorkout`/`updateRun` recompute `xpEarned` on the activity but never adjust the user's XP, level, totals or quest progress; deletes go straight to `*-db.ts` from the route. A user can log a 300-minute workout, collect the XP and level-up, then edit it to 1 minute or delete it and keep everything.
+**F-4. Editing or deleting an activity doesn't reconcile game state.** _Fixed in step 3.5._ `updateWorkout`/`updateRun` recompute `xpEarned` on the activity but never adjust the user's XP, level, totals or quest progress; deletes go straight to `*-db.ts` from the route. A user can log a 300-minute workout, collect the XP and level-up, then edit it to 1 minute or delete it and keep everything.
 
 **F-5. Duplicate rows are possible under concurrency.** _Fixed in step 0.4: unique indexes, upserting unlocks and duplicate-key recovery, with a pre-index cleanup in `prepare-unique-indexes.ts`._ `evaluateAchievements` can run twice at once (the `after()` fast path and the cron sweep, or two quick activities). With only a non-unique index on `user_achievements.userId` (`ensure-indexes.ts:47`), both inserts succeed and `totalAchievements` counts twice. `createCustomExercise` has the same read-then-insert race with no unique index (`ensure-indexes.ts:74`). `createWorkoutTemplateInDb` checks then inserts, so a racing retry gets a raw duplicate-key 500.
 
@@ -428,12 +428,12 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated                   | F-12 by construction                  | 2.1        | Done   |
 | **2.3** | `/feature`  | Per-user, per-route rate-limit tiers                                                | F-11                                  | 2.2        | Done   |
 | **2.4** | `/feature`  | `Idempotency-Key` header replaces body sniffing                                     | F-20                                  | 2.2        | Done   |
-| **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Open   |
+| **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Done   |
 | **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path writing `xp_ledger`, no `__v` | F-15, §3.2 #1 #4 #6                   | 2.5        | Done   |
 | **3.2** | `/refactor` | Quest and achievement definitions as typed constants                                | §5.3                                  | 2.1        | Done   |
 | **3.3** | `/refactor` | `quests` module                                                                     | F-17 (quests)                         | 3.1, 3.2   | Done   |
 | **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records)                   | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3   | Done   |
-| **3.5** | `/feature`  | Ledger backfill; edit and delete reconcile XP, level, totals, quests                | **F-4**, §3.2 #3 #10                  | 3.4        | Open   |
+| **3.5** | `/feature`  | Ledger backfill; edit and delete reconcile XP, level, totals, quests                | **F-4**, §3.2 #3 #10                  | 3.4        | Done   |
 | **3.6** | `/refactor` | `achievements` module as an outbox listener                                         | F-5 (finish), F-16                    | 3.4, 2.5   | Open   |
 | **3.7** | `/refactor` | `social` module, transition table, no N+1                                           | F-9 (friends), F-16                   | 2.5        | Open   |
 | **3.8** | `/feature`  | `notification` module: inbox + polling delivery (SSE retires)                       | F-10, F-18 (SSE)                      | 3.6, 3.7   | Open   |
@@ -441,7 +441,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **4.2** | `/refactor` | Page `_components/`, `WorkoutForm` split, shared custom-exercise hook               | F-19                                  | 4.1        | Open   |
 | **5.1** | `/refactor` | Delete old `lib/` back-end folders and dead code; sync `AGENTS.md` and vault guides | F-18                                  | 4.2        | Open   |
 
-Steps 0.1–0.6 were independent and shipped together in one PR; 0.7 followed on its own branch. 3.2 can run any time after 2.1. 3.7 can run in parallel with 3.3–3.6.
+Steps 0.1–0.6 were independent and shipped together in one PR; 0.7 followed on its own branch. 3.2 can run any time after 2.1. 3.7 can run in parallel with 3.3–3.6. 3.6, 3.7 and 3.8 ship together on one branch: 3.8's inbox consumes the events 3.6 and 3.7 start emitting, so the events, the inbox and the SSE retirement land at once. 3.5 ships alone, because it is the only one of the four that changes user-visible behaviour and runs a data backfill.
 
 The design spec (step 1.1) kept this order and changed the scope of 2.1, 2.2, 2.5, 3.1, 3.5 and 3.8; see its D4. Its kickoff prompts below name the spec sections each step implements.
 

@@ -3,6 +3,8 @@ import type { IdempotentRecord } from "@/server/platform/http";
 import { userScopedRepository, type UserOwnedDoc, type WorkoutDoc } from "@/server/platform/database";
 import type { Exercise, Workout } from "@/lib/types";
 import type { LiftMax } from "../records/records.rules";
+import * as dateQueries from "../date-queries";
+import { dateFilter, type DateRange } from "../date-queries";
 
 type OwnedWorkoutDoc = WorkoutDoc & UserOwnedDoc;
 
@@ -43,13 +45,27 @@ export async function updateWorkoutFields(
     userId: string,
     id: string,
     fields: { title: string; exercises: Exercise[]; duration: number; xpEarned: number },
+    session?: ClientSession,
 ): Promise<Workout | null> {
-    const doc = await workouts.updateById(userId, id, { $set: fields });
+    const doc = await workouts.updateById(userId, id, { $set: fields }, { session });
     return doc ? toWorkout(doc) : null;
 }
 
-export async function deleteWorkoutById(userId: string, id: string): Promise<boolean> {
-    return (await workouts.deleteById(userId, id)) !== null;
+export async function deleteWorkoutById(userId: string, id: string, session?: ClientSession): Promise<Workout | null> {
+    const doc = await workouts.deleteById(userId, id, { session });
+    return doc ? toWorkout(doc) : null;
+}
+
+export function countWorkouts(userId: string, range: DateRange | null, session?: ClientSession): Promise<number> {
+    return workouts.count(userId, dateFilter(range), { session });
+}
+
+export function findActivityDaysSince(userId: string, from: Date, timeZone: string, session?: ClientSession): Promise<string[]> {
+    return dateQueries.findActivityDaysSince(workouts, userId, from, timeZone, session);
+}
+
+export function findLatestDate(userId: string, session?: ClientSession): Promise<Date | null> {
+    return dateQueries.findLatestDate(workouts, userId, session);
 }
 
 export function countWorkoutsInRange(userId: string, from: Date, toExclusive: Date): Promise<number> {

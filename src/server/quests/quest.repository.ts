@@ -69,3 +69,28 @@ export async function markQuestClaimed(
   );
   return updated !== null;
 }
+
+export function findQuestRow(
+  userId: string,
+  period: Pick<UserQuestDoc, "questTemplateId" | "periodStart" | "periodEnd">,
+  session?: ClientSession,
+): Promise<OwnedQuestDoc | null> {
+  return quests.findOne(
+    userId,
+    {
+      questTemplateId: period.questTemplateId,
+      periodStart: period.periodStart,
+      periodEnd: period.periodEnd,
+    },
+    { session },
+  );
+}
+
+export async function setQuestRecount(
+  userId: string,
+  id: string,
+  state: Pick<UserQuestDoc, "progress" | "completed" | "claimed">,
+  session?: ClientSession,
+): Promise<void> {
+  await quests.updateById(userId, id, { $set: state }, { session });
+}
