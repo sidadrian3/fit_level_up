@@ -1,6 +1,6 @@
 import { DomainError } from "@/server/platform/domain";
 import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
-import { toLocalDay, addDays, startOfWeek } from "@/shared/time/calendar";
+import { toLocalDay, addDays, startOfWeek, startOfLocalDay } from "@/shared/time/calendar";
 
 export type QuestCalendar = { now: Date; timeZone: string };
 
@@ -79,4 +79,13 @@ export function getQuestProgressUpdates(activity: QuestActivity): QuestProgressU
     return [];
   }
   return handler(activity);
+}
+
+export function periodRange(period: QuestPeriod, timeZone: string): { from: Date; toExclusive: Date } | null {
+  if (period.periodStart === null || period.periodEnd === null) return null;
+
+  return {
+    from: startOfLocalDay(period.periodStart, timeZone),
+    toExclusive: startOfLocalDay(addDays(period.periodEnd, 1), timeZone),
+  };
 }

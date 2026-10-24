@@ -5,6 +5,7 @@ import {
   calcNewStreak,
   calcRecoveredStamina,
   levelFromTotalXp,
+  recountStreak,
 } from '../progression.rules';
 
 describe('progression.rules', () => {
@@ -125,6 +126,26 @@ describe('progression.rules', () => {
     
     it('should return 100 if no lastUpdateDate is provided (new user or uninitialized)', () => {
        expect(calcRecoveredStamina(0, undefined, new Date('2024-01-01T12:00:00Z'))).toBe(100);
+    });
+  });
+});
+
+describe('recountStreak', () => {
+  it('counts the run ending at the latest day', () => {
+    expect(recountStreak(['2026-03-10', '2026-03-09', '2026-03-07'])).toEqual({
+      streak: 2,
+      lastActivityDay: '2026-03-10',
+    });
+  });
+
+  it('returns 1 for a single day', () => {
+    expect(recountStreak(['2026-03-07'])).toEqual({ streak: 1, lastActivityDay: '2026-03-07' });
+  });
+
+  it('ignores order and duplicates', () => {
+    expect(recountStreak(['2026-03-08', '2026-03-10', '2026-03-09', '2026-03-10'])).toEqual({
+      streak: 3,
+      lastActivityDay: '2026-03-10',
     });
   });
 });
