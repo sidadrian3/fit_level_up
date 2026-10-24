@@ -33,14 +33,6 @@ export async function getUserFromDb(userId: string, session?: ClientSession): Pr
   return userDoc ? toUser(userDoc) : null;
 }
 
-export async function getUserTimeZoneFromDb(userId: string, session?: ClientSession): Promise<string> {
-  const collection = await getCollection<UserDoc>("user");
-
-  const _id = parseObjectId(userId);
-  const userDoc = _id ? await collection.findOne({ _id }, { session, projection: { timeZone: 1 } }) : null;
-  return userDoc?.timeZone ?? "UTC";
-}
-
 export async function updateUserXPInDb(
   userId: string,
   newXp: number,
