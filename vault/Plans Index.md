@@ -14,3 +14,4 @@ Index of all implementation plans in this vault.
 - [[Rate Limit Tiers Plan]] — audit step 2.3: standard and expensive tiers keyed by route + user, Retry-After, a tier required on every mutation
 - [[Idempotency Key Header Plan]] — audit step 2.4: Idempotency-Key header, body fingerprint, createOnce replay with Idempotent-Replayed, 422 on reuse, header-only apiFetch retry
 - [[Transactional Outbox Plan]] — audit step 2.5: transactional emit(), lease-based dispatcher with per-listener retry and dead rows, defineRoute after() dispatch, generic outbox-sweep cron, npm run outbox
+- [[Progression Module Plan]] — audit step 3.1: src/server/progression, player_profiles with computed level, xp_ledger from day one, one XP path, no __v, expand-only backfill
