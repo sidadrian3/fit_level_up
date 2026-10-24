@@ -78,15 +78,15 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
         // Persist to Data Layer
         const workout = await insertWorkout({ ...input, xpEarned: evaluation.finalXpEarned }, session);
 
+        // Written in this transaction; delivered after the response by `defineRoute`
+        await emit("activity.logged", { userId, activity: { type: "workout", id: workout.id }, occurredAt: now }, { session });
+
         // Orchestrate Side-Effects
         await updateQuestProgress(userId, { type: "workout_created" }, { now, timeZone: user.timeZone }, session);
         await UserStateService.applyActivity(userId, { /* XP and Stamina updates */ }, session);
 
         return workout;
     });
-
-    // Asynchronous background task (does not block API response)
-    after(evaluateAchievements(userId));
 
     return workoutObj;
 }

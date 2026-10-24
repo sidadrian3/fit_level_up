@@ -61,21 +61,25 @@ export function createDispatcher(listeners: readonly AnyListener[], options: { n
             }
         }
 
+        // Filtering on attempts stops a worker whose lease expired from overwriting the worker that reclaimed the row
+        const settle = (fields: Partial<OutboxRow>) =>
+            outbox.updateOne({ _id: row._id, attempts: row.attempts }, { $set: fields });
+
         const at = now();
         if (failures.length === 0) {
-            await outbox.updateOne({ _id: row._id }, { $set: { status: "done", processedAt: at } });
+            await settle({ status: "done", processedAt: at });
             return "delivered";
         }
 
         const lastError = failures.join("; ");
         if (row.attempts >= maxAttempts) {
-            await outbox.updateOne({ _id: row._id }, { $set: { status: "dead", processedAt: at, lastError } });
+            await settle({ status: "dead", processedAt: at, lastError });
             console.error(`[Outbox] ${row.type} ${row._id} is dead after ${row.attempts} attempts: ${lastError}`);
             return "dead";
         }
 
         const availableAt = new Date(at.getTime() + backoffMs(row.attempts));
-        await outbox.updateOne({ _id: row._id }, { $set: { availableAt, lastError } });
+        await settle({ availableAt, lastError });
         return "failed";
     }
 

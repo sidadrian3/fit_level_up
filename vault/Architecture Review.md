@@ -96,7 +96,7 @@ Service (log-workout.ts)
 
 **Optimistic Locking (Retry Loop)**
 
-- `grant-user-xp.ts` uses a `__v` version field + retry loop to prevent XP race conditions without full pessimistic locks or advisory locks.
+- `grant-user-xp.ts` and `UserStateService.applyActivity` use a `__v` version field to prevent XP race conditions without full pessimistic locks or advisory locks. A stale version is relabelled `TransientTransactionError`, so the surrounding `withTransaction` retries the whole transaction.
 
 **Observer / Event-Driven**
 
