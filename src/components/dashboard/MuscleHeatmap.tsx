@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnatomyModel } from "../ui/AnatomyModel";
-import { calcMuscleVolume } from "@/lib/domain/muscle-evaluator";
+import { calcMuscleVolume } from "@/shared/muscle-volume";
 
 import { Card } from "@/components/ui/Card";
 import { getWorkouts } from "@/lib/data/api-client";
@@ -27,7 +27,7 @@ export function MuscleHeatmap() {
     );
   }
 
-  const intensities = calcMuscleVolume(data.data, 7);
+  const intensities = calcMuscleVolume(data.data, 7, new Date());
 
   return (
     <Card className="flex flex-col items-center w-full p-6">

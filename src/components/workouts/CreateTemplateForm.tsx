@@ -8,7 +8,7 @@ import { Exercise, TargetMuscle, CustomExercise } from "@/lib/types";
 import { Plus, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
-import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
+import { mergeAndSortExercises } from "@/shared/exercise-list";
 import { CreateExerciseModal } from "./CreateExerciseModal";
 import { useRouter } from "next/navigation";
 import { isIdempotencyKeyReused } from "@/lib/data/api-client";

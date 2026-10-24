@@ -139,7 +139,7 @@ src/
 │   ├── auth/              ← Better Auth config and helpers
 │   ├── types.ts           ← Shared TypeScript domain types
 │   └── mongodb.ts         ← Singleton MongoDB client
-├── scripts/               ← DB seed / migration scripts
+├── scripts/               ← DB migration scripts
 ├── env.ts                 ← Type-safe environment variable validation
 └── proxy.ts               ← Next.js edge middleware (route protection)
 ```
@@ -233,6 +233,7 @@ POST /api/workouts
 
 - **Transactional outbox:** Background side effects (`evaluateAchievements`, `notifyFriendsLevelUp`) are outbox rows written in the caller's transaction and delivered with the Next.js `after()` API once the response is sent, so a function killed after commit delays them but never loses them.
 - **Progression module:** `src/server/progression` owns XP, level, streak, stamina and totals in the `player_profiles` collection. `recordActivity` (workouts and runs) and `grantXp` (quest claims) share one XP path that writes an `xp_ledger` row, increments `totalXp` and emits `progression.leveled-up`. Level and `xpToNextLevel` are computed from `totalXp`.
+- **Quests and training modules:** `src/server/quests` owns the quest definitions (typed constants with stable string ids), period rules, sync, progress and claim. `src/server/training` owns workouts, runs, templates, custom exercises and records; personal records and run stats are computed by database aggregation. Workout and run dates are returned as ISO instants and formatted in the user's time zone by the client.
 - **Pure Data Mappers:** Dynamic state assembly (calculating stamina recovery, zeroing a broken streak) happens in progression's `getPlayerState`, not in the data layer; `getUser` in `lib/services/users` composes the account and the player state into the `User` the API returns.
 - **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.
 - **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
@@ -259,8 +260,6 @@ These are architectural upgrades that make the system more scalable and robust. 
 
 | #   | What                       | Why It Matters                                                                                                                                                                              |
 | --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 16  | **Quest template caching** | Right now, every quest read hits MongoDB to fetch all active templates. Templates almost never change. A 60-second in-memory cache (or `React.cache`) would cut this to near-zero DB reads. |
-
 | 19 | **Centralized error handling (COMPLETED)** | Every API route had its own `try/catch` with slightly different error handling. We standardized this using semantic error classes and `defineRoute`, which maps them in one place. |
 
 ---
@@ -337,7 +336,7 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 
 | File                                                                                        | What It Does                                                                               |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| [log-workout.ts](file:///z:/Projects/fit_level_up/src/lib/services/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.                           |
+| [log-workout.ts](file:///z:/Projects/fit_level_up/src/server/training/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.                           |
 | [progression.rules.ts](file:///z:/Projects/fit_level_up/src/server/progression/progression.rules.ts) | XP leveling, streak calculation, stamina recovery — the core game math.            |
 | [game-config.ts](file:///z:/Projects/fit_level_up/src/lib/config/game-config.ts)            | Every balance constant. Change here to tune the game feel.                                 |
 | [index.ts](file:///z:/Projects/fit_level_up/src/server/progression/index.ts)                | The progression module's public API: player state, activity and XP writes, level rules.    |
@@ -349,7 +348,8 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 | [sse-publisher.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-publisher.ts)           | Redis-backed publisher. Pushes SSE events to per-user queues for serverless compatibility. |
 | [useFriendEvents.ts](file:///z:/Projects/fit_level_up/src/lib/hooks/useFriendEvents.ts)     | Client hook — opens SSE stream and invalidates TanStack Query cache on events.             |
 | [friend-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/friend-rules.ts)          | Pure domain rules: who can send/accept/remove friendships.                                 |
-| [records.ts](file:///z:/Projects/fit_level_up/src/lib/utils/records.ts)                     | `calculatePersonalRecords()` — computes top lifts and fastest runs from raw data.          |
+| [get-personal-records.ts](file:///z:/Projects/fit_level_up/src/server/training/records/get-personal-records.ts) | Top lifts and fastest runs, computed by database aggregation instead of loading the history. |
+| [quest.definitions.ts](file:///z:/Projects/fit_level_up/src/server/quests/quest.definitions.ts) | Every quest as a typed constant with a stable id; achievements live in `src/server/achievements`. |
 
 ---
 
@@ -357,7 +357,6 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 
 | Priority | Issue                          | Status    |
 | -------- | ------------------------------ | --------- |
-| 🟢 P3    | Quest template caching         | In plan   |
 | ✅ Done  | Centralized API error handling | Completed |
 | ✅ Done  | Friend System + Real-Time SSE  | Completed |
 

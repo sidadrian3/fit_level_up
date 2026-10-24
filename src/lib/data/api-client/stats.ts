@@ -1,6 +1,6 @@
 import type { DashboardStats } from "@/lib/types";
 import { apiFetch } from "./api-fetch";
-import type { PersonalRecord } from "@/lib/utils";
+import type { PersonalRecord } from "@/shared/contracts/personal-record";
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   return apiFetch<DashboardStats>("/api/stats/dashboard");

@@ -73,8 +73,8 @@ export type UserQuestDoc = {
     target: number;
     completed: boolean;
     claimed: boolean;
-    periodStart: string;
-    periodEnd: string;
+    periodStart: string | null;
+    periodEnd: string | null;
 };
 
 export type UserAchievementDoc = {
@@ -150,6 +150,7 @@ type SchemaCollection = {
 };
 
 const string = { bsonType: "string" } as const;
+const nullableString = { bsonType: ["string", "null"] } as const;
 const number = { bsonType: "number" } as const;
 const bool = { bsonType: "bool" } as const;
 const date = { bsonType: "date" } as const;
@@ -172,7 +173,6 @@ const idempotencyIndex = (name: string) => ({
 export const SCHEMA: Record<
     | "workouts"
     | "runs"
-    | "questTemplates"
     | "userQuests"
     | "userAchievements"
     | "customExercises"
@@ -196,6 +196,7 @@ export const SCHEMA: Record<
     runs: {
         indexes: [
             { key: { userId: 1, date: -1 }, name: "idx_runs_userId_date" },
+            { key: { userId: 1, distance: -1 }, name: "idx_runs_userId_distance" },
             idempotencyIndex("idx_runs_idempotencyKey"),
         ],
         validator: objectSchema(
@@ -213,11 +214,6 @@ export const SCHEMA: Record<
             ["userId", "distance", "duration", "pace", "xpEarned", "difficulty", "date"]
         ),
     },
-    questTemplates: {
-        indexes: [
-            { key: { isActive: 1, metric: 1 }, name: "idx_questTemplates_active_metric" },
-        ],
-    },
     userQuests: {
         indexes: [
             {
@@ -231,8 +227,8 @@ export const SCHEMA: Record<
             {
                 userId: string,
                 questTemplateId: string,
-                periodStart: string,
-                periodEnd: string,
+                periodStart: nullableString,
+                periodEnd: nullableString,
                 progress: number,
                 target: number,
                 completed: bool,

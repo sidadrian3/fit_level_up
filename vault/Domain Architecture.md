@@ -16,17 +16,17 @@ The following diagram illustrates how a typical action (like logging a workout) 
    │
    │ (2) logWorkout(parsedInput, userId)
    ▼
-[ Service Layer ] (src/lib/services)
+[ Service Layer ] (src/server/training/workouts)
    │ - Orchestration & Transaction Start
    │ - Fetch User State from DB
    │
    ├─► (3) evaluateWorkout(input, user.stamina) 
-   │   [ Domain Layer ] (src/lib/domain)
+   │   [ Domain Layer ] (workout.rules.ts)
    │   - Pure Math (XP, Stamina Cost)
    │   ◄─ Returns { xpEarned, cost }
    │
    ├─► (4) Insert Workout & Update User
-   │   [ Data Layer ] (src/lib/data)
+   │   [ Data Layer ] (workout.repository.ts)
    │   - ACID Transaction Execution
    │   ◄─ Success
    │
@@ -39,6 +39,22 @@ The following diagram illustrates how a typical action (like logging a workout) 
    ▼
 [ Client ]
 ```
+
+---
+
+## 🧩 Feature Modules
+
+The back end is organised by feature, not by layer. Three modules own their whole slice, and each exposes one `index.ts` that other code must import through (ESLint enforces it):
+
+| Module | Owns |
+|---|---|
+| `src/server/progression` | XP, level, streak, stamina and totals on the player profile |
+| `src/server/quests` | Quest definitions (`QUEST_DEFINITIONS`), period rules, sync, progress and claim |
+| `src/server/training` | Workouts, runs, templates, custom exercises and records, one folder per use case |
+
+`src/server/achievements` holds only the achievement definitions for now; the evaluation logic still sits in `src/lib/services/achievements` until it becomes an outbox listener. The remaining features (friends, users) still use the `src/lib/services`, `src/lib/domain` and `src/lib/data` folders until they are moved.
+
+Inside a module the four layers keep the same names: use cases are plain functions, `*.rules.ts` files are pure, and `*.repository.ts` files are the only code that touches a collection, built on `userScopedRepository` so every query is filtered by `userId`. Modules call each other directly inside the caller's transaction when the result must commit together (training → quests → progression), and through events otherwise.
 
 ---
 
@@ -58,11 +74,11 @@ export const POST = defineRoute(
 ```
 
 ### 2. Services (Application Layer)
-**Location:** `src/lib/services/...`
+**Location:** `src/server/<module>/<use-case>.ts` (or `src/lib/services/...` for features not yet moved)
 
 The Service layer acts as the orchestrator. It manages the database transaction, stitches together domain logic, and triggers side effects. If something needs to happen in a specific order (like saving a workout, then updating a quest, then updating the user's XP), it happens here.
 
-**Example Snippet (`src/lib/services/workouts/log-workout.ts`):**
+**Example Snippet (`src/server/training/workouts/log-workout.ts`):**
 ```typescript
 export async function logWorkout(input: CreateWorkoutInput, userId: string): Promise<Workout> {
     const client = await clientPromise;
@@ -95,7 +111,7 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
 ```
 
 ### 3. Domain (Business Rules Layer)
-**Location:** `src/lib/domain/...`
+**Location:** `src/server/<module>/**/*.rules.ts` (or `src/lib/domain/...` for features not yet moved)
 
 The Domain layer is where the "game mechanics" live. It contains pure, synchronous functions that take inputs and calculate outputs. Because this layer has **no side effects** and doesn't touch the database, it is extremely fast and easy to write unit tests for.
 
@@ -103,7 +119,7 @@ Domain rules never read the clock or assume a time zone. Every calendar-day rule
 
 When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/server/platform/domain/domain-error.ts`. Its `kind` is `invalid` or `conflict`, and `toErrorResponse` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from the HTTP platform area.
 
-**Example Snippet (`src/lib/domain/workout-evaluator.ts`):**
+**Example Snippet (`src/server/training/workouts/workout.rules.ts`):**
 ```typescript
 export function evaluateWorkout(input: CreateWorkoutInput, currentStamina: number) {
     // Pure math based on GAME_CONFIG
@@ -126,28 +142,21 @@ export function evaluateWorkout(input: CreateWorkoutInput, currentStamina: numbe
 ```
 
 ### 4. Data (Persistence Layer)
-**Location:** `src/lib/data/...`
+**Location:** `src/server/<module>/**/*.repository.ts` (or `src/lib/data/...` for features not yet moved)
 
 The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`src/server/platform/database/mongo-utils.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (same file) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or, for the create routes, let `createOnce` replay the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
 
-**Example Snippet (`src/lib/data/workout-db.ts`):**
+**Example Snippet (`src/server/training/workouts/workout.repository.ts`):**
 ```typescript
-export async function insertWorkout(
-    input: Omit<Workout, "id"> & { idempotencyKey: string; idempotencyFingerprint: string },
-    session?: ClientSession
-): Promise<Workout> {
-    const workouts = await getCollection<WorkoutDocument>("workouts");
-    
-    const result = await workouts.insertOne({
-        ...input,
-        _id: new ObjectId(),
-    }, { session });
+const workouts = userScopedRepository<WorkoutDoc & UserOwnedDoc>("workouts");
 
-    return {
-        id: result.insertedId.toString(),
-        title: input.title,
-        // ... map other fields
-    };
+export async function insertWorkout(input: Omit<WorkoutDoc, "_id">, session?: ClientSession): Promise<Workout> {
+    const { userId, ...rest } = input;
+    return toWorkout(await workouts.insertOne(userId, rest, { session }));
+}
+
+export async function deleteWorkoutById(userId: string, id: string): Promise<boolean> {
+    return (await workouts.deleteById(userId, id)) !== null;
 }
 ```
 

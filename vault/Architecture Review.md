@@ -103,13 +103,11 @@ Service (log-workout.ts)
 
 ## 03 — Code Smells & Issues
 
-### 🔴 HIGH — Dead Commented-Out Code
+### 🔴 HIGH — Dead Commented-Out Code [✅ RESOLVED]
 
 **File:** `src/lib/data/achievements-db.ts`
 
-~40 lines of achievement seeding logic is commented out. This is a code graveyard — it adds cognitive noise and implies the seeding approach was abandoned mid-refactor without cleanup.
-
-**Fix:** Delete it entirely. The data lives in MongoDB. The seed script handles setup. Dead code is misleading documentation.
+_Note: The commented-out seed block is deleted. Quest and achievement definitions are typed constants (`QUEST_DEFINITIONS`, `ACHIEVEMENT_DEFINITIONS`), so no seed script or catalogue collection exists._
 
 ---
 
@@ -245,7 +243,6 @@ export const POST = defineRoute(
 | ✅  | Verify `BETTER_AUTH_URL` is set in Vercel env vars                         | **Fix before deploy** |
 | ✅  | Wrap fire-and-forget promises in `waitUntil()` (`log-workout.ts` & others) | **Fix before deploy** |
 | ✅  | Confirm `migrate-db.ts` targets Atlas (not Docker) on Vercel build         | Verify                |
-| ✅  | Run seed script against Atlas cluster before go-live                       | Manual step           |
 | ⚠️  | SSE drops every 60s on Hobby plan — add "reconnecting" UI state            | Nice to have          |
 | ⚠️  | Remove `console.log` from `evaluate-achievements.ts`                       | Nice to have          |
 
@@ -300,8 +297,6 @@ There is no complex Role-Based Access Control (RBAC) yet. Authorization is handl
 
 1. **Add `UPSTASH_REDIS_*` to `env.ts`** — fail fast at startup, not at runtime.
 2. **Wrap background tasks in `waitUntil()`** — prevent Vercel from freezing container mid-execution.
-3. **Seed MongoDB Atlas** with achievements and quests. Vercel build does NOT run the seed script.
-4. **Delete the commented-out code** in `achievements-db.ts` — 2-minute cleanup.
 
 > **Overall assessment:** This is a genuinely well-structured Next.js codebase. The 4-layer separation is clean, the pure domain layer is excellent, and the optimistic locking pattern for XP is sophisticated. The main technical debt is in error handling consistency and domain logic leaking into the data mapper. Both are fixable in a day.
 

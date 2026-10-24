@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { publishToMany } from "@/lib/sse/sse-publisher";
 import { buildFriendshipPairKey } from "@/lib/domain/friend-rules";
-import type { AchievementDefinitionDoc } from "@/lib/data/achievements-db";
 import { getCollection, type FriendshipDoc } from "@/server/platform/database";
 import { calcLifetimeXp } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";
@@ -25,7 +24,7 @@ vi.mock("@/lib/sse/sse-publisher", () => ({
   publishToUser: vi.fn(async () => {}),
 }));
 
-const achievementId = "outbox_sweep_first_workout";
+const achievementId = "first_workout";
 
 const sweep = (authorization?: string) =>
   GET(new Request("http://localhost:3000/api/cron/outbox-sweep", {
@@ -48,17 +47,12 @@ describe("GET /api/cron/outbox-sweep", () => {
       requesterId: userId, receiverId: friendId, pairKey: buildFriendshipPairKey(userId, friendId),
       status: "accepted", createdAt: now, updatedAt: now,
     });
-    await (await getCollection<AchievementDefinitionDoc>("achievements")).insertOne({
-      id: achievementId, title: "First Lift", description: "Log a workout", icon: "star", rarity: "common",
-      condition: { metric: "total_workouts", target: 1 },
-    });
   });
 
   afterEach(async () => {
     await (await getCollection("outbox")).deleteMany({});
     await (await getCollection("workouts")).deleteMany({ userId });
     await (await getCollection("userAchievements")).deleteMany({ userId });
-    await (await getCollection("achievements")).deleteOne({ id: achievementId });
     await (await getCollection("friendships")).deleteMany({ requesterId: userId });
     await deletePlayer(userId);
     await deletePlayer(friendId);

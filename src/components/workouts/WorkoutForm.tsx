@@ -10,12 +10,12 @@ import { useEntityForm } from "@/lib/hooks/useEntityForm";
 import { CreateWorkoutSchema } from "@/shared/contracts/workout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
-import { mergeAndSortExercises } from "@/lib/domain/exercise-rules";
+import { mergeAndSortExercises } from "@/shared/exercise-list";
 import { CreateExerciseModal } from "./CreateExerciseModal";
 import { TemplateSelectorModal } from "./TemplateSelectorModal";
 import { BookmarkPlus } from "lucide-react";
 import { AnatomyModel } from "../ui/AnatomyModel";
-import { MuscleIntensity, calcMuscleVolume } from "@/lib/domain/muscle-evaluator";
+import { MuscleIntensity, calcMuscleVolume } from "@/shared/muscle-volume";
 
 const emptyExercise: Exercise = {
     name: "",
@@ -120,7 +120,7 @@ export function WorkoutForm({
             date: new Date().toISOString(),
             exercises: fields.exercises.filter(ex => ex.name.trim() !== "")
         };
-        return calcMuscleVolume([mockWorkout], 1);
+        return calcMuscleVolume([mockWorkout], 1, new Date());
     }, [fields.exercises]);
 
     const addExercise = () => {

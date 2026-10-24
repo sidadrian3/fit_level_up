@@ -1,10 +1,9 @@
 import { WorkoutTemplateSchema } from "@/shared/contracts/template";
-import { getWorkoutTemplatesFromDb } from "@/lib/data/workout-templates-db";
-import { createWorkoutTemplate } from "@/lib/services/workout-templates/create-workout-template";
+import { createWorkoutTemplate, listTemplates } from "@/server/training";
 import { defineRoute } from "@/server/runtime";
 
 export const GET = defineRoute({ name: "templates.list", auth: "user" }, ({ userId }) =>
-  getWorkoutTemplatesFromDb(userId)
+  listTemplates(userId)
 );
 
 export const POST = defineRoute(

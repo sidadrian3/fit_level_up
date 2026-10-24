@@ -2,21 +2,14 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { evaluateAchievements } from "../achievements/evaluate-achievements";
 import { getCollection } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
-import type { AchievementDefinitionDoc } from "@/lib/data/achievements-db";
 
-const achievementId = "evaluate_test_level_one";
+const achievementId = "first_workout";
 
 describe("evaluateAchievements Integration Test", () => {
   let userId: string;
 
   beforeAll(async () => {
-    userId = await seedPlayer({ email: "evaluate@example.com", name: "Evaluate", profile: {} });
-
-    const definitions = await getCollection<AchievementDefinitionDoc>("achievements");
-    await definitions.insertOne({
-      id: achievementId, title: "Level One", description: "Be level 1", icon: "star", rarity: "common",
-      condition: { metric: "level", target: 1 },
-    });
+    userId = await seedPlayer({ email: "evaluate@example.com", name: "Evaluate", profile: { totalWorkouts: 1 } });
   });
 
   afterAll(async () => {

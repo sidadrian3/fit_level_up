@@ -28,7 +28,7 @@ src/
     domain/       # pure business rules, *-rules.ts / *-evaluator.ts
     services/     # use-case orchestration, one folder per domain
     auth/  api/  sse/  hooks/  context/  utils/  validations/  constants/  config/
-  scripts/        # DB migration and seed scripts
+  scripts/        # DB migration scripts
   env.ts          # validated environment variables
   proxy.ts        # route protection (Next.js middleware)
 tests/e2e/        # Playwright
@@ -64,6 +64,7 @@ Every feature flows through the same four layers. Read [[Domain Architecture]] b
 
 - A route handler wraps its body in `try/catch` and returns `handleApiError(err)` — this is the single place errors become responses (see Centralized API Error Handling).
 - A service that touches more than one collection uses `client.startSession()` + `session.withTransaction(...)` and passes the `session` into every `-db.ts` call (see `logWorkout`).
+- Feature modules (`progression`, `quests`, `training`) keep their use cases, `*.rules.ts` and `*.repository.ts` together under `src/server/<module>/` and expose one `index.ts`; the `lib/services`, `lib/domain` and `lib/data` rows above apply to features not yet moved.
 - Services are plain exported functions, not classes. `src/server/progression` owns every game-state transition (XP, level, streak, stamina, totals) through `recordActivity` and `grantXp`, so those rules cannot be applied twice or differently; no other code reads or writes `player_profiles`.
 
 ### Front-end structure (Next.js App Router)

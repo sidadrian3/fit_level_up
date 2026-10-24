@@ -15,8 +15,7 @@ How to set up, run, check and change FitLevelUp. For what the system is, start a
 
 1. `npm install` — also installs the Husky git hooks through the `prepare` script.
 2. Create `.env.local` with the variables in §3.
-3. `npm run seed` — loads the quest and achievement catalogues.
-4. `npm run dev` and open `http://localhost:3000`. Use `localhost`, not `127.0.0.1`; Next.js dev mode breaks the login form's navigation on the IP address.
+3. `npm run dev` and open `http://localhost:3000`. Use `localhost`, not `127.0.0.1`; Next.js dev mode breaks the login form's navigation on the IP address.
 
 ## 3. Environment variables
 
@@ -41,7 +40,6 @@ Validated at startup by `src/server/platform/env/env.ts` (server variables) and 
 | `npm run test:run` | All Vitest tests once, against an in-memory MongoDB replica set |
 | `npm test` | Vitest in watch mode |
 | `npm run test:e2e` | Playwright end-to-end tests |
-| `npm run seed` | Seed quest and achievement catalogues |
 | `npm run outbox -- --dead` / `-- --requeue <id>` | List dead outbox rows with their last error, or reset one to pending (needs `.env.local`) |
 | `npm run build` | Run `migrate-db.ts`, then `next build` |
 | `node scripts/check-vault.mjs` | Verify vault wikilinks and the no-marker rule |
@@ -80,8 +78,8 @@ The pre-commit hook lints staged files, then runs the dependency-cruiser rules o
 
 ## 9. Testing
 
-- Services: integration tests against the in-memory replica set (`vitest.global-setup.ts`), in `src/lib/services/__tests__/`.
-- Domain rules: unit tests in `src/lib/domain/__tests__/`.
+- Use cases: integration tests against the in-memory replica set (`vitest.global-setup.ts`), in the module's `__tests__/` folder (`src/server/<module>/**/__tests__/`, or `src/lib/services/__tests__/` for features not yet moved).
+- Domain rules: unit tests next to the `*.rules.ts` file (`src/lib/domain/__tests__/` for features not yet moved).
 - Routes with branching: tests in `src/app/api/**/__tests__/`.
 - User journeys: Playwright in `tests/e2e/`.
 - Tests share one replica set, so files run serially; clean up the data a test creates.

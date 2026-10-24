@@ -153,7 +153,7 @@ Ranked most severe first. "F-n" ids are referenced from §5. Findings marked _Fi
 
 ### Performance
 
-**F-9. Unbounded reads and an N+1.**
+**F-9. Unbounded reads and an N+1.** _Partly fixed in step 3.4: personal records, run stats and the dashboard's recent workouts no longer load full history. `getFriends` now reads each friend's records through the same aggregation, but the per-friend query loop and `getFriendRequests` remain for step 3.7._
 
 - `getFriends` (`get-friends.ts:12`): for **each** friend, loads their user doc plus **all** their workouts and **all** their runs, to compute personal records on the fly. Grows with friends × lifetime history.
 - `getFriendRequests` (`get-friend-requests.ts:9`): one sequential user query per request.
@@ -178,7 +178,7 @@ Ranked most severe first. "F-n" ids are referenced from §5. Findings marked _Fi
 
 **F-16. Services import each other.** `user-state.service` imports `friends/notify-friends-level-up`, and `logWorkout` imports quests, users and achievements. This is the coupling apartment-system replaces with events: "a level-up happened" should be announced, and the friends and notification modules should react to it.
 
-**F-17. Domain purity is uneven.** `calcMuscleVolume` calls `new Date()` (step 3.4). *Step 0.7 fixed the other clock reads: `getPeriodForCategory`, `calcNewStreak`, `calcDisplayStreak` and `calcActiveDays` now take `now` and `timeZone` as arguments.* `lib/utils/records.ts` holds domain logic. `lib/types.ts` imports `PersonalRecord` from `lib/utils`.
+**F-17. Domain purity is uneven.** _Fixed in step 3.4: `calcMuscleVolume` takes `now`, `lib/utils/records.ts` is gone and the records rules live in `src/server/training`._ `calcMuscleVolume` called `new Date()`. *Step 0.7 fixed the other clock reads: `getPeriodForCategory`, `calcNewStreak`, `calcDisplayStreak` and `calcActiveDays` now take `now` and `timeZone` as arguments.* `lib/utils/records.ts` holds domain logic. `lib/types.ts` imports `PersonalRecord` from `lib/utils`.
 
 **F-18. Dead and deprecated code.** `sse-registry.ts` is marked `@deprecated` and kept alive by its own tests. `achievements-db.ts` still has ~45 lines of commented-out seed data. `calcActiveDays` has no service caller (only the dashboard page uses it, with this week's workout instants from `getWorkoutDatesInRange`). The `@better-fetch/fetch` call in `proxy.ts` makes an HTTP round trip to its own server on every protected navigation.
 
@@ -430,9 +430,9 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **2.4** | `/feature`  | `Idempotency-Key` header replaces body sniffing                                     | F-20                                  | 2.2        | Done   |
 | **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Open   |
 | **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path writing `xp_ledger`, no `__v` | F-15, §3.2 #1 #4 #6                   | 2.5        | Done   |
-| **3.2** | `/refactor` | Quest and achievement definitions as typed constants                                | §5.3                                  | 2.1        | Open   |
-| **3.3** | `/refactor` | `quests` module                                                                     | F-17 (quests)                         | 3.1, 3.2   | Open   |
-| **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records)                   | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3   | Open   |
+| **3.2** | `/refactor` | Quest and achievement definitions as typed constants                                | §5.3                                  | 2.1        | Done   |
+| **3.3** | `/refactor` | `quests` module                                                                     | F-17 (quests)                         | 3.1, 3.2   | Done   |
+| **3.4** | `/refactor` | `training` module (workouts, runs, templates, exercises, records)                   | F-9 (records, stats, dashboard), F-17 | 3.1, 3.3   | Done   |
 | **3.5** | `/feature`  | Ledger backfill; edit and delete reconcile XP, level, totals, quests                | **F-4**, §3.2 #3 #10                  | 3.4        | Open   |
 | **3.6** | `/refactor` | `achievements` module as an outbox listener                                         | F-5 (finish), F-16                    | 3.4, 2.5   | Open   |
 | **3.7** | `/refactor` | `social` module, transition table, no N+1                                           | F-9 (friends), F-16                   | 2.5        | Open   |
