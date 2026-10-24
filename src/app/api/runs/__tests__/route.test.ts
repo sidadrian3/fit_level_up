@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { ObjectId } from "mongodb";
+import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { getCollection, type UserDoc } from "@/server/platform/database";
 import { POST } from "../route";
 
 const limit = vi.hoisted(() => vi.fn());
@@ -36,5 +39,62 @@ describe("POST /api/runs - Rate Limiting", () => {
     // A 400 from Zod validation means the request passed the limiter.
     expect(response.status).toBe(400);
     expect(limit).toHaveBeenCalledWith("standard", "runs.create:fake-user-123");
+  });
+});
+
+const validBody = { distance: 5, duration: 30, difficulty: "moderate" };
+
+function post(body: unknown, key?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key) headers["Idempotency-Key"] = key;
+  return POST(new Request("http://localhost:3000/api/runs", { method: "POST", headers, body: JSON.stringify(body) }));
+}
+
+describe("POST /api/runs - Idempotency-Key", () => {
+  let userId: string;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    limit.mockResolvedValue({ success: true, reset: Date.now() + 60_000 });
+    const usersCol = await getCollection<UserDoc>("user");
+    const { insertedId } = await usersCol.insertOne({
+      email: `run-${crypto.randomUUID()}@example.com`, name: "Route User", level: 1, xp: 0, xpToNextLevel: 500, streak: 0,
+      totalWorkouts: 0, totalDistance: 0, stamina: 100, lastStaminaUpdate: new Date(), createdAt: new Date(),
+    });
+    userId = insertedId.toString();
+    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+  });
+
+  afterEach(async () => {
+    await (await getCollection("runs")).deleteMany({ userId });
+    await (await getCollection<UserDoc>("user")).deleteOne({ _id: new ObjectId(userId) });
+  });
+
+  it("returns 400 without an Idempotency-Key header", async () => {
+    const response = await post(validBody);
+
+    expect(response.status).toBe(400);
+  });
+
+  it("replays a retry with Idempotent-Replayed", async () => {
+    const key = crypto.randomUUID();
+
+    const first = await post(validBody, key);
+    const retry = await post(validBody, key);
+
+    expect(first.status).toBe(201);
+    expect(first.headers.get("Idempotent-Replayed")).toBeNull();
+    expect(retry.status).toBe(201);
+    expect(retry.headers.get("Idempotent-Replayed")).toBe("true");
+    expect((await retry.json()).id).toBe((await first.json()).id);
+  });
+
+  it("returns 422 when the key is reused with a different body", async () => {
+    const key = crypto.randomUUID();
+
+    await post(validBody, key);
+    const response = await post({ ...validBody, distance: 10 }, key);
+
+    expect(response.status).toBe(422);
   });
 });

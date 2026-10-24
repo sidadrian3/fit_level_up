@@ -4,27 +4,46 @@ import { UserStateService } from "@/lib/services/users/user-state.service";
 import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
 import { evaluateRun } from "@/lib/domain/run-evaluator";
-import { clientPromise, isDuplicateKeyError } from "@/server/platform/database";
+import { clientPromise } from "@/server/platform/database";
 import { after } from "next/server";
-import { ConflictError } from "@/server/platform/http";
+import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 
 export async function logRun(
     input: CreateRunInput,
-    userId: string
+    userId: string,
+    idempotency: IdempotencyRequest
+): Promise<IdempotentResult<Run>> {
+    const result = await createOnce({
+        request: idempotency,
+        findExisting: () => getRunByIdempotencyKey(userId, idempotency.key),
+        create: () => createRun(input, userId, idempotency),
+        reusedMessage: "This run was already saved with your earlier details. Check your history to edit it, or submit again to log a new one.",
+    });
+
+    if (!result.replayed) {
+        after(
+            evaluateAchievements(userId).catch(err => {
+                console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
+            })
+        );
+    }
+
+    return result;
+}
+
+async function createRun(
+    input: CreateRunInput,
+    userId: string,
+    idempotency: IdempotencyRequest
 ): Promise<Run> {
-
-
     const client = await clientPromise;
     const session = client.startSession();
-    let runObj: Run;
-
     try {
-        runObj = await session.withTransaction(async () => {
+        return await session.withTransaction(async () => {
             const user = await UserStateService.getUser(userId, session);
             const now = new Date();
-            const evaluation =  evaluateRun(input, user.stamina);
+            const evaluation = evaluateRun(input, user.stamina);
 
-            // 3. Persistence
             const run = await insertRun({
                 userId,
                 distance: input.distance,
@@ -33,10 +52,10 @@ export async function logRun(
                 difficulty: input.difficulty,
                 xpEarned: evaluation.finalXpEarned,
                 date: now,
-                idempotencyKey: input.idempotencyKey,
+                idempotencyKey: idempotency.key,
+                idempotencyFingerprint: idempotency.fingerprint,
             }, session);
 
-            // 4. Side-effects
             await updateQuestProgress(userId, {
                 type: "run_created",
                 distance: run.distance,
@@ -52,24 +71,7 @@ export async function logRun(
 
             return run;
         });
-    } catch (error: unknown) {
-        if (isDuplicateKeyError(error, "idempotencyKey")) {
-            console.log("Duplicate run request detected. Fetching existing...");
-            const existing = await getRunByIdempotencyKey(userId, input.idempotencyKey);
-            if (existing) return existing;
-            throw new ConflictError("This run was already logged.");
-        }
-        throw error;
     } finally {
         await session.endSession();
     }
-
-    // 5. Event-Driven Side Effects (Decoupled from transaction)
-    after(
-        evaluateAchievements(userId).catch(err => {
-            console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
-        })
-    );
-
-    return runObj;
 }

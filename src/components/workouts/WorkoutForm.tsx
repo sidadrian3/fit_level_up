@@ -43,7 +43,6 @@ export function WorkoutForm({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
-    const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
     const queryClient = useQueryClient();
 
     // Fetch custom exercises
@@ -97,19 +96,19 @@ export function WorkoutForm({
             duration: workout.duration,
             exercises: workout.exercises,
         }),
-        onCreate: (input) => {
+        onCreate: (input, key) => {
             const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-            return createWorkout({ ...input, title: input.title.trim(), exercises: namedExercises, idempotencyKey });
+            return createWorkout({ ...input, title: input.title.trim(), exercises: namedExercises }, key);
         },
         onUpdate: (id, input) => {
             const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-            return updateWorkout(id, { ...input, title: input.title.trim(), exercises: namedExercises, idempotencyKey });
+            return updateWorkout(id, { ...input, title: input.title.trim(), exercises: namedExercises });
         },
         getId: (w) => w.id,
         onSuccess: () => {
-            setIdempotencyKey(crypto.randomUUID());
             if (onWorkoutLogged) onWorkoutLogged();
         },
+        onAlreadySaved: onWorkoutLogged,
     });
 
     const currentIntensities = useMemo(() => {
@@ -156,7 +155,7 @@ export function WorkoutForm({
             exercises: namedExercises
         };
 
-        const result = CreateWorkoutSchema.omit({ idempotencyKey: true }).safeParse(dataToValidate);
+        const result = CreateWorkoutSchema.safeParse(dataToValidate);
 
         if (!result.success) {
             setError(result.error.issues[0].message);

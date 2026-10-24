@@ -13,7 +13,6 @@ const validBody = {
   distance: 5,
   duration: 30,
   difficulty: "moderate",
-  idempotencyKey: "3f2b8c1e-5d4a-4e6f-8a9b-0c1d2e3f4a5b",
 };
 
 function put(id: string) {

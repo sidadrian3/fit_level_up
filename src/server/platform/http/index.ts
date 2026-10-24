@@ -7,6 +7,7 @@ export {
   NotFoundError,
   ConflictError,
   ForbiddenError,
+  IdempotencyKeyReusedError,
   TooManyRequestsError,
   toErrorResponse,
 } from "./errors";
@@ -20,3 +21,5 @@ export type {
   ThrottleTier,
 } from "./define-route";
 export { createRateLimiter } from "./rate-limiter";
+export { createOnce } from "./idempotency";
+export type { IdempotencyRequest, IdempotentRecord, IdempotentResult } from "./idempotency";

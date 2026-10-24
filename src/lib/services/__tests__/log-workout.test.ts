@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { logWorkout } from '../workouts/log-workout';
+import { updateWorkout } from '../workouts/update-workout';
+import { IdempotencyKeyReusedError } from '@/server/platform/http';
 import { getCollection, type UserDoc } from "@/server/platform/database";
 import { ObjectId } from 'mongodb';
 import { TargetMuscle } from '../../types';
@@ -7,6 +9,7 @@ import crypto from 'crypto';
 
 describe('logWorkout Integration Test', () => {
   let userId: string;
+  const request = (fingerprint = 'f1') => ({ key: crypto.randomUUID(), fingerprint });
 
   beforeAll(async () => {
     // Setup a dummy user in the empty in-memory db
@@ -43,11 +46,11 @@ describe('logWorkout Integration Test', () => {
       exercises: [
         { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 3, reps: 10, weight: 135 },
         { name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }
-      ],
-      idempotencyKey: crypto.randomUUID()
+      ]
     };
 
-    const workout = await logWorkout(workoutInput, userId);
+    const { value: workout, replayed } = await logWorkout(workoutInput, userId, request());
+    expect(replayed).toBe(false);
 
     // 1. Verify workout was created
     expect(workout.id).toBeDefined();
@@ -76,46 +79,78 @@ describe('logWorkout Integration Test', () => {
     await logWorkout({
       title: "Late Lift",
       duration: 30,
-      exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 100 }],
-      idempotencyKey: crypto.randomUUID(),
-    }, userId);
+      exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 100 }]
+    }, userId, request());
 
     const user = await usersCol.findOne({ _id: new ObjectId(userId) });
     expect(user!.streak).toBe(4);
     expect(user!.lastActivityDate!.toISOString()).toBe("2026-10-21T00:00:00.000Z");
   });
 
-  it('should enforce idempotency and gracefully return existing workout on duplicate requests', async () => {
-    const idempotencyKey = crypto.randomUUID();
-    const workoutInput = {
+  describe('idempotency', () => {
+    const idempotentInput = {
       title: "Evening Run",
       duration: 30,
       exercises: [{ name: "Jogging", targetMuscle: TargetMuscle.Cardio, sets: 1, reps: 1, weight: null }],
-      idempotencyKey
     };
 
-    // 1. First request should succeed
-    const firstWorkout = await logWorkout(workoutInput, userId);
-    expect(firstWorkout.id).toBeDefined();
+    async function readUser() {
+      const usersCol = await getCollection<UserDoc>("user");
+      return (await usersCol.findOne({ _id: new ObjectId(userId) }))!;
+    }
 
-    // 2. Capture user stats after first request
-    const usersCol = await getCollection<UserDoc>("user");
-    const userAfterFirst = await usersCol.findOne({ _id: new ObjectId(userId) });
-    const xpAfterFirst = userAfterFirst!.xp;
+    it('replays the existing workout on a duplicate request without re-applying side effects', async () => {
+      const req = request();
+      const first = await logWorkout(idempotentInput, userId, req);
+      const afterFirst = await readUser();
 
-    // 3. Second request with same idempotencyKey should gracefully return the existing workout
-    const secondWorkout = await logWorkout(workoutInput, userId);
-    expect(secondWorkout.id).toBe(firstWorkout.id);
-    expect(secondWorkout.title).toBe(firstWorkout.title);
+      const second = await logWorkout(idempotentInput, userId, req);
 
-    // 4. Verify user stats did NOT increment a second time
-    const userAfterSecond = await usersCol.findOne({ _id: new ObjectId(userId) });
-    expect(userAfterSecond!.xp).toBe(xpAfterFirst);
+      expect(first.replayed).toBe(false);
+      expect(second.replayed).toBe(true);
+      expect(second.value.id).toBe(first.value.id);
+      const afterSecond = await readUser();
+      expect(afterSecond.xp).toBe(afterFirst.xp);
+      expect(afterSecond.totalWorkouts).toBe(afterFirst.totalWorkouts);
+      const workoutsCol = await getCollection("workouts");
+      expect(await workoutsCol.countDocuments({ userId, idempotencyKey: req.key })).toBe(1);
+    });
 
-    // 5. Verify only ONE workout exists in the DB with this key
-    const workoutsCol = await getCollection("workouts");
-    const duplicateCount = await workoutsCol.countDocuments({ userId, idempotencyKey });
-    expect(duplicateCount).toBe(1);
+    it('stores the fingerprint on the workout', async () => {
+      const req = request('fingerprint-abc');
+      await logWorkout(idempotentInput, userId, req);
+
+      const workoutsCol = await getCollection("workouts");
+      const doc = await workoutsCol.findOne({ userId, idempotencyKey: req.key });
+      expect(doc!.idempotencyFingerprint).toBe('fingerprint-abc');
+    });
+
+    it('rejects the same key with a different fingerprint with 422 and changes nothing', async () => {
+      const key = crypto.randomUUID();
+      await logWorkout(idempotentInput, userId, { key, fingerprint: 'f1' });
+      const before = await readUser();
+
+      const retry = logWorkout(idempotentInput, userId, { key, fingerprint: 'f2' });
+
+      await expect(retry).rejects.toBeInstanceOf(IdempotencyKeyReusedError);
+      await expect(retry).rejects.toThrow(
+        'This workout was already saved with your earlier details. Check your history to edit it, or submit again to log a new one.'
+      );
+      expect((await readUser()).xp).toBe(before.xp);
+      const workoutsCol = await getCollection("workouts");
+      expect(await workoutsCol.countDocuments({ userId, idempotencyKey: key })).toBe(1);
+    });
+
+    it('replays the edited workout after an update', async () => {
+      const req = request();
+      const first = await logWorkout(idempotentInput, userId, req);
+      await updateWorkout(first.value.id, { ...idempotentInput, title: "Edited Title" }, userId);
+
+      const replay = await logWorkout(idempotentInput, userId, req);
+
+      expect(replay.replayed).toBe(true);
+      expect(replay.value.title).toBe("Edited Title");
+    });
   });
 
   describe('Stamina System Integration', () => {
@@ -127,12 +162,11 @@ describe('logWorkout Integration Test', () => {
       const workoutInput = {
         title: "Normal Workout",
         duration: 60, // 60 min -> 10 + 12 = 22 cost
-        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }],
-        idempotencyKey: crypto.randomUUID()
+        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }]
       };
 
       // 2. Act
-      await logWorkout(workoutInput, userId);
+      await logWorkout(workoutInput, userId, request());
 
       // 3. Assert
       const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
@@ -147,12 +181,11 @@ describe('logWorkout Integration Test', () => {
       const workoutInput = {
         title: "Exhausted Workout",
         duration: 60, // Base XP: 60*2 + 1*15 = 135
-        exercises: [{ name: "Running", targetMuscle: TargetMuscle.Cardio, sets: 1, reps: 1, weight: null }],
-        idempotencyKey: crypto.randomUUID()
+        exercises: [{ name: "Running", targetMuscle: TargetMuscle.Cardio, sets: 1, reps: 1, weight: null }]
       };
 
       // 2. Act
-      const workout = await logWorkout(workoutInput, userId);
+      const { value: workout } = await logWorkout(workoutInput, userId, request());
 
       // 3. Assert
       const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
@@ -171,12 +204,11 @@ describe('logWorkout Integration Test', () => {
       const workoutInput = {
         title: "Recovered Workout",
         duration: 60, // 22 cost
-        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }],
-        idempotencyKey: crypto.randomUUID()
+        exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 225 }]
       };
 
       // 2. Act
-      await logWorkout(workoutInput, userId);
+      await logWorkout(workoutInput, userId, request());
 
       // 3. Assert
       // Recovery: 10 + (2*100) = 210 -> 100

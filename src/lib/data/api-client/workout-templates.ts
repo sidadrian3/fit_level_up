@@ -5,11 +5,15 @@ export async function fetchWorkoutTemplates(): Promise<WorkoutTemplate[]> {
   return apiFetch<WorkoutTemplate[]>("/api/workout-templates");
 }
 
-export async function createWorkoutTemplate(input: CreateWorkoutTemplateInput): Promise<WorkoutTemplate> {
+export async function createWorkoutTemplate(
+  input: CreateWorkoutTemplateInput,
+  idempotencyKey: string,
+): Promise<WorkoutTemplate> {
   return apiFetch<WorkoutTemplate>("/api/workout-templates", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    idempotencyKey,
   });
 }
 

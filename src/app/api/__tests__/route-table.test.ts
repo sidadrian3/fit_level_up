@@ -52,6 +52,9 @@ describe("route table", () => {
           violations.push(`${label}: user mutation must name a throttle tier (${Object.keys(RATE_LIMIT_TIERS).join(" | ")})`);
         }
       }
+      if (definition.idempotency !== undefined && !(definition.auth === "user" && method === "POST")) {
+        violations.push(`${label}: idempotency is only allowed on user POST routes`);
+      }
       if (definition.auth !== "user" && definition.throttle !== undefined) {
         violations.push(`${label}: ${definition.auth} route must not set a throttle`);
       }

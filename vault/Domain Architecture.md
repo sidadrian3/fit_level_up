@@ -126,12 +126,12 @@ export function evaluateWorkout(input: CreateWorkoutInput, currentStamina: numbe
 ### 4. Data (Persistence Layer)
 **Location:** `src/lib/data/...`
 
-The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`src/server/platform/database/mongo-utils.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (same file) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or return the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
+The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`src/server/platform/database/mongo-utils.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (same file) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or, for the create routes, let `createOnce` replay the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
 
 **Example Snippet (`src/lib/data/workout-db.ts`):**
 ```typescript
 export async function insertWorkout(
-    input: Omit<Workout, "id"> & { idempotencyKey: string },
+    input: Omit<Workout, "id"> & { idempotencyKey: string; idempotencyFingerprint: string },
     session?: ClientSession
 ): Promise<Workout> {
     const workouts = await getCollection<WorkoutDocument>("workouts");

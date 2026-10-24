@@ -211,7 +211,7 @@ POST /api/workouts
 
 - Strict 4-layer architecture (domain/service/data separation fully enforced)
 - MongoDB transactions wrapping all multi-step writes (`logWorkout`, `logRun`, `claimQuestReward`)
-- Idempotency keys on workout and run creation (prevents duplicate submissions on network retry)
+- `Idempotency-Key` header on workout, run and template creation (a retry replays the stored result; a changed body under the same key is refused)
 - Proper MongoDB indexes on all hot-path queries (including unique indexes that keep friendships to one document per pair and prevent duplicate achievement unlocks, custom exercises and quest rows)
 - Zod validation on every API endpoint
 - Type-safe environment variables (validated at startup — server won't start with missing env vars)
@@ -276,9 +276,9 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 
 **What was built:**
 
-1. **Client-Side Idempotency (`useState`)**: Form components now generate a UUID `idempotencyKey` when they mount, keeping it stable across re-renders.
-2. **API Fetch Retries**: `apiFetch` was upgraded to catch `TypeError` (offline/network drops) and automatically retry idempotent requests up to 2 times using exponential backoff.
-3. **Graceful 409 Conflict Recovery**: If a duplicate request reaches the server (because a previous request succeeded but the response was dropped), MongoDB catches it via a unique index on `idempotencyKey`. The backend now intercepts this `11000` error, looks up the _already created_ document using `findByIdempotencyKey`, and returns it seamlessly as a 200 OK. The frontend has no idea a failure ever occurred!
+1. **Client-Side Idempotency (`useIdempotencyKey`)**: Create forms generate one UUID when they mount, keep it stable across re-renders and retries, and start a new one after a success or a `422`. `apiFetch` sends it as the `Idempotency-Key` header.
+2. **API Fetch Retries**: `apiFetch` was upgraded to catch `TypeError` (offline/network drops) and automatically retry GET requests and requests that carry an `Idempotency-Key` header up to 2 times, one second apart. Updates and deletes are not retried.
+3. **Replay on retry**: If a duplicate request reaches the server (because a previous request succeeded but the response was dropped), `createOnce` finds the _already created_ document by its key and returns it as a `201` with `Idempotent-Replayed: true`; the unique index on `idempotencyKey` settles two racing requests. If the same key arrives with a different body, the server answers `422` and the form tells the person their earlier submit was saved.
 4. **Atomic Quest Syncing (TOCTOU fix)**: Eliminated a read-then-write race condition by leveraging MongoDB `bulkWrite` with `updateOne(..., { upsert: true, $setOnInsert })` for quest syncing, letting the database handle deduplication atomically.
 5. **Reliable Background Tasks (Cron)**: Added a daily Vercel Cron sweep (`/api/cron/achievements-sweep`) that re-evaluates achievements for recently active users. This acts as a safety net in case the Next.js `after()` background task is killed prematurely by Vercel's serverless timeout limits.
 
@@ -713,51 +713,31 @@ describe('logWorkout Integration Test', () => {
 
 ```typescript
 // ─── TEST 2: The "retry safety" test ─────────────────────────────────
-it("should enforce idempotency and reject duplicate requests", async () => {
-  // Simulate a client that generates a UUID for this specific workout
-  const idempotencyKey = crypto.randomUUID();
+it("replays a retry with the same key and body, and never credits XP twice", async () => {
+  // The client generates one UUID per form mount and sends it as the Idempotency-Key header
+  const request = { key: crypto.randomUUID(), fingerprint: "sha256-of-the-body" };
 
-  const workoutInput = {
-    title: "Evening Run",
-    duration: 30,
-    exercises: [
-      {
-        name: "Jogging",
-        targetMuscle: TargetMuscle.Cardio,
-        sets: 1,
-        reps: 1,
-        weight: null,
-      },
-    ],
-    idempotencyKey, // ← send the same key twice
-  };
+  // First request — creates the workout
+  const first = await logWorkout(workoutInput, userId, request);
+  expect(first.replayed).toBe(false);
 
-  // First request — succeeds
-  const firstWorkout = await logWorkout(workoutInput, userId);
-  expect(firstWorkout.id).toBeDefined();
+  const xpAfterFirst = (await usersCol.findOne({ _id: new ObjectId(userId) }))!.xp;
 
-  // Capture XP after first request
-  const userAfterFirst = await usersCol.findOne({ _id: new ObjectId(userId) });
-  const xpAfterFirst = userAfterFirst!.xp;
+  // Retry with the SAME key and body — replayed, nothing runs again
+  const second = await logWorkout(workoutInput, userId, request);
+  expect(second).toEqual({ value: first.value, replayed: true });
+  expect((await usersCol.findOne({ _id: new ObjectId(userId) }))!.xp).toBe(xpAfterFirst);
 
-  // Second request with SAME idempotencyKey — must fail gracefully
-  await expect(logWorkout(workoutInput, userId)).rejects.toThrow(
-    "This workout was already logged.",
-  );
-  //               ↑ our specific error message, not a generic MongoDB crash
+  // Same key, different body — the earlier submit stands, so the retry is refused
+  await expect(
+    logWorkout(workoutInput, userId, { ...request, fingerprint: "a-different-body" }),
+  ).rejects.toThrow(IdempotencyKeyReusedError); // 422
 
-  // User's XP must NOT have changed (no double-credit)
-  const userAfterSecond = await usersCol.findOne({ _id: new ObjectId(userId) });
-  expect(userAfterSecond!.xp).toBe(xpAfterFirst); // ← same XP as after first request ✅
-
-  // Only ONE workout should exist in the DB with this key
-  const workoutsCol = await getCollection("workoutsCollection");
-  const count = await workoutsCol.countDocuments({ userId, idempotencyKey });
-  expect(count).toBe(1); // ← not 2 ✅
+  expect(await workoutsCol.countDocuments({ userId, idempotencyKey: request.key })).toBe(1);
 });
 ```
 
-**What this proves:** A user on a flaky network connection who retries the same request twice cannot accidentally earn XP twice. The MongoDB unique index on `idempotencyKey` blocks the duplicate insert, and the service catches it and surfaces a clean error message.
+**What this proves:** A user on a flaky network who retries the same request cannot earn XP twice, and cannot have an edited retry silently swallowed. The unique index on `idempotencyKey` is the source of truth, `createOnce` turns a duplicate into a replay, and a changed body under a used key becomes a `422`.
 
 ---
 

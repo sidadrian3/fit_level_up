@@ -1,3 +1,4 @@
+import type { IdempotentRecord } from "@/server/platform/http";
 import { ObjectId } from "mongodb";
 import type { Run } from "@/lib/types";
 import { getCollection, parseObjectId, type RunDoc } from "@/server/platform/database";
@@ -128,8 +129,8 @@ export async function getTotalDistanceInRange(userId: string, from: Date, toExcl
         : 0;
 }
 
-export async function getRunByIdempotencyKey(userId: string, key: string): Promise<Run | null> {
+export async function getRunByIdempotencyKey(userId: string, key: string): Promise<IdempotentRecord<Run> | null> {
     const collection = await getCollection<RunDoc>("runs");
     const doc = await collection.findOne({ userId, idempotencyKey: key });
-    return doc ? toRun(doc) : null;
+    return doc ? { value: toRun(doc), fingerprint: doc.idempotencyFingerprint } : null;
 }

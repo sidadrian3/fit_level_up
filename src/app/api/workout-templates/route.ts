@@ -8,6 +8,6 @@ export const GET = defineRoute({ name: "templates.list", auth: "user" }, ({ user
 );
 
 export const POST = defineRoute(
-  { name: "templates.create", auth: "user", throttle: "standard", body: WorkoutTemplateSchema, status: 201 },
-  ({ userId, body }) => createWorkoutTemplate(body, userId)
+  { name: "templates.create", auth: "user", throttle: "standard", body: WorkoutTemplateSchema, status: 201, idempotency: "required" },
+  ({ userId, body, idempotency }) => createWorkoutTemplate(body, userId, idempotency)
 );

@@ -29,6 +29,7 @@ export type WorkoutDoc = {
     xpEarned: number;
     date: Date;
     idempotencyKey?: string;
+    idempotencyFingerprint?: string;
 };
 
 export type RunDoc = {
@@ -41,6 +42,7 @@ export type RunDoc = {
     xpEarned: number;
     date: Date;
     idempotencyKey?: string;
+    idempotencyFingerprint?: string;
 };
 
 export interface CustomExerciseDoc {
@@ -56,6 +58,7 @@ export interface WorkoutTemplateDoc {
     name: string;
     exercises: Exercise[];
     idempotencyKey: string;
+    idempotencyFingerprint?: string;
     createdAt: string;
 }
 
@@ -152,7 +155,7 @@ export const SCHEMA: Record<
             idempotencyIndex("idx_workouts_idempotencyKey"),
         ],
         validator: objectSchema(
-            { userId: string, title: string, exercises: array, duration: number, xpEarned: number, date, idempotencyKey: string },
+            { userId: string, title: string, exercises: array, duration: number, xpEarned: number, date, idempotencyKey: string, idempotencyFingerprint: string },
             ["userId", "title", "exercises", "duration", "xpEarned", "date"]
         ),
     },
@@ -171,6 +174,7 @@ export const SCHEMA: Record<
                 difficulty: { enum: ["easy", "moderate", "hard", "intense"] },
                 date,
                 idempotencyKey: string,
+                idempotencyFingerprint: string,
             },
             ["userId", "distance", "duration", "pace", "xpEarned", "difficulty", "date"]
         ),
@@ -257,7 +261,7 @@ export const SCHEMA: Record<
             idempotencyIndex("idx_workoutTemplates_idempotencyKey"),
         ],
         validator: objectSchema(
-            { userId: string, name: string, idempotencyKey: string, createdAt: string, exercises: array },
+            { userId: string, name: string, idempotencyKey: string, idempotencyFingerprint: string, createdAt: string, exercises: array },
             ["userId", "name", "idempotencyKey", "createdAt", "exercises"]
         ),
     },

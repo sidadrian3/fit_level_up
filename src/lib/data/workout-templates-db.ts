@@ -1,3 +1,4 @@
+import type { IdempotentRecord } from "@/server/platform/http";
 import {
     MAX_FIND_LIMIT,
     userScopedRepository,
@@ -25,9 +26,9 @@ export async function getWorkoutTemplatesFromDb(userId: string): Promise<Workout
     return docs.map(toWorkoutTemplate);
 }
 
-export async function getWorkoutTemplateByIdempotencyKeyFromDb(userId: string, idempotencyKey: string): Promise<WorkoutTemplate | null> {
+export async function getWorkoutTemplateByIdempotencyKeyFromDb(userId: string, idempotencyKey: string): Promise<IdempotentRecord<WorkoutTemplate> | null> {
     const doc = await templates.findOne(userId, { idempotencyKey });
-    return doc ? toWorkoutTemplate(doc) : null;
+    return doc ? { value: toWorkoutTemplate(doc), fingerprint: doc.idempotencyFingerprint } : null;
 }
 
 export async function createWorkoutTemplateInDb(input: Omit<WorkoutTemplateDoc, "_id">): Promise<WorkoutTemplate> {
