@@ -1,0 +1,4 @@
+export const NOTIFICATION_POLL_INTERVAL_MS = 30_000;
+export const FAST_POLL_INTERVAL_MS = 2_000;
+export const FAST_POLL_WINDOW_MS = 10_000;
+export const NOTIFICATION_FEED_LIMIT = 50;
