@@ -6,7 +6,7 @@ export { isDuplicateKeyError, parseObjectId } from "./mongo-utils";
 export { MAX_FIND_LIMIT, userScopedRepository } from "./user-scoped-repository";
 export type { ScopedFilter, UserOwnedDoc, UserScopedRepository } from "./user-scoped-repository";
 export { applySchema } from "./apply-schema";
-export { COLLECTIONS } from "./schema";
+export { COLLECTIONS, SCHEMA } from "./schema";
 export type {
     CollectionKey,
     WorkoutDoc,

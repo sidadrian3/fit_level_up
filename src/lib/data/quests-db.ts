@@ -1,89 +1,11 @@
-import { ObjectId } from "mongodb";
-import type { Quest, QuestCategory, QuestMetric } from "@/lib/types";
+import type { ClientSession, ObjectId } from "mongodb";
 import { getCollection, parseObjectId, type UserQuestDoc } from "@/server/platform/database";
-import { ClientSession } from "mongodb";
-
-export type QuestTemplateMongoDoc = {
-  _id?: ObjectId;
-  title: string;
-  description: string;
-  category: QuestCategory;
-  metric: QuestMetric;
-  target: number;
-  xpReward: number;
-  icon: string;
-  isActive: boolean;
-};
-
-export function toQuestView(
-  userQuest: UserQuestDoc,
-  template: QuestTemplateMongoDoc,
-): Quest {
-  if (!userQuest._id) {
-    throw new Error("User quest document is missing _id");
-  }
-
-  return {
-    id: userQuest._id.toString(),
-    title: template.title,
-    description: template.description,
-    category: template.category,
-    progress: userQuest.progress,
-    target: userQuest.target,
-    xpReward: template.xpReward,
-    completed: userQuest.completed,
-    claimed: userQuest.claimed,
-    icon: template.icon,
-  };
-}
-
-export async function getQuestTemplatesByMetricsFromDb(
-  metrics: QuestMetric[],
-  session?: ClientSession,
-): Promise<QuestTemplateMongoDoc[]> {
-  const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplates",
-  );
-  return collection
-    .find({ isActive: true, metric: { $in: metrics } }, { session })
-    .toArray();
-}
-
-export async function getActiveQuestTemplatesFromDb(): Promise<
-  QuestTemplateMongoDoc[]
-> {
-  const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplates",
-  );
-  return collection.find({ isActive: true }).toArray();
-}
-
-export async function getQuestTemplateByIdFromDb(
-  id: string,
-  session?: ClientSession,
-): Promise<QuestTemplateMongoDoc | null> {
-  const _id = parseObjectId(id);
-  if (!_id) return null;
-  const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplates",
-  );
-  return collection.findOne({ _id }, { session });
-}
-
-export async function getQuestTemplatesByMetricFromDb(
-  metric: QuestMetric,
-): Promise<QuestTemplateMongoDoc[]> {
-  const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplates",
-  );
-  return collection.find({ isActive: true, metric }).toArray();
-}
 
 export async function findUserQuestFromDb(
   userId: string,
   questTemplateId: string,
-  periodStart: string,
-  periodEnd: string,
+  periodStart: string | null,
+  periodEnd: string | null,
 ): Promise<UserQuestDoc | null> {
   const collection = await getCollection<UserQuestDoc>(
     "userQuests",
@@ -130,21 +52,10 @@ export async function getUserQuestsForUserFromDb(
     .find(
       {
         userId,
-        $or: [{ periodEnd: { $gte: today } }, { periodEnd: "all-time" }],
+        $or: [{ periodEnd: { $gte: today } }, { periodEnd: null }],
       },
       { session },
     )
-    .toArray();
-}
-
-export async function getQuestTemplatesByIdsFromDb(
-  ids: string[],
-): Promise<QuestTemplateMongoDoc[]> {
-  const collection = await getCollection<QuestTemplateMongoDoc>(
-    "questTemplates",
-  );
-  return collection
-    .find({ _id: { $in: ids.flatMap((id) => parseObjectId(id) ?? []) } })
     .toArray();
 }
 

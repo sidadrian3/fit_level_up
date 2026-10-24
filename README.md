@@ -123,7 +123,7 @@ src/
 │   ├── validations/        # Zod schemas for API input validation
 │   ├── types.ts            # Shared TypeScript domain types
 │   └── mongodb.ts          # MongoDB singleton client
-├── scripts/                # One-off scripts (DB seeding, migrations)
+├── scripts/                # One-off scripts (DB migrations)
 ├── env.ts                  # Type-safe environment variable validation
 └── proxy.ts                # Next.js edge middleware (route protection)
 ```
@@ -172,15 +172,7 @@ NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
 
 > All collection names have sensible defaults (`workouts`, `runs`, `user_quests`, etc.) and do not need to be set unless you want to override them.
 
-### 4. Seed the database
-
-Run the achievement seed script to populate the initial achievements:
-
-```bash
-npm run seed
-```
-
-### 5. Start the development server
+### 4. Start the development server
 
 ```bash
 npm run dev
@@ -209,7 +201,6 @@ All variables are validated at startup by `src/server/platform/env/env.ts` and `
 1. Create a free cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas).
 2. Create a database user and whitelist your IP.
 3. Copy the connection string into `MONGODB_URI` in `.env.local`.
-4. Run `npm run seed` to populate achievement data.
 
 ### Option B: Local Docker
 
@@ -241,7 +232,6 @@ MONGODB_URI="mongodb://localhost:27017"
 | Production build  | `npm run build`    | Runs DB migrations then builds the Next.js production bundle |
 | Production server | `npm run start`    | Starts the production Next.js server                         |
 | Lint              | `npm run lint`     | Runs ESLint across the project                               |
-| Seed DB           | `npm run seed`     | Seeds the `achievements` collection with initial data        |
 | Unit tests        | `npm test`         | Runs Vitest unit tests (with in-memory MongoDB)              |
 | E2E tests         | `npm run test:e2e` | Runs Playwright end-to-end tests against `localhost:3000`    |
 

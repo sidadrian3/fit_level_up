@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "eslint && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx --conditions=react-server --env-file=.env.local src/scripts/seed-achievements.ts && tsx --conditions=react-server --env-file=.env.local src/scripts/seed-quests.ts",
     "outbox": "tsx --conditions=react-server --env-file=.env.local src/scripts/outbox.ts",
     "test": "vitest",
     "test:run": "vitest run",

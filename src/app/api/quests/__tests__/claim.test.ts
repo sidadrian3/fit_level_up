@@ -29,7 +29,6 @@ describe("POST /api/quests/[id]/claim", () => {
 
   afterEach(async () => {
     await (await getCollection("userQuests")).deleteMany({ userId });
-    await (await getCollection("questTemplates")).deleteMany({});
   });
 
   it("returns 404 for a malformed quest id", async () => {
@@ -37,27 +36,16 @@ describe("POST /api/quests/[id]/claim", () => {
   });
 
   it("returns 400 when the quest is not completed", async () => {
-    const templates = await getCollection("questTemplates");
-    const { insertedId } = await templates.insertOne({
-      title: "Daily Burn",
-      description: "d",
-      category: "special",
-      metric: "workout_count",
-      target: 1,
-      xpReward: 100,
-      icon: "dumbbell",
-      isActive: true,
-    });
     const userQuests = await getCollection("userQuests");
     const quest = await userQuests.insertOne({
       userId,
-      questTemplateId: insertedId.toString(),
+      questTemplateId: "daily_workout_1",
       progress: 0,
       target: 1,
       completed: false,
       claimed: false,
-      periodStart: "all-time",
-      periodEnd: "all-time",
+      periodStart: null,
+      periodEnd: null,
     });
 
     const response = await claim(quest.insertedId.toString());
@@ -75,29 +63,17 @@ describe("POST /api/quests/[id]/claim", () => {
     vi.mocked(getAuthUserId).mockResolvedValue(claimerId);
 
     try {
-      const { insertedId: templateId } = await (
-        await getCollection("questTemplates")
-      ).insertOne({
-        title: "Big Reward",
-        description: "d",
-        category: "special",
-        metric: "workout_count",
-        target: 1,
-        xpReward: 100,
-        icon: "dumbbell",
-        isActive: true,
-      });
       const quest = await (
         await getCollection("userQuests")
       ).insertOne({
         userId: claimerId,
-        questTemplateId: templateId.toString(),
+        questTemplateId: "daily_workout_1",
         progress: 1,
         target: 1,
         completed: true,
         claimed: false,
-        periodStart: "all-time",
-        periodEnd: "all-time",
+        periodStart: null,
+        periodEnd: null,
       });
       const questId = quest.insertedId.toString();
 

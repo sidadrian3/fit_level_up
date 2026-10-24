@@ -9,30 +9,18 @@ vi.mock("@/lib/auth/auth-helpers", () => ({
   getAuthUserId: vi.fn(),
 }));
 
-const SEEDED_TEMPLATES = [
-  { title: "Daily Burn", description: "Log at least 1 workout today.", category: "daily", metric: "workout_count", target: 1, xpReward: 100, icon: "dumbbell", isActive: true },
-  { title: "Daily Steps", description: "Go for a quick 2km run today.", category: "daily", metric: "run_distance", target: 2, xpReward: 100, icon: "footprints", isActive: true },
-  { title: "Weekly Consistency", description: "Log 3 workouts this week.", category: "weekly", metric: "workout_count", target: 3, xpReward: 500, icon: "calendar", isActive: true },
-  { title: "Marathon Prep", description: "Run a total of 15km this week.", category: "weekly", metric: "run_distance", target: 15, xpReward: 600, icon: "zap", isActive: true },
-  { title: "Weekend Warrior", description: "Log 1 run this weekend.", category: "special", metric: "run_count", target: 1, xpReward: 300, icon: "flame", isActive: true },
-] as const;
-
 const EXPECTED_KEYS = ["category", "claimed", "completed", "description", "icon", "id", "progress", "target", "title", "xpReward"];
 
 describe("GET /api/quests", () => {
   let userId: string;
-  let dailyBurnTemplateId: string;
 
   beforeEach(async () => {
     userId = await seedPlayer({ email: `quests-list-${crypto.randomUUID()}@example.com`, name: "Quester", timeZone: "UTC" });
     vi.mocked(getAuthUserId).mockResolvedValue(userId);
-    const { insertedIds } = await (await getCollection("questTemplates")).insertMany(SEEDED_TEMPLATES.map((template) => ({ ...template })));
-    dailyBurnTemplateId = insertedIds[0].toString();
   });
 
   afterEach(async () => {
     await (await getCollection("userQuests")).deleteMany({ userId });
-    await (await getCollection("questTemplates")).deleteMany({});
     await deletePlayer(userId);
   });
 
@@ -80,7 +68,7 @@ describe("GET /api/quests", () => {
   it("excludes a row from a past period", async () => {
     await (await getCollection("userQuests")).insertOne({
       userId,
-      questTemplateId: dailyBurnTemplateId,
+      questTemplateId: "daily_workout_1",
       progress: 1,
       target: 1,
       completed: true,

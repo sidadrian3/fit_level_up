@@ -3,10 +3,10 @@
 import type { Achievement } from "@/lib/types";
 import { getUser } from "@/lib/services/users/get-user";
 import {
-  getAchievementDefinitions,
   getUserUnlocks,
   insertUserAchievements,
 } from "@/lib/data/achievements-db";
+import { ACHIEVEMENT_DEFINITIONS } from "@/server/achievements";
 import type { UserAchievementDoc } from "@/server/platform/database";
 import { isConditionMet } from "@/lib/domain/achievement-rules";
 import { ClientSession } from "mongodb";
@@ -18,14 +18,10 @@ export async function evaluateAchievements(
   // Get user data with evaluated stamina/streak
   const user = await getUser(userId, { session });
 
-  // Fetch all definitions and user's existing unlocks
-  const [definitions, unlocked] = await Promise.all([
-    getAchievementDefinitions(),
-    getUserUnlocks(userId),
-  ]);
+  const unlocked = await getUserUnlocks(userId);
 
   const unlockedIds = new Set(unlocked.map((u) => u.achievementId));
-  const lockedDefinitions = definitions.filter((def) => !unlockedIds.has(def.id));
+  const lockedDefinitions = ACHIEVEMENT_DEFINITIONS.filter((def) => !unlockedIds.has(def.id));
 
   const now = new Date().toISOString();
   const newlyUnlockedDocs: UserAchievementDoc[] = [];

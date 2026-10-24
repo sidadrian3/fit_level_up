@@ -1,8 +1,24 @@
 import type { Quest } from "@/lib/types";
 import { toLocalDay } from "@/shared/time/calendar";
 import { getUserTimeZone } from "@/server/platform/auth";
-import { syncUserQuests } from "@/lib/services/quests/sync-user-quests";
-import { getUserQuestsForUserFromDb, getQuestTemplatesByIdsFromDb, toQuestView } from "@/lib/data/quests-db";
+import { QUEST_ENTRY_BY_ID, syncUserQuests, type QuestEntry } from "@/lib/services/quests/sync-user-quests";
+import { getUserQuestsForUserFromDb } from "@/lib/data/quests-db";
+import type { UserQuestDoc } from "@/server/platform/database";
+
+function toQuestView(id: string, userQuest: UserQuestDoc, entry: QuestEntry): Quest {
+  return {
+    id,
+    title: entry.title,
+    description: entry.description,
+    category: entry.category,
+    progress: userQuest.progress,
+    target: userQuest.target,
+    xpReward: entry.xpReward,
+    completed: userQuest.completed,
+    claimed: userQuest.claimed,
+    icon: entry.icon,
+  };
+}
 
 export async function getUserQuests(userId: string): Promise<Quest[]> {
   const calendar = { now: new Date(), timeZone: await getUserTimeZone(userId) };
@@ -10,23 +26,11 @@ export async function getUserQuests(userId: string): Promise<Quest[]> {
 
   const userQuests = await getUserQuestsForUserFromDb(userId, toLocalDay(calendar.now, calendar.timeZone));
 
-  if (userQuests.length === 0) {
-    return [];
-  }
-
-  const templateIds = [...new Set(userQuests.map(uq => uq.questTemplateId))];
-  const templates = await getQuestTemplatesByIdsFromDb(templateIds);
-  const templateMap = new Map(templates.map(t => [t._id?.toString(), t]));
-
   const quests: Quest[] = [];
-
   for (const userQuest of userQuests) {
-    const template = templateMap.get(userQuest.questTemplateId);
-    if (!template) {
-      continue;
-    }
-    quests.push(toQuestView(userQuest, template));
+    const entry = QUEST_ENTRY_BY_ID.get(userQuest.questTemplateId);
+    if (!entry || !userQuest._id) continue;
+    quests.push(toQuestView(userQuest._id.toString(), userQuest, entry));
   }
-
   return quests;
 }

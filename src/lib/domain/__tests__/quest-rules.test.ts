@@ -28,8 +28,8 @@ describe("getPeriodForCategory", () => {
 
   it("uses a fixed all-time period for special quests", () => {
     expect(getPeriodForCategory("special", instant, "UTC")).toEqual({
-      periodStart: "all-time",
-      periodEnd: "all-time",
+      periodStart: null,
+      periodEnd: null,
     });
   });
 });

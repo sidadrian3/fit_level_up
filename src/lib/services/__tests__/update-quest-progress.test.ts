@@ -29,20 +29,10 @@ describe("quest progress through logWorkout", () => {
   afterEach(async () => {
     vi.useRealTimers();
     await (await getCollection("userQuests")).deleteMany({ userId });
-    await (await getCollection("questTemplates")).deleteMany({});
     await (await getCollection("workouts")).deleteMany({ userId });
   });
 
-  async function seedWorkoutQuestTemplates() {
-    const templates = await getCollection("questTemplates");
-    await templates.insertMany([
-      { title: "Daily Burn", description: "d", category: "daily", metric: "workout_count", target: 1, xpReward: 100, icon: "dumbbell", isActive: true },
-      { title: "Weekly Consistency", description: "w", category: "weekly", metric: "workout_count", target: 3, xpReward: 500, icon: "calendar", isActive: true },
-    ]);
-  }
-
   it("credits daily and weekly progress even when the quests were never synced", async () => {
-    await seedWorkoutQuestTemplates();
     const userQuests = await getCollection("userQuests");
     expect(await userQuests.countDocuments({ userId })).toBe(0);
 
@@ -54,7 +44,6 @@ describe("quest progress through logWorkout", () => {
   });
 
   it("keeps crediting the same rows on later workouts, capped at the target", async () => {
-    await seedWorkoutQuestTemplates();
 
     await logWorkout(workout(), userId, request());
     await logWorkout(workout(), userId, request());
@@ -66,18 +55,16 @@ describe("quest progress through logWorkout", () => {
   });
 
   it("does not duplicate rows when quests are listed repeatedly", async () => {
-    await seedWorkoutQuestTemplates();
 
     await Promise.all([getUserQuests(userId), getUserQuests(userId)]);
     await logWorkout(workout(), userId, request());
     const quests = await getUserQuests(userId);
 
-    expect(quests).toHaveLength(2);
-    expect(await (await getCollection("userQuests")).countDocuments({ userId })).toBe(2);
+    expect(quests).toHaveLength(5);
+    expect(await (await getCollection("userQuests")).countDocuments({ userId })).toBe(5);
   });
 
   it("credits the local-day period row", async () => {
-    await seedWorkoutQuestTemplates();
     await (await getCollection<UserDoc>("user")).updateOne(
       { _id: new ObjectId(userId) },
       { $set: { timeZone: "Asia/Manila" } },

@@ -2,7 +2,9 @@ import { DomainError } from "@/server/platform/domain";
 import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
 import { toLocalDay, addDays, startOfWeek } from "@/shared/time/calendar";
 
-export function getPeriodForCategory(category: QuestCategory, now: Date, timeZone: string) {
+export type QuestPeriod = { periodStart: string | null; periodEnd: string | null };
+
+export function getPeriodForCategory(category: QuestCategory, now: Date, timeZone: string): QuestPeriod {
   const today = toLocalDay(now, timeZone);
 
   if (category === "daily") {
@@ -22,8 +24,8 @@ export function getPeriodForCategory(category: QuestCategory, now: Date, timeZon
   }
 
   return {
-    periodStart: "all-time",
-    periodEnd: "all-time",
+    periodStart: null,
+    periodEnd: null,
   };
 }
 

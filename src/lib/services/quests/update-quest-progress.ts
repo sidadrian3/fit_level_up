@@ -2,10 +2,10 @@ import type { QuestActivity } from "@/lib/types";
 import { getQuestProgressUpdates, getPeriodForCategory, calcNextProgress } from "@/lib/domain/quest-rules";
 import {
   updateUserQuestProgressInDb,
-  getUserQuestsForUserFromDb, getQuestTemplatesByMetricsFromDb
+  getUserQuestsForUserFromDb,
 } from "@/lib/data/quests-db";
 import { toLocalDay } from "@/shared/time/calendar";
-import { ensureUserQuestRows, type QuestCalendar } from "@/lib/services/quests/sync-user-quests";
+import { QUEST_ENTRIES, ensureUserQuestRows, type QuestCalendar } from "@/lib/services/quests/sync-user-quests";
 import { ClientSession } from "mongodb";
 
 // The session is required: read-then-write is only race-free because a conflicting transaction is aborted and retried
@@ -17,25 +17,18 @@ export async function updateQuestProgress(
 ): Promise<void> {
 
   const updates = getQuestProgressUpdates(activity);
-  const metrics = updates.map(u => u.metric);
+  const metrics = new Set(updates.map(u => u.metric));
 
-  const matchingTemplates = await getQuestTemplatesByMetricsFromDb(metrics, session);
-  await ensureUserQuestRows(userId, matchingTemplates, calendar, session);
+  const matchingEntries = QUEST_ENTRIES.filter(entry => metrics.has(entry.metric));
+  await ensureUserQuestRows(userId, matchingEntries, calendar, session);
   const userQuests = await getUserQuestsForUserFromDb(userId, toLocalDay(calendar.now, calendar.timeZone), session);
 
   for (const update of updates) {
-    const templatesForUpdate = matchingTemplates.filter(t => t.metric === update.metric);
-
-    for (const template of templatesForUpdate) {
-      if (!template._id) {
-        continue;
-      }
-
-      const { periodStart, periodEnd } = getPeriodForCategory(template.category, calendar.now, calendar.timeZone);
-      const questTemplateId = template._id.toString();
+    for (const entry of matchingEntries.filter(e => e.metric === update.metric)) {
+      const { periodStart, periodEnd } = getPeriodForCategory(entry.category, calendar.now, calendar.timeZone);
 
       const userQuest = userQuests.find(uq =>
-        uq.questTemplateId === questTemplateId &&
+        uq.questTemplateId === entry.id &&
         uq.periodStart === periodStart &&
         uq.periodEnd === periodEnd
       );

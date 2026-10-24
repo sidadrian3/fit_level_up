@@ -10,22 +10,12 @@ vi.mock("@/lib/auth/auth-helpers", () => ({
 
 const userId = "achievements-route-user";
 
-const SEEDED_ACHIEVEMENTS = [
-  { id: "first_workout", title: "First Steps", description: "Complete your first workout", icon: "footprints", rarity: "common", condition: { metric: "total_workouts", target: 1 } },
-  { id: "speed_demon", title: "Speed Demon", description: "Run a total of 5 km", icon: "zap", rarity: "rare", condition: { metric: "total_distance", target: 5 } },
-  { id: "iron_will", title: "Iron Will", description: "Complete 50 workouts", icon: "shield", rarity: "epic", condition: { metric: "total_workouts", target: 50 } },
-  { id: "unstoppable", title: "Unstoppable", description: "Reach a 30-day streak", icon: "flame", rarity: "epic", condition: { metric: "streak", target: 30 } },
-  { id: "legendary_warrior", title: "Legendary Warrior", description: "Reach level 25", icon: "crown", rarity: "legendary", condition: { metric: "level", target: 25 } },
-];
-
 describe("GET /api/achievements", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.mocked(getAuthUserId).mockResolvedValue(userId);
-    await (await getCollection("achievements")).insertMany(SEEDED_ACHIEVEMENTS.map((achievement) => ({ ...achievement })));
   });
 
   afterEach(async () => {
-    await (await getCollection("achievements")).deleteMany({});
     await (await getCollection("userAchievements")).deleteMany({ userId });
   });
 
