@@ -1,4 +1,4 @@
-import { acceptFriendRequest } from "@/lib/services/friends/accept-friend-request";
+import { acceptFriendRequest } from "@/server/social";
 import { idParams } from "@/server/platform/http";
 import { defineRoute } from "@/server/runtime";
 

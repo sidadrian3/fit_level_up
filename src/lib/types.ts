@@ -1,4 +1,3 @@
-import type { PersonalRecord } from "@/shared/contracts/personal-record";
 import type { AchievementRarity } from "@/shared/achievement-definitions";
 import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 
@@ -155,7 +154,6 @@ export interface FriendProfile {
   streak: number;
   totalWorkouts: number;
   totalDistance: number;
-  personalRecords: PersonalRecord[];
   friendship: Friendship;
 }
 

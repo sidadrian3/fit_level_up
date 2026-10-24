@@ -1,4 +1,4 @@
-import { sendFriendRequest } from "@/lib/services/friends/send-friend-request";
+import { sendFriendRequest } from "@/server/social";
 import { SendFriendRequestSchema } from "@/shared/contracts/friendship";
 import { defineRoute } from "@/server/runtime";
 

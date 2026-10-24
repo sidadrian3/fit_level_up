@@ -1,6 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { X, Dumbbell, Timer, Map, Activity } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { getFriendRecords } from "@/lib/data/api-client/friends";
 import type { FriendProfile } from "@/lib/types";
+
+const SKELETON_ROW_COUNT = 3;
 
 interface FriendProfileModalProps {
   friend: FriendProfile | null;
@@ -9,6 +13,13 @@ interface FriendProfileModalProps {
 }
 
 export function FriendProfileModal({ friend, isOpen, onClose }: FriendProfileModalProps) {
+  const friendId = isOpen && friend ? friend.userId : null;
+  const { data: records, isPending } = useQuery({
+    queryKey: ["friends", friendId, "records"],
+    queryFn: () => getFriendRecords(friendId!),
+    enabled: friendId !== null,
+  });
+
   if (!isOpen || !friend) return null;
 
   return (
@@ -66,9 +77,15 @@ export function FriendProfileModal({ friend, isOpen, onClose }: FriendProfileMod
           <div className="mt-8">
             <h3 className="text-lg font-bold text-foreground mb-4">Personal Records</h3>
             
-            {friend.personalRecords && friend.personalRecords.length > 0 ? (
+            {isPending ? (
+              <div className="space-y-3" aria-busy="true">
+                {Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
+                  <div key={i} className="h-14 rounded-xl bg-border animate-pulse motion-reduce:animate-none" />
+                ))}
+              </div>
+            ) : records && records.length > 0 ? (
               <div className="space-y-3">
-                {friend.personalRecords.map((record, i) => (
+                {records.map((record, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-card-hover border border-border/50 hover:border-border transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-background">

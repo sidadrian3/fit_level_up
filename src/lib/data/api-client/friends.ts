@@ -1,5 +1,6 @@
 import { apiFetch } from "./api-fetch";
 import type { Friendship, FriendProfile } from "@/lib/types";
+import type { PersonalRecord } from "@/shared/contracts/personal-record";
 
 export async function getFriends(): Promise<FriendProfile[]> {
   return apiFetch<FriendProfile[]>("/api/friends");
@@ -7,6 +8,10 @@ export async function getFriends(): Promise<FriendProfile[]> {
 
 export async function getFriendRequests(): Promise<FriendProfile[]> {
   return apiFetch<FriendProfile[]>("/api/friends/requests");
+}
+
+export async function getFriendRecords(friendId: string): Promise<PersonalRecord[]> {
+  return apiFetch<PersonalRecord[]>(`/api/friends/${friendId}/records`);
 }
 
 export async function sendFriendRequest(receiverId: string): Promise<Friendship> {

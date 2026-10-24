@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { publishToMany } from "@/lib/sse/sse-publisher";
-import { buildFriendshipPairKey } from "@/lib/domain/friend-rules";
+import { buildFriendshipPairKey } from "@/server/social";
 import { getCollection, type FriendshipDoc } from "@/server/platform/database";
 import { calcLifetimeXp } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";
