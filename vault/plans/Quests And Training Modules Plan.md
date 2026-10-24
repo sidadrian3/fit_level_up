@@ -97,26 +97,33 @@ Commit: `refactor(quests): quests module with sync, progress, list and claim`.
 
 Commit: `refactor(training): pure workout, run, exercise and records rules`.
 
-#### Task 7: Repositories
+#### Task 7: Templates and custom exercises
 
-- [ ] `workout.repository.ts`, `run.repository.ts`, `template.repository.ts`, `custom-exercise.repository.ts` on `userScopedRepository`, with the existing queries (paginate, insert, update, delete by id, count and sum in a range, idempotency lookups, dates in a range). Documents map to domain types here and `date` is returned as an ISO instant (`doc.date.toISOString()`).
-- [ ] `schema.ts`: nothing new; the `(userId, date)` indexes already cover every query below.
+Split from the original "repositories, then use cases" slicing: building the repositories first would leave the unbounded history reads (records, run stats, friends, dashboard) without a repository to call, so each slice below moves a whole use case end to end.
 
-Commit: `refactor(training): user-scoped repositories for workouts, runs, templates, exercises`.
+- [ ] `templates/template.repository.ts` and `exercises/custom-exercise.repository.ts` on `userScopedRepository`, with the use cases `create-workout-template`, `list-templates`, `delete-template` (the route's database call moves into the module), `create-custom-exercise`, `get-custom-exercises` moved from `lib/services` and `lib/data`. Delete the old files and move their tests next to the use cases.
+- [ ] Export the use cases from `training/index.ts`; the template and exercise routes import only from `@/server/training`.
 
-#### Task 8: Use cases, aggregations and public API
+Commit: `refactor(training): templates and custom exercises in the training module`.
 
-- [ ] Move `log-workout`, `update-workout`, `log-run`, `update-run`, `create-workout-template`, `create-custom-exercise`, `get-custom-exercises` into their folders. Add `delete-workout`, `delete-run`, `delete-template` use cases (moving the route-to-database calls into the module); none touches XP, quests or totals.
-- [ ] `records/get-personal-records.ts`: aggregation pipelines on workouts (`$match userId` → `$unwind exercises` → weight > 0 → `$group` by lowercased trimmed name with `$max` weight and the display name of the heaviest set → `$sort` → `$limit 3`) and on runs (longest by distance, fastest in the 5K and 10K windows by duration, each a sort+limit-1 query); output identical to today.
+#### Task 8: Workouts and runs
+
+- [ ] `workouts/workout.repository.ts` and `runs/run.repository.ts` on `userScopedRepository` (paginate, insert, update by id keeping the date, delete by id, count and sum in a range, dates in a range, idempotency lookups, a bounded recent list). The document mappers keep returning the `YYYY-MM-DD` date; Task 10 switches them to instants.
+- [ ] Move `log-workout`, `update-workout`, `log-run`, `update-run` into their folders and add `delete-workout` and `delete-run` use cases (the route's database call moves into the module; none touches XP, quests or totals). Add `list-workouts`, `list-runs`, `get-recent-workouts` (bounded to 3) and `get-workout-dates-in-range`.
+- [ ] `get-dashboard-stats.ts` moves into training. The dashboard page, `profile` page, routes and `friends` import only from `@/server/training`; the records, run stats and friends reads that still need whole histories keep using a temporary `listAllWorkouts` / `listAllRuns` exported from the index and removed in Task 9.
+- [ ] Move the service tests (`log-workout`, `log-run`, `get-dashboard-stats`) next to their use case. Delete the old workout/run files in `lib/services` and `lib/data`.
+
+Commit: `refactor(training): workouts and runs in the training module`.
+
+#### Task 9: Records and run stats by aggregation
+
+- [ ] `records/get-personal-records.ts`: aggregation pipelines on workouts (`$match userId` → `$unwind exercises` → weight > 0 → `$group` by lowercased trimmed name with `$max` weight and the display name of the heaviest set → `$sort` → `$limit 3`) and on runs (longest by distance, fastest in the 5K and 10K windows by duration, each a sort+limit-1 query), feeding `buildPersonalRecords`; output identical to today.
 - [ ] `records/get-run-stats.ts`: one `$group` over the user's runs (sum distance, count, average pace) with the same rounding.
-- [ ] `get-dashboard-stats.ts` moves into training; recent workouts become a bounded query of 3 (`getRecentWorkouts`).
-- [ ] `index.ts` exports the use cases, `getPersonalRecords`, `getRunStats`, `getDashboardStats`, `getRecentWorkouts`, `getWorkoutDatesInRange`, and the list queries. The `activity.logged` event interface stays in `events.ts`.
-- [ ] Routes, `dashboard/page.tsx`, `profile/page.tsx`, and `get-friends.ts` import only from `@/server/training`; friends calls `getPersonalRecords(friendId)` instead of loading history. Workout, run and template DELETE routes call the new use cases.
-- [ ] Move service tests (`log-workout`, `log-run`, `create-custom-exercise`, `create-workout-template`, `get-custom-exercises`, `get-dashboard-stats`) next to their use case. Delete the old `lib/services`, `lib/data` and `lib/domain` files and `lib/utils/records.ts`.
+- [ ] `profile/records` and `runs/stats` routes and `getFriends` call these; delete `listAllWorkouts`/`listAllRuns`, `lib/utils/records.ts` and `calcRunStats`.
 
-Commit: `refactor(training): training module with aggregated records, stats and delete use cases`.
+Commit: `refactor(training): personal records and run stats by aggregation`.
 
-#### Task 9: Dates as instants
+#### Task 10: Dates as instants
 
 - [ ] `Workout.date` and `Run.date` are ISO instants. `formatDate(isoInstant, timeZone)` in `formatters.ts` formats in the user's zone, and every workout/run card passes `user.timeZone` (from the existing user query). Update the contract types and the route tests' expected `date` values (old and new). A test pins "a 23:30 UTC workout for a Manila user renders as the next local day".
 
@@ -124,7 +131,7 @@ Commit: `refactor(training): return activity instants, format dates in the user'
 
 ### Phase 4: Wrap-up
 
-#### Task 10: Docs
+#### Task 11: Docs
 
 - [ ] Step 5b handbook sync per the pipeline (Data Model And API Reference §2–§4, Domain Architecture, Architecture Review, Project Briefing, Developer SOP Guide for the removed seed script, `AGENTS.md` layout), and mark 3.2–3.4 Done in the audit's step table.
 
