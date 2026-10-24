@@ -428,7 +428,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **2.2** | `/refactor` | `defineRoute()` + `UserScopedRepository<T>`, every route migrated                   | F-12 by construction                  | 2.1        | Done   |
 | **2.3** | `/feature`  | Per-user, per-route rate-limit tiers                                                | F-11                                  | 2.2        | Done   |
 | **2.4** | `/feature`  | `Idempotency-Key` header replaces body sniffing                                     | F-20                                  | 2.2        | Done   |
-| **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Open   |
+| **2.5** | `/feature`  | Transactional outbox + typed event bus, generic `outbox-sweep` cron, `npm run outbox` | F-16 (infra)                          | 2.2, 1.1   | Done   |
 | **3.1** | `/refactor` | `progression` module, `player_profiles` split, one XP path writing `xp_ledger`, no `__v` | F-15, §3.2 #1 #4 #6                   | 2.5        | Done   |
 | **3.2** | `/refactor` | Quest and achievement definitions as typed constants                                | §5.3                                  | 2.1        | Done   |
 | **3.3** | `/refactor` | `quests` module                                                                     | F-17 (quests)                         | 3.1, 3.2   | Done   |
@@ -441,7 +441,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **4.2** | `/refactor` | Page `_components/`, `WorkoutForm` split, shared custom-exercise hook               | F-19                                  | 4.1        | Open   |
 | **5.1** | `/refactor` | Delete old `lib/` back-end folders and dead code; sync `AGENTS.md` and vault guides | F-18                                  | 4.2        | Open   |
 
-Steps 0.1–0.6 were independent and shipped together in one PR; 0.7 followed on its own branch. 3.2 can run any time after 2.1. 3.7 can run in parallel with 3.3–3.6.
+Steps 0.1–0.6 were independent and shipped together in one PR; 0.7 followed on its own branch. 3.2 can run any time after 2.1. 3.7 can run in parallel with 3.3–3.6. 3.6, 3.7 and 3.8 ship together on one branch: 3.8's inbox consumes the events 3.6 and 3.7 start emitting, so the events, the inbox and the SSE retirement land at once. 3.5 ships alone, because it is the only one of the four that changes user-visible behaviour and runs a data backfill.
 
 The design spec (step 1.1) kept this order and changed the scope of 2.1, 2.2, 2.5, 3.1, 3.5 and 3.8; see its D4. Its kickoff prompts below name the spec sections each step implements.
 
