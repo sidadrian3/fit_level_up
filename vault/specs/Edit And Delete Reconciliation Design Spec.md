@@ -179,7 +179,7 @@ Idempotent; registered after 004. In batches per collection:
    - every workout → `workout`, `amount: xpEarned`, `occurredAt: date`;
    - every run → `run`, `amount: xpEarned`, `occurredAt: date`;
    - every `user_quests` row with `claimed: true` whose `questTemplateId` has a definition → `quest_claim`, `amount: xpReward`, `occurredAt: _id.getTimestamp()` (claim time is not stored).
-2. **Profiles.** For every profile: `totalXp` = ledger sum, `totalWorkouts` = workout count, `totalDistance` = run distance sum, `highestLevel = max(level(old totalXp), level(new totalXp))`.
+2. **Profiles.** For every profile: `totalXp` = ledger sum, `totalWorkouts` = workout count, `totalDistance` = run distance sum, `highestLevel = max(stored highestLevel, level(old totalXp), level(new totalXp))`. The stored mark is part of the max so a second run cannot lower it.
 
 Test accounts that exploited F-4 lose that XP, which is the intended result (spec D5 table). A second run changes nothing.
 
