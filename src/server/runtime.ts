@@ -1,19 +1,12 @@
 import { Redis } from "@upstash/redis";
-import { createDispatcher, defineListener, type AnyListener } from "@/server/platform/events";
+import { createDispatcher } from "@/server/platform/events";
 import { createDefineRoute, createRateLimiter } from "@/server/platform/http";
 import { env } from "@/server/platform/env";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { achievementListeners } from "@/server/achievements";
-import { notifyFriendsLevelUp } from "@/lib/services/friends/notify-friends-level-up";
+import { notificationListeners } from "@/server/notification";
 
-const LISTENERS: AnyListener[] = [
-  ...achievementListeners,
-  defineListener({
-    name: "notification.friend-leveled-up",
-    event: "progression.leveled-up",
-    handle: ({ userId, newLevel }) => notifyFriendsLevelUp(userId, newLevel),
-  }),
-];
+const LISTENERS = [...achievementListeners, ...notificationListeners];
 const dispatcher = createDispatcher(LISTENERS);
 
 export const drainOutbox = dispatcher.drainUntilEmpty;
