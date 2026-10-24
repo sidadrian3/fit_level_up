@@ -2,7 +2,7 @@ import { weekInstants } from "@/shared/time/calendar";
 import { countWorkoutsInRange } from "@/lib/data/workout-db";
 import { getTotalDistanceInRange } from "@/lib/data/runs-db";
 import { countUserAchievements } from "@/lib/data/achievements-db";
-import { calcLifetimeXp } from "@/lib/domain/user-rules";
+import { calcLifetimeXp } from "@/server/progression";
 import type { DashboardStats, User } from "@/lib/types";
 
 export async function getDashboardStats(userId: string, user: User, now: Date = new Date()): Promise<DashboardStats> {

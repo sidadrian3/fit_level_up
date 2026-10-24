@@ -1,7 +1,7 @@
 import { ClientSession } from "mongodb";
 import { getUserFromDb, applyUserActivityInDb } from "@/lib/data/user-db";
-import { calcLevelUp, calcNewStreak, calcDisplayStreak } from "@/lib/domain/user-rules";
-import { calcRecoveredStamina } from "@/lib/domain/stamina-rules";
+import { calcLevelUp } from "@/lib/domain/user-rules";
+import { calcNewStreak, calcDisplayStreak, calcRecoveredStamina } from "@/server/progression";
 import { toLocalDay } from "@/shared/time/calendar";
 import type { User } from "@/lib/types";
 import { NotFoundError } from "@/server/platform/http";

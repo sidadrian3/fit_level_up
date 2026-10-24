@@ -9,7 +9,9 @@ vi.mock("@/lib/auth/auth-helpers", () => ({
   getAuthUserId: vi.fn(),
 }));
 
-vi.mock("@/server/platform/http/rate-limiter", () => ({ createRateLimiter: () => vi.fn() }));
+vi.mock("@/server/platform/http/rate-limiter", () => ({
+  createRateLimiter: () => vi.fn(),
+}));
 
 const NOW = new Date("2026-10-20T10:00:00Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -52,7 +54,9 @@ describe("GET /api/user", () => {
 
   afterEach(async () => {
     vi.useRealTimers();
-    await (await getCollection<UserDoc>("user")).deleteOne({ _id: new ObjectId(userId) });
+    await (
+      await getCollection<UserDoc>("user")
+    ).deleteOne({ _id: new ObjectId(userId) });
   });
 
   it("returns the exact user shape with formatted dates", async () => {
@@ -62,9 +66,23 @@ describe("GET /api/user", () => {
 
     expect(Object.keys(body).sort()).toEqual(
       [
-        "id", "email", "name", "avatar", "level", "xp", "xpToNextLevel", "streak", "totalWorkouts",
-        "totalDistance", "joinDate", "lastActivityDate", "stamina", "lastStaminaUpdate", "timeZone", "__v",
-      ].sort()
+        "id",
+        "email",
+        "name",
+        "avatar",
+        "level",
+        "xp",
+        "xpToNextLevel",
+        "streak",
+        "totalWorkouts",
+        "totalDistance",
+        "joinDate",
+        "lastActivityDate",
+        "stamina",
+        "lastStaminaUpdate",
+        "timeZone",
+        "__v",
+      ].sort(),
     );
     expect(body).toMatchObject({
       id: userId,
@@ -93,14 +111,22 @@ describe("GET /api/user", () => {
   });
 
   it("recovers stamina for the days since the last update", async () => {
-    await seedUser({ stamina: 40, lastStaminaUpdate: new Date(NOW.getTime() - 2 * DAY_MS) });
+    await seedUser({
+      stamina: 40,
+      lastStaminaUpdate: new Date(NOW.getTime() - 2 * DAY_MS),
+    });
 
-    expect((await getBody()).stamina).toBe(Math.min(100, 40 + 2 * GAME_CONFIG.stamina.dailyRecovery));
+    expect((await getBody()).stamina).toBe(
+      Math.min(100, 40 + 2 * GAME_CONFIG.stamina.dailyRecovery),
+    );
   });
 
   it("falls back to defaults for a user document with no game fields", async () => {
     const users = await getCollection("user");
-    const { insertedId } = await users.insertOne({ email: `bare-${crypto.randomUUID()}@example.com`, name: "Bare" });
+    const { insertedId } = await users.insertOne({
+      email: `bare-${crypto.randomUUID()}@example.com`,
+      name: "Bare",
+    });
     userId = insertedId.toString();
     vi.mocked(getAuthUserId).mockResolvedValue(userId);
 
