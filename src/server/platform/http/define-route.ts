@@ -1,8 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { NextResponse } from "next/server";
+import type { ObjectId } from "mongodb";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import type { RATE_LIMIT_TIERS } from "@/server/platform/config";
 import { env } from "@/server/platform/env";
+import { collectEmittedEvents } from "@/server/platform/events";
 import type { IdempotencyRequest, IdempotentResult } from "./idempotency";
 import { BadRequestError, TooManyRequestsError, UnauthorizedError, toErrorResponse } from "./errors";
 
@@ -44,6 +46,7 @@ export interface RateLimitResult {
 interface DefineRouteDeps {
   requireUserId: () => Promise<string>;
   limit: (tier: ThrottleTier, identifier: string) => Promise<RateLimitResult>;
+  dispatchEvents: (ids: ObjectId[]) => Promise<void>;
 }
 
 type ImplementationContext = RouteContext<RouteAuth, unknown, unknown, unknown, IdempotencyRequest | undefined>;
@@ -118,7 +121,7 @@ export function createDefineRoute(deps: DefineRouteDeps) {
     overloadHandler: (ctx: never) => Promise<unknown>
   ): DefinedRoute {
     const handler = overloadHandler as (ctx: ImplementationContext) => Promise<unknown>;
-    const route = async (
+    const respond = async (
       request: Request,
       segment?: { params: Promise<Record<string, string>> }
     ): Promise<Response> => {
@@ -155,6 +158,15 @@ export function createDefineRoute(deps: DefineRouteDeps) {
       } catch (err) {
         return toErrorResponse(err, options.name);
       }
+    };
+    const route = async (
+      request: Request,
+      segment?: { params: Promise<Record<string, string>> }
+    ): Promise<Response> => {
+      const emittedIds: ObjectId[] = [];
+      const response = await collectEmittedEvents(emittedIds, () => respond(request, segment));
+      if (response.status < 400 && emittedIds.length > 0) after(() => deps.dispatchEvents(emittedIds));
+      return response;
     };
     return Object.assign(route, { definition: options });
   }

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { logWorkout } from '../workouts/log-workout';
 import { updateWorkout } from '../workouts/update-workout';
 import { IdempotencyKeyReusedError } from '@/server/platform/http';
@@ -30,6 +30,10 @@ describe('logWorkout Integration Test', () => {
     userId = result.insertedId.toString();
 
     // Ensure MongoDB indexes are created in the test DB (especially the idempotency index)
+  });
+
+  beforeEach(async () => {
+    await (await getCollection("outbox")).deleteMany({});
   });
 
   afterEach(async () => {
@@ -65,6 +69,29 @@ describe('logWorkout Integration Test', () => {
     expect(user!.totalWorkouts).toBe(1); // incremented
     expect(user!.xp).toBe(workout.xpEarned); // XP granted
     expect(user!.streak).toBe(1); // Streak started
+  });
+
+  it("emits activity.logged with the workout", async () => {
+    const { value: workout } = await logWorkout(
+      { title: "Evented", duration: 30, exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 100 }] },
+      userId,
+      request()
+    );
+
+    const rows = await (await getCollection("outbox")).find({ type: "activity.logged" }).toArray();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].payload).toMatchObject({ userId, activity: { type: "workout", id: workout.id } });
+    expect(rows[0].payload.occurredAt).toBeInstanceOf(Date);
+  });
+
+  it("a replay emits nothing more", async () => {
+    const req = request();
+    const input = { title: "Once", duration: 30, exercises: [{ name: "Squats", targetMuscle: TargetMuscle.Legs, sets: 3, reps: 10, weight: 100 }] };
+
+    await logWorkout(input, userId, req);
+    await logWorkout(input, userId, req);
+
+    expect(await (await getCollection("outbox")).countDocuments({ type: "activity.logged" })).toBe(1);
   });
 
   it("extends the streak on the user's local day", async () => {

@@ -36,12 +36,13 @@ Validated at startup by `src/server/platform/env/env.ts` (server variables) and 
 | Command | Does |
 |---|---|
 | `npm run dev` | Dev server on port 3000 |
-| `npm run lint` | ESLint (check only), then the dependency-cruiser rules in `.dependency-cruiser.cjs` (cycles and who may import whom; three cycles in old `src/lib` code are baselined in `.dependency-cruiser-known-violations.json`) |
+| `npm run lint` | ESLint (check only), then the dependency-cruiser rules in `.dependency-cruiser.cjs` (cycles and who may import whom; two cycles in old `src/lib` code are baselined in `.dependency-cruiser-known-violations.json`) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:run` | All Vitest tests once, against an in-memory MongoDB replica set |
 | `npm test` | Vitest in watch mode |
 | `npm run test:e2e` | Playwright end-to-end tests |
 | `npm run seed` | Seed quest and achievement catalogues |
+| `npm run outbox -- --dead` / `-- --requeue <id>` | List dead outbox rows with their last error, or reset one to pending (needs `.env.local`) |
 | `npm run build` | Run `migrate-db.ts`, then `next build` |
 | `node scripts/check-vault.mjs` | Verify vault wikilinks and the no-marker rule |
 | `node scripts/ui-check.mjs --path /dashboard` | Log in and screenshot routes; exits non-zero on console errors |

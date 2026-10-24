@@ -164,7 +164,9 @@ POST /api/workouts
       8. UserStateService.applyActivity() ← atomically update XP, level, streak, stamina, and stats in one DB call
       ───────────────────────────────────────────────────────────────
 
-      9. evaluateAchievements()    ← [Background Task via `after()`] check if any badges unlock
+      (the same transaction also writes an `activity.logged` outbox row)
+
+      9. achievements.evaluate     ← [outbox listener, run via `after()`] check if any badges unlock
 
   ← return the Workout to the client
 ```
@@ -229,7 +231,7 @@ POST /api/workouts
 
 **Architectural Refactors (Vercel Compatibility & Deep Modules):**
 
-- **Serverless Background Tasks (`after()` API):** Migrated all fire-and-forget background promises (`evaluateAchievements`, `notifyFriendsLevelUp`) to the Next.js `after()` API to ensure they complete in serverless environments (like Vercel) before the container freezes.
+- **Transactional outbox:** Background side effects (`evaluateAchievements`, `notifyFriendsLevelUp`) are outbox rows written in the caller's transaction and delivered with the Next.js `after()` API once the response is sent, so a function killed after commit delays them but never loses them.
 - **Unified `UserStateService`:** Consolidated 4 fragmented database updates (XP, Streak, Stamina, Stats) into a single deep module. `log-workout.ts` and `log-run.ts` now execute a single atomic `findOneAndUpdate` via `UserStateService.applyActivity()` instead of scattering 4+ separate update calls.
 - **Pure Data Mappers:** Ensuring data mappers (like `toUser`) are strictly dumb type translators. Dynamic state assembly (like calculating stamina recovery or zeroing a broken streak) is properly encapsulated behind the `UserStateService` boundary rather than leaking into the data layer.
 - **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.
@@ -280,7 +282,7 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 2. **API Fetch Retries**: `apiFetch` was upgraded to catch `TypeError` (offline/network drops) and automatically retry GET requests and requests that carry an `Idempotency-Key` header up to 2 times, one second apart. Updates and deletes are not retried.
 3. **Replay on retry**: If a duplicate request reaches the server (because a previous request succeeded but the response was dropped), `createOnce` finds the _already created_ document by its key and returns it as a `201` with `Idempotent-Replayed: true`; the unique index on `idempotencyKey` settles two racing requests. If the same key arrives with a different body, the server answers `422` and the form tells the person their earlier submit was saved.
 4. **Atomic Quest Syncing (TOCTOU fix)**: Eliminated a read-then-write race condition by leveraging MongoDB `bulkWrite` with `updateOne(..., { upsert: true, $setOnInsert })` for quest syncing, letting the database handle deduplication atomically.
-5. **Reliable Background Tasks (Cron)**: Added a daily Vercel Cron sweep (`/api/cron/achievements-sweep`) that re-evaluates achievements for recently active users. This acts as a safety net in case the Next.js `after()` background task is killed prematurely by Vercel's serverless timeout limits.
+5. **Reliable Background Tasks (Cron)**: A daily Vercel Cron sweep (`/api/cron/outbox-sweep`) delivers any outbox row the `after()` dispatch did not finish, retrying failed listeners with backoff. This is the safety net when the Next.js `after()` task is killed by Vercel's serverless timeout.
 
 **What was built:**
 
@@ -834,7 +836,7 @@ it("should prevent duplicate custom exercises with the same name and muscle grou
 
 - No tests for the `grantUserXP` race condition scenario
 - No tests for `syncUserQuests` period-boundary logic
-- API route tests cover workouts, runs, exercises, templates, quest claim and the cron sweep; the other routes rely on the service integration tests, and `route-table.test.ts` guards that every route is built with `defineRoute`
+- API route tests cover workouts, runs, exercises, templates, quest claim and the outbox cron sweep; the other routes rely on the service integration tests, and `route-table.test.ts` guards that every route is built with `defineRoute`
 - Quest progress update tests are missing (the dead-code bug in `updateQuestProgress` would have been caught by these)
 
 To run all tests:

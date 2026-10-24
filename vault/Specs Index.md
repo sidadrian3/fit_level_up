@@ -12,6 +12,7 @@ Index of all design specs in this vault.
 - [[Architecture Overhaul Design Spec]] — settles audit §7.2 (outbox, polling inbox, rate-limit tiers, boundary tooling, XP ledger, migrations) and fixes the defineRoute, repository, event and schema contracts
 - [[Rate Limit Tiers Design Spec]] — standard and expensive Upstash tiers keyed by route + user on every mutation, with Retry-After (audit F-11, step 2.3)
 - [[Idempotency Key Header Design Spec]] — UUID Idempotency-Key header on create routes, body fingerprint, 201 replay with Idempotent-Replayed, 422 on reuse (audit F-20, step 2.4)
+- [[Transactional Outbox Design Spec]] — typed emit() into an outbox row in the caller's transaction, after() dispatch of own ids, generic daily outbox-sweep cron, dead rows after 8 attempts (step 2.5)
 
 ## Infra / Meta
 

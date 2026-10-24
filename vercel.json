@@ -1,5 +1,5 @@
 {
   "crons": [
-    { "path": "/api/cron/achievements-sweep", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/outbox-sweep", "schedule": "0 3 * * *" }
   ]
 }

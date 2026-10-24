@@ -96,7 +96,7 @@ Service (log-workout.ts)
 
 **Optimistic Locking (Retry Loop)**
 
-- `grant-user-xp.ts` uses a `__v` version field + retry loop to prevent XP race conditions without full pessimistic locks or advisory locks.
+- `grant-user-xp.ts` and `UserStateService.applyActivity` use a `__v` version field to prevent XP race conditions without full pessimistic locks or advisory locks. A stale version is relabelled `TransientTransactionError`, so the surrounding `withTransaction` retries the whole transaction.
 
 **Observer / Event-Driven**
 
@@ -365,8 +365,8 @@ A specialized architecture review was conducted to address edge cases around net
 - **Status:** ✅ COMPLETED
 
 ### 4. Reliable Background Task Delivery (Strong)
-- **Problem:** `after(evaluateAchievements(...))` is fire-and-forget. If the Vercel Function is killed mid-execution, the achievement is lost forever with no dead-letter queue.
-- **Solution:** Keep `after()` for the fast-path, but add a reliable Vercel Cron sweep (`/api/cron/achievements-sweep`) that periodically re-evaluates locked achievements idempotently to ensure zero data loss.
+- **Problem:** A fire-and-forget `after()` is lost if the Vercel Function is killed mid-execution, and each side effect would need its own recovery job.
+- **Solution:** A transactional outbox. The service writes an `outbox` row in the same transaction as the change; `after()` delivers it right after the response, and one generic Vercel Cron sweep (`/api/cron/outbox-sweep`) delivers whatever is still pending, with backoff and a `dead` state after eight attempts. Listeners are idempotent. See [[Transactional Outbox Design Spec]].
 - **Status:** ✅ COMPLETED
 
 ### 5. Atomic Quest Syncing (Strong)

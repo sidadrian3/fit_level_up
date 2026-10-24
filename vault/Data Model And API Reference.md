@@ -24,6 +24,7 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 | User quests | `user_quests` | One user's instance of a quest for one period: `questTemplateId`, `periodStart`, `periodEnd`, `progress`, `target`, `completed`, `claimed` | `userId` |
 | Achievements | `achievements` | The catalogue of achievements (`id`, `title`, `rarity`, `condition`); seeded by `npm run seed` | none (global) |
 | User achievements | `user_achievements` | Which achievements a user has unlocked: `achievementId`, `unlockedDate` | `userId` |
+| Outbox | `outbox` | A pending side effect: `type`, `payload`, `status` (`pending`, `done`, `dead`), `availableAt`, `attempts`, `completedListeners[]`, `lastError`, `createdAt`, `processedAt`; written in the same transaction as the change that caused it | none (system-owned) |
 | Friendships | `friendships` | One document per unordered pair of users: `requesterId`, `receiverId`, `pairKey` (the two ids sorted and joined with `:`), `status` (`pending` / `accepted` / `declined`), `createdAt`, `updatedAt`. Re-requesting after a decline reopens the same document as `pending` with the new requester and receiver | `requesterId` / `receiverId` |
 
 `user.timeZone` is an optional IANA zone (for example `Asia/Manila`) declared as a Better Auth `additionalFields` entry and validated by `timeZoneSchema`; a missing value reads as `UTC`. `lastActivityDate` is a `Date` at UTC midnight that holds the user's *local* calendar day. Quest `periodStart` and `periodEnd` are local-day strings in the same zone.
@@ -34,7 +35,7 @@ Enumerations in `src/lib/types.ts` (`TargetMuscle` is defined in `src/shared/con
 
 ## 3. Indexes
 
-Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`. `applySchema` also applies a `$jsonSchema` validator (`validationAction: error`, `validationLevel: moderate`) to `workouts`, `runs`, `custom_exercises`, `workout_templates`, `user_quests`, `user_achievements` and `friendships`: a new write must match, and an existing document that does not match can still be updated. The validators describe what the code writes today, so `workout_templates.createdAt` and `user_achievements.unlockedDate` are strings.
+Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`. `applySchema` also applies a `$jsonSchema` validator (`validationAction: error`, `validationLevel: moderate`) to `workouts`, `runs`, `custom_exercises`, `workout_templates`, `user_quests`, `user_achievements`, `friendships` and `outbox`: a new write must match, and an existing document that does not match can still be updated. The validators describe what the code writes today, so `workout_templates.createdAt` and `user_achievements.unlockedDate` are strings.
 
 | Collection | Index | Purpose |
 |---|---|---|
@@ -49,6 +50,7 @@ Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`.
 | custom_exercises | `{ userId, name, targetMuscle }` unique | Listing a user's exercises (the `userId` prefix); duplicate protection |
 | friendships | `{ pairKey }` unique; receiver + status; requester + status; status | One document per pair; friend lists and pending requests |
 | workout_templates | `{ userId }`; `{ userId, idempotencyKey }` unique, partial | Listing, duplicate-submit protection |
+| outbox | `{ availableAt }` partial on `pending`; `{ processedAt }` TTL 7 days, partial on `done` | Claiming the next due row; `done` rows expire, `dead` rows stay as the record of what failed |
 
 ## 4. API routes
 
@@ -58,7 +60,7 @@ Every route is declared with `defineRoute` from `@/server/runtime`, which owns a
 |---|---|---|---|---|
 | `/api/auth/[...all]` | all | Better Auth | — | Sign-up, sign-in, sign-out, session; sign-up and `update-user` accept an optional `timeZone` |
 | `/api/health` | GET | none | — | Liveness check |
-| `/api/cron/achievements-sweep` | GET | `CRON_SECRET` bearer token (always required; `401` otherwise) | — | Daily reconciliation of locked achievements, scheduled in `vercel.json` |
+| `/api/cron/outbox-sweep` | GET | `CRON_SECRET` bearer token (always required; `401` otherwise) | — | Daily delivery of outbox rows still pending; returns `{ delivered, failed, dead }`; scheduled in `vercel.json` |
 | `/api/user` | GET | yes | — | The signed-in user's profile and game state |
 | `/api/workouts` | GET, POST | yes | POST: standard | Paginated history (`limit` ≤ 50, `page`); log a workout (needs `Idempotency-Key`) |
 | `/api/workouts/[id]` | PUT, DELETE | yes | standard | Edit or delete one of your workouts |
@@ -101,8 +103,9 @@ Navigation links live in `src/lib/constants/navigation.ts`.
 
 ## 6. Background and real-time pieces
 
-- **Cron:** `/api/cron/achievements-sweep` runs `sweepLockedAchievements` for every user active in the last 72 hours (a local-day `lastActivityDate` can sit up to 36 hours before the activity), daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token.
+- **Outbox:** a service calls `emit(type, payload, { session })` from `src/server/platform/events` inside its transaction, which inserts one `outbox` row (`activity.logged` after a workout or run, `progression.leveled-up` after a level-up). `defineRoute` collects the ids a request emitted and, after a response below 400, runs `after(() => dispatchEvents(ids))`, which delivers those rows plus at most three overdue ones; a request that emitted nothing makes no outbox query. The listener table lives in `src/server/runtime.ts`: `achievements.evaluate` (on both events) and `notification.friend-leveled-up`. A listener should be idempotent, because a row can be delivered more than once (the achievement unlock is; the Redis level-up publish is not, see below); the row records which listeners already succeeded, so a retry runs only the rest. A claim holds a row for two minutes; a failed attempt waits one minute doubled per attempt (capped at six hours), and the eighth failure marks the row `dead`.
+- **Cron:** `/api/cron/outbox-sweep` drains every due row until none is left or 240 seconds pass, daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token. `npm run outbox -- --dead` lists dead rows with their `lastError`, and `npm run outbox -- --requeue <id>` resets one to `pending`. The level-up fan-out still publishes to Redis, which has no dedupe, so a crash between the publish and the row being marked done can show friends one duplicate toast; the notification inbox replaces it.
 - **SSE:** services publish events to a per-user Redis list (`sse:{userId}`, 60-second TTL) through `src/lib/sse/sse-publisher.ts`; `/api/friends/events` drains it into the browser, where `FriendEventManager` and the level-up and achievement managers show toasts.
-- **Scripts:** `src/scripts/migrate-db.ts` runs before every build, but only when `VERCEL_ENV` is `production` or unset: preview deployments share the production database, so they skip it. It runs the pending numbered migrations in `src/scripts/migrations/` (recorded in the `schema_migrations` collection), then `applySchema()`. Migration `001` renames a legacy `customExercises` collection to `custom_exercises`; `002` removes duplicate rows and backfills `friendships.pairKey` before the unique indexes build. `seed-quests.ts` and `seed-achievements.ts` fill the catalogues.
+- **Scripts:** `src/scripts/migrate-db.ts` runs before every build, but only when `VERCEL_ENV` is `production` or unset: preview deployments share the production database, so they skip it. It runs the pending numbered migrations in `src/scripts/migrations/` (recorded in the `schema_migrations` collection), then `applySchema()`. Migration `001` renames a legacy `customExercises` collection to `custom_exercises`; `002` removes duplicate rows and backfills `friendships.pairKey` before the unique indexes build. `seed-quests.ts` and `seed-achievements.ts` fill the catalogues; `outbox.ts` is the operator tool above.
 
 [[Guides Index]]

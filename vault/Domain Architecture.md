@@ -78,15 +78,15 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
         // Persist to Data Layer
         const workout = await insertWorkout({ ...input, xpEarned: evaluation.finalXpEarned }, session);
 
+        // Written in this transaction; delivered after the response by `defineRoute`
+        await emit("activity.logged", { userId, activity: { type: "workout", id: workout.id }, occurredAt: now }, { session });
+
         // Orchestrate Side-Effects
         await updateQuestProgress(userId, { type: "workout_created" }, { now, timeZone: user.timeZone }, session);
         await UserStateService.applyActivity(userId, { /* XP and Stamina updates */ }, session);
 
         return workout;
     });
-
-    // Asynchronous background task (does not block API response)
-    after(evaluateAchievements(userId));
 
     return workoutObj;
 }
@@ -155,4 +155,4 @@ export async function insertWorkout(
 
 1. **Testability**: You can test the "Game Math" (Domain) without mocking a database. You can test the database without knowing about HTTP.
 2. **Safety**: Complex operations like logging a run update 3-4 different database collections. By orchestrating them in the **Service Layer** with a `session.withTransaction()`, if one fails, they all roll back safely.
-3. **Speed**: Heavy checks like `evaluateAchievements` are decoupled from the API response using Next.js `after()`, so the user gets a snappy UI experience while the server processes the badges in the background.
+3. **Speed and durability**: Side effects like `evaluateAchievements` and the friend level-up notice are decoupled from the API response. The service `emit()`s an event into the `outbox` collection inside its transaction, and `defineRoute` delivers it with Next.js `after()` once the response is sent, so the user gets a snappy UI. If the function dies first, the row is still there and the daily `/api/cron/outbox-sweep` delivers it.

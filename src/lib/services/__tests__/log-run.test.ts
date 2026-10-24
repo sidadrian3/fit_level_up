@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { logRun } from "../runs/log-run";
@@ -25,6 +25,10 @@ describe("logRun Integration Test", () => {
     userId = insertedId.toString();
   });
 
+  beforeEach(async () => {
+    await (await getCollection("outbox")).deleteMany({});
+  });
+
   afterEach(async () => {
     await (await getCollection("runs")).deleteMany({ userId });
   });
@@ -37,6 +41,24 @@ describe("logRun Integration Test", () => {
     expect(replayed).toBe(false);
     expect(value.distance).toBe(5);
     expect((await readUser()).totalDistance).toBe(before.totalDistance + 5);
+  });
+
+  it("emits activity.logged with the run", async () => {
+    const { value: run } = await logRun(runInput, userId, request());
+
+    const rows = await (await getCollection("outbox")).find({ type: "activity.logged" }).toArray();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].payload).toMatchObject({ userId, activity: { type: "run", id: run.id } });
+    expect(rows[0].payload.occurredAt).toBeInstanceOf(Date);
+  });
+
+  it("a replay emits nothing more", async () => {
+    const req = request();
+
+    await logRun(runInput, userId, req);
+    await logRun(runInput, userId, req);
+
+    expect(await (await getCollection("outbox")).countDocuments({ type: "activity.logged" })).toBe(1);
   });
 
   it("stores the fingerprint on the run", async () => {
