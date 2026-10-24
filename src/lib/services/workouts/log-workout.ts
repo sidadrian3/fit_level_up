@@ -5,9 +5,8 @@ import { insertWorkout, getWorkoutByIdempotencyKey } from "@/lib/data/workout-db
 import { evaluateWorkout } from "@/lib/domain/workout-evaluator";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
-import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { clientPromise } from "@/server/platform/database";
-import { after } from "next/server";
+import { emit } from "@/server/platform/events";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 
 export async function logWorkout(
@@ -15,23 +14,12 @@ export async function logWorkout(
     userId: string,
     idempotency: IdempotencyRequest
 ): Promise<IdempotentResult<Workout>> {
-    const result = await createOnce({
+    return createOnce({
         request: idempotency,
         findExisting: () => getWorkoutByIdempotencyKey(userId, idempotency.key),
         create: () => createWorkout(input, userId, idempotency),
         reusedMessage: "This workout was already saved with your earlier details. Check your history to edit it, or submit again to log a new one.",
     });
-
-    if (!result.replayed) {
-        // Run achievements evaluation after the response so it never blocks the request
-        after(
-            evaluateAchievements(userId).catch(err => {
-                console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
-            })
-        );
-    }
-
-    return result;
 }
 
 async function createWorkout(
@@ -57,6 +45,7 @@ async function createWorkout(
                 idempotencyKey: idempotency.key,
                 idempotencyFingerprint: idempotency.fingerprint,
             }, session);
+            await emit("activity.logged", { userId, activity: { type: "workout", id: workout.id }, occurredAt: now }, { session });
 
             await updateQuestProgress(userId, {
                 type: "workout_created",

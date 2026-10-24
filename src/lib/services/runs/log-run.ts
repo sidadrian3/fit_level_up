@@ -1,11 +1,10 @@
 import type { CreateRunInput, Run } from "@/lib/types";
 import { updateQuestProgress } from "@/lib/services/quests/update-quest-progress";
 import { UserStateService } from "@/lib/services/users/user-state.service";
-import { evaluateAchievements } from "@/lib/services/achievements/evaluate-achievements";
 import { insertRun, getRunByIdempotencyKey } from "@/lib/data/runs-db";
 import { evaluateRun } from "@/lib/domain/run-evaluator";
 import { clientPromise } from "@/server/platform/database";
-import { after } from "next/server";
+import { emit } from "@/server/platform/events";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 
 export async function logRun(
@@ -13,22 +12,12 @@ export async function logRun(
     userId: string,
     idempotency: IdempotencyRequest
 ): Promise<IdempotentResult<Run>> {
-    const result = await createOnce({
+    return createOnce({
         request: idempotency,
         findExisting: () => getRunByIdempotencyKey(userId, idempotency.key),
         create: () => createRun(input, userId, idempotency),
         reusedMessage: "This run was already saved with your earlier details. Check your history to edit it, or submit again to log a new one.",
     });
-
-    if (!result.replayed) {
-        after(
-            evaluateAchievements(userId).catch(err => {
-                console.error(`[Background Task] Failed to evaluate achievements for user ${userId}:`, err);
-            })
-        );
-    }
-
-    return result;
 }
 
 async function createRun(
@@ -55,6 +44,7 @@ async function createRun(
                 idempotencyKey: idempotency.key,
                 idempotencyFingerprint: idempotency.fingerprint,
             }, session);
+            await emit("activity.logged", { userId, activity: { type: "run", id: run.id }, occurredAt: now }, { session });
 
             await updateQuestProgress(userId, {
                 type: "run_created",
