@@ -16,7 +16,7 @@ export default function AppLayout({
         {/* Sidebar — fixed left navigation on desktop */}
         <Sidebar />
         {/* Main content area — offset by sidebar width on desktop, padded for bottom tabs on mobile */}
-        <main className="flex-1 lg:ml-64 p-4 lg:p-8 mb-20 lg:mb-0 w-full overflow-x-hidden">
+        <main className="flex-1 lg:ml-64 p-4 pt-16 lg:p-8 mb-20 lg:mb-0 w-full overflow-x-hidden">
           {children}
         </main>
 
