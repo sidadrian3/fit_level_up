@@ -3,8 +3,7 @@ import { emit } from "@/server/platform/events";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { revokeSource } from "@/server/progression";
 import { recountQuestProgress } from "@/server/quests";
-import { activityDays } from "../activity-days";
-import { questMeasure } from "../quest-measure";
+import { activityDays, questMeasure } from "../training.adapters";
 import { deleteWorkoutById } from "./workout.repository";
 
 export async function deleteWorkout(

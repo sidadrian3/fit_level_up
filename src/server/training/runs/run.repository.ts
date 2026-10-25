@@ -2,8 +2,8 @@ import type { ClientSession } from "mongodb";
 import type { IdempotentRecord } from "@/server/platform/http";
 import { userScopedRepository, type RunDoc, type UserOwnedDoc } from "@/server/platform/database";
 import type { Run } from "@/lib/types";
-import * as dateQueries from "../date-queries";
-import { dateFilter, type DateRange } from "../date-queries";
+import * as dateQueries from "../dated.repository";
+import { dateFilter, type DateRange } from "../dated.repository";
 
 type OwnedRunDoc = RunDoc & UserOwnedDoc;
 

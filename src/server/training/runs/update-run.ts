@@ -3,7 +3,7 @@ import { clientPromise } from "@/server/platform/database";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { replaceSourceXp } from "@/server/progression";
 import { recountQuestProgress } from "@/server/quests";
-import { questMeasure } from "../quest-measure";
+import { questMeasure } from "../training.adapters";
 import { calcPace, calcRunXP, validateRunInput } from "./run.rules";
 import { findRunById, updateRunFields } from "./run.repository";
 
