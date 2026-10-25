@@ -4,19 +4,7 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 ---
 
-## 1. A declined friend request can be re-sent without limit
-
-**Where:** `sendFriendRequest` in `src/lib/services/friends/send-friend-request.ts` reopens a declined pair as `pending` every time the requester asks again.
-
-**Effect:** declining is silent, so a declined requester can keep re-sending. Each send publishes a fresh `friend_request` notification to the receiver. The only brake is the shared 20-per-hour mutation limit.
-
-**Fix:** a product decision, either a cooldown after a decline (a `GAME_CONFIG` value checked against the document's `updatedAt`) or a block that only the decliner can lift. Not done in the audit's Phase 0 because it adds a new rule.
-
-**Found in:** `src/lib/services/friends/send-friend-request.ts`, `src/lib/data/friendships-db.ts`.
-
----
-
-## 2. A retried custom-exercise create or friend request answers 409
+## 1. A retried custom-exercise create or friend request answers 409
 
 **Where:** `createCustomExercise` and `sendFriendRequest` dedupe on natural keys (`{ userId, name, targetMuscle }`, `pairKey`) and throw `ConflictError` on a duplicate.
 
@@ -24,6 +12,22 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 **Fix:** return the existing exercise or pending request on a duplicate instead of throwing, which needs a product call on whether a deliberate re-add should silently succeed. An `Idempotency-Key` does not fit: the data already defines uniqueness. See [[Idempotency Key Header Design Spec]].
 
-**Found in:** `src/lib/services/exercises/create-custom-exercise.ts`, `src/lib/services/friends/send-friend-request.ts`.
+**Found in:** `src/server/training/exercises/create-custom-exercise.ts`, `src/server/social/send-friend-request.ts`.
+
+---
+
+## 2. Notification fast-poll window is a timing heuristic
+
+**Where:** `useNotifications` in `src/lib/notifications/useNotifications.ts` polls every 2 s for up to 10 s after the user's own successful mutation, then returns to 30 s.
+
+**Effect:** the achievement and notification listeners run in `after()`, so an immediate refetch can miss the entry. The window bets that a listener finishes within 10 s. A slower listener falls back to the 30 s poll, so the entry still arrives, only later.
+
+**Fix:** replace the sleep-based window with one of the D-5 candidates:
+- The mutation response carries the emitted event ids and the client polls a status endpoint until they are processed. Exact, but new machinery on every mutation route.
+- Push delivery (Pusher, Ably), which removes polling entirely.
+
+**Found in:** `src/lib/notifications/useNotifications.ts`. See [[Achievements Social And Notifications Design Spec]].
+
+---
 
 [[Guides Index]]

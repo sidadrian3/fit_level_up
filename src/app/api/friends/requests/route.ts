@@ -1,4 +1,4 @@
-import { getFriendRequests } from "@/lib/services/friends/get-friend-requests";
+import { listFriendRequests } from "@/server/social";
 import { defineRoute } from "@/server/runtime";
 
-export const GET = defineRoute({ name: "friends.requests", auth: "user" }, ({ userId }) => getFriendRequests(userId));
+export const GET = defineRoute({ name: "friends.requests", auth: "user" }, ({ userId }) => listFriendRequests(userId));

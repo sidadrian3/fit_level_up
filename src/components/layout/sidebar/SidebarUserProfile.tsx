@@ -1,3 +1,4 @@
+import { NotificationMenu } from "@/components/notifications/NotificationMenu";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import type { User } from "@/lib/types";
 
@@ -8,10 +9,11 @@ export function SidebarUserProfile({ user }: { user: User }) {
     <div className="p-6 border-b border-border">
       <div className="flex items-center gap-3 mb-3">
         <UserAvatar avatar={user.avatar} size="sm" />
-        <div>
-          <p className="font-semibold text-sm text-foreground">{user.name}</p>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-sm text-foreground truncate">{user.name}</p>
           <p className="text-xs text-muted">Level {user.level}</p>
         </div>
+        <NotificationMenu />
       </div>
 
       {/* Mini XP bar */}

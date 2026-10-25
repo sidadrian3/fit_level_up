@@ -1,4 +1,4 @@
-import { declineFriendRequest } from "@/lib/services/friends/decline-friend-request";
+import { declineFriendRequest } from "@/server/social";
 import { idParams } from "@/server/platform/http";
 import { defineRoute } from "@/server/runtime";
 

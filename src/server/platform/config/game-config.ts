@@ -24,5 +24,7 @@ export const GAME_CONFIG = {
     hard: 1.5,
     intense: 2
 },
-
+  social: {
+    friendRequestCooldownDays: 7,
+  },
 } as const;

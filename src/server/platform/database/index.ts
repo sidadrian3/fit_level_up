@@ -21,4 +21,5 @@ export type {
     PlayerProfileDoc,
     XpLedgerDoc,
     XpSourceType,
+    NotificationDoc,
 } from "./schema";

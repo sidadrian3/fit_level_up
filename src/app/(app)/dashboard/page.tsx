@@ -11,6 +11,7 @@ import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getUser } from "@/lib/services/users/get-user";
 import { getDashboardStats, getRecentWorkouts, getWorkoutDatesInRange } from "@/server/training";
 import { getQuests } from "@/server/quests";
+import { countUnlockedAchievements } from "@/server/achievements";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 import { calcActiveDays } from "@/lib/domain/user-rules";
 import { weekInstants } from "@/shared/time/calendar";
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
     const now = new Date();
     const { thisWeekFrom, nextWeekFrom } = weekInstants(now, user.timeZone);
     const [stats, weekWorkoutDates] = await Promise.all([
-        getDashboardStats(userId, user, now),
+        getDashboardStats(userId, user, { countAchievements: countUnlockedAchievements, now }),
         getWorkoutDatesInRange(userId, thisWeekFrom, nextWeekFrom),
     ]);
 

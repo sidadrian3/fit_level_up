@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { publishToMany } from "@/lib/sse/sse-publisher";
-import { buildFriendshipPairKey } from "@/lib/domain/friend-rules";
-import { getCollection, type FriendshipDoc } from "@/server/platform/database";
+import { buildFriendshipPairKey } from "@/server/social";
+import { getCollection, type FriendshipDoc, type NotificationDoc } from "@/server/platform/database";
 import { calcLifetimeXp } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { POST } from "@/app/api/workouts/route";
@@ -17,11 +16,6 @@ vi.mock("@/lib/auth/auth-helpers", () => ({ getAuthUserId: vi.fn() }));
 
 vi.mock("@/server/platform/http/rate-limiter", () => ({
   createRateLimiter: () => async () => ({ success: true, reset: Date.now() + 60_000 }),
-}));
-
-vi.mock("@/lib/sse/sse-publisher", () => ({
-  publishToMany: vi.fn(async () => {}),
-  publishToUser: vi.fn(async () => {}),
 }));
 
 const achievementId = "first_workout";
@@ -54,6 +48,7 @@ describe("GET /api/cron/outbox-sweep", () => {
     await (await getCollection("workouts")).deleteMany({ userId });
     await (await getCollection("userAchievements")).deleteMany({ userId });
     await (await getCollection("friendships")).deleteMany({ requesterId: userId });
+    await (await getCollection("notifications")).deleteMany({ userId: { $in: [userId, friendId] } });
     await deletePlayer(userId);
     await deletePlayer(friendId);
   });
@@ -83,19 +78,20 @@ describe("GET /api/cron/outbox-sweep", () => {
     const first = await sweep(`Bearer ${process.env.CRON_SECRET}`);
 
     expect(first.status).toBe(200);
-    expect(await first.json()).toEqual({ delivered: 2, failed: 0, dead: 0 });
+    expect(await first.json()).toEqual({ delivered: 3, failed: 0, dead: 0 });
     const unlocks = await (await getCollection("userAchievements")).countDocuments({ userId, achievementId });
     expect(unlocks).toBe(1);
-    expect(publishToMany).toHaveBeenCalledTimes(1);
-    expect(publishToMany).toHaveBeenCalledWith(
-      [friendId],
-      expect.objectContaining({ type: "friend_level_up", payload: expect.objectContaining({ newLevel: 2 }) })
-    );
+    const notifications = await getCollection<NotificationDoc>("notifications");
+    const levelUps = await notifications.find({ userId: friendId, type: "friend.leveled-up" }).toArray();
+    expect(levelUps).toHaveLength(1);
+    expect(levelUps[0]).toMatchObject({ data: { newLevel: 2 } });
+    expect(await notifications.countDocuments({ userId, type: "achievement.unlocked" })).toBe(1);
+    const rowCount = await notifications.countDocuments({ userId: { $in: [userId, friendId] } });
 
     const second = await sweep(`Bearer ${process.env.CRON_SECRET}`);
 
     expect(await second.json()).toEqual({ delivered: 0, failed: 0, dead: 0 });
-    expect(publishToMany).toHaveBeenCalledTimes(1);
+    expect(await notifications.countDocuments({ userId: { $in: [userId, friendId] } })).toBe(rowCount);
     expect(await (await getCollection("userAchievements")).countDocuments({ userId, achievementId })).toBe(1);
   });
 });

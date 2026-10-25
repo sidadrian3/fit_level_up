@@ -6,7 +6,7 @@ import {
   calcRecoveredStamina,
   levelFromTotalXp,
 } from "./progression.rules";
-import { findProfile, newProfileDefaults } from "./profile.repository";
+import { findProfile, findProfiles, newProfileDefaults } from "./profile.repository";
 
 export type PlayerState = {
   level: number;
@@ -53,4 +53,18 @@ export async function getPlayerState(
   const profile = await findProfile(userId, { session });
   const timeZone = await getUserTimeZone(userId, { session });
   return toPlayerState(profile ?? newProfileDefaults(now), timeZone, now);
+}
+
+export async function getPlayerStates(
+  entries: { userId: string; timeZone: string }[],
+  { now = new Date() }: { now?: Date } = {},
+): Promise<Map<string, PlayerState>> {
+  const profiles = await findProfiles(entries.map((entry) => entry.userId));
+  const profileById = new Map(profiles.map((profile) => [profile._id, profile]));
+  return new Map(
+    entries.map(({ userId, timeZone }) => [
+      userId,
+      toPlayerState(profileById.get(userId) ?? newProfileDefaults(now), timeZone, now),
+    ]),
+  );
 }

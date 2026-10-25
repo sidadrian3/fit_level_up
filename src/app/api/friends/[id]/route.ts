@@ -1,4 +1,4 @@
-import { removeFriend } from "@/lib/services/friends/remove-friend";
+import { removeFriend } from "@/server/social";
 import { idParams } from "@/server/platform/http";
 import { defineRoute } from "@/server/runtime";
 
