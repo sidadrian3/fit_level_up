@@ -50,10 +50,12 @@ The back end is organised by feature, not by layer. Three modules own their whol
 |---|---|
 | `src/server/progression` | XP, level, streak, stamina and totals on the player profile |
 | `src/server/quests` | Quest definitions (`QUEST_DEFINITIONS`), period rules, sync, progress and claim |
-| `src/server/training` | Workouts, runs, templates, custom exercises and records, one folder per use case |
+| `src/server/training` | Workouts, runs, templates, custom exercises and stats (personal records, dashboard), one folder and one `<noun>.service.ts` per sub-feature |
 | `src/server/achievements` | Evaluates unlock conditions when `activity.logged` or `progression.leveled-up` is delivered, writes unlocks, emits `achievement.unlocked`; lists achievements. Imported only by `runtime.ts` and `src/app` |
 | `src/server/social` | Friendships: a `FRIENDSHIP_TRANSITIONS` table, batched friend and request lists, lazy personal records, the decline cooldown, and the `friendship.*` events |
 | `src/server/notification` | Listener-only: turns events into `notifications` rows and serves the inbox and mark-read; imported only by `runtime.ts` and `src/app` |
+
+Inside a module every file is `index.ts` or `<noun>.<role>.ts`, with role `service`, `repository`, `rules`, `definitions`, `events`, `listeners` or `adapters`. `index.ts` is the public surface. Routes and `<noun>.listeners.ts` files are the controllers: they call services, may wire one module's function into another, and hold no business rules. [[Server File Layout Plan]] records why.
 
 The remaining feature (users) still uses the `src/lib/services`, `src/lib/domain` and `src/lib/data` folders until it is moved.
 
@@ -77,11 +79,11 @@ export const POST = defineRoute(
 ```
 
 ### 2. Services (Application Layer)
-**Location:** `src/server/<module>/<use-case>.ts` (or `src/lib/services/...` for features not yet moved)
+**Location:** `src/server/<module>/**/<noun>.service.ts` (or `src/lib/services/...` for features not yet moved)
 
 The Service layer acts as the orchestrator. It manages the database transaction, stitches together domain logic, and triggers side effects. If something needs to happen in a specific order (like saving a workout, then updating a quest, then updating the user's XP), it happens here.
 
-**Example Snippet (`src/server/training/workouts/log-workout.ts`):**
+**Example Snippet (`src/server/training/workouts/workout.service.ts`):**
 ```typescript
 export async function logWorkout(input: CreateWorkoutInput, userId: string): Promise<Workout> {
     const client = await clientPromise;
@@ -120,7 +122,7 @@ The Domain layer is where the "game mechanics" live. It contains pure, synchrono
 
 Domain rules never read the clock or assume a time zone. Every calendar-day rule (`calcNewStreak`, `calcDisplayStreak`, `calcActiveDays`, `getPeriodForCategory`) takes `now: Date` and the user's `timeZone` as arguments, and the service supplies both. The calendar helpers (`toLocalDay`, `addDays`, `startOfWeek`, `startOfLocalDay`) live in `src/shared/time/calendar.ts`; weeks run Monday to Sunday.
 
-When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/server/platform/domain/domain-error.ts`. Its `kind` is `invalid` or `conflict`, and `toErrorResponse` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from the HTTP platform area.
+When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/server/platform/domain.ts`. Its `kind` is `invalid` or `conflict`, and `toErrorResponse` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from the HTTP platform area.
 
 **Example Snippet (`src/server/training/workouts/workout.rules.ts`):**
 ```typescript

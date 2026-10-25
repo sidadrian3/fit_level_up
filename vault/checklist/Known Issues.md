@@ -12,7 +12,7 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 **Fix:** return the existing exercise or pending request on a duplicate instead of throwing, which needs a product call on whether a deliberate re-add should silently succeed. An `Idempotency-Key` does not fit: the data already defines uniqueness. See [[Idempotency Key Header Design Spec]].
 
-**Found in:** `src/server/training/exercises/create-custom-exercise.ts`, `src/server/social/send-friend-request.ts`.
+**Found in:** `src/server/training/exercises/exercise.service.ts`, `src/server/social/friendship.service.ts`.
 
 ---
 

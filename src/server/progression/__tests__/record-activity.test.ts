@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { recordActivity } from "../record-activity";
+import { recordActivity } from "../progression.service";
 import {
   getCollection,
   type PlayerProfileDoc,

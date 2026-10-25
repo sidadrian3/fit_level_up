@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { revokeSource, type ActivityDays } from "../revoke-source";
+import { revokeSource, type ActivityDays } from "../progression.service";
 import {
   getCollection,
   type PlayerProfileDoc,

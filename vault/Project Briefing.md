@@ -335,18 +335,18 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 
 | File                                                                                        | What It Does                                                                               |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| [log-workout.ts](file:///z:/Projects/fit_level_up/src/server/training/workouts/log-workout.ts) | The most important file. The full workout logging orchestration.                           |
+| [workout.service.ts](file:///z:/Projects/fit_level_up/src/server/training/workouts/workout.service.ts) | The most important file. The workout use cases, including the full logging orchestration. |
 | [progression.rules.ts](file:///z:/Projects/fit_level_up/src/server/progression/progression.rules.ts) | XP leveling, streak calculation, stamina recovery — the core game math.            |
-| [game-config.ts](file:///z:/Projects/fit_level_up/src/lib/config/game-config.ts)            | Every balance constant. Change here to tune the game feel.                                 |
+| [config.ts](file:///z:/Projects/fit_level_up/src/server/platform/config.ts)                  | Every balance constant. Change here to tune the game feel.                                 |
 | [index.ts](file:///z:/Projects/fit_level_up/src/server/progression/index.ts)                | The progression module's public API: player state, activity and XP writes, level rules.    |
 | [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.                             |
 | [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                              |
 | [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                             |
 | [schema.ts](file:///z:/Projects/fit_level_up/src/server/platform/database/schema.ts)        | Collection names, document types, indexes and validators. Applied at build by `applySchema`. |
 | [friendship.rules.ts](file:///z:/Projects/fit_level_up/src/server/social/friendship.rules.ts) | The transition table: who can accept, decline, remove or reopen a friendship, and the cooldown. |
-| [listeners.ts](file:///z:/Projects/fit_level_up/src/server/notification/listeners.ts)       | Outbox listeners that write the notification inbox.                                        |
+| [notification.listeners.ts](file:///z:/Projects/fit_level_up/src/server/notification/notification.listeners.ts) | Outbox listeners that write the notification inbox.                                        |
 | [useNotifications.ts](file:///z:/Projects/fit_level_up/src/lib/notifications/useNotifications.ts) | Client hook — polls the inbox, runs the fast window and picks what to toast.         |
-| [get-personal-records.ts](file:///z:/Projects/fit_level_up/src/server/training/records/get-personal-records.ts) | Top lifts and fastest runs, computed by database aggregation instead of loading the history. |
+| [stats.service.ts](file:///z:/Projects/fit_level_up/src/server/training/stats/stats.service.ts) | Dashboard stats, top lifts and fastest runs, computed by database aggregation instead of loading the history. |
 | [quest.definitions.ts](file:///z:/Projects/fit_level_up/src/server/quests/quest.definitions.ts) | Every quest as a typed constant with a stable id; achievements live in `src/server/achievements`. |
 
 ---
@@ -652,7 +652,7 @@ describe("custom-exercises-db Data Layer Test", () => {
 #### Example 1: The Complete Workout Logging Flow
 
 ```typescript
-// src/lib/services/__tests__/log-workout.test.ts
+// src/server/training/workouts/__tests__/log-workout.test.ts
 
 describe('logWorkout Integration Test', () => {
   let userId: string;
@@ -790,7 +790,7 @@ it("should process lazy recovery before applying cost", async () => {
 #### Example 4: Business Rule Enforcement (No Duplicate Exercises)
 
 ```typescript
-// src/lib/services/__tests__/create-custom-exercise.test.ts
+// src/server/training/exercises/__tests__/create-custom-exercise.test.ts
 
 it("should prevent duplicate custom exercises with the same name and muscle group", async () => {
   // Create a valid exercise

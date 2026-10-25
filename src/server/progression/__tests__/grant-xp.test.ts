@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { grantXp } from "../grant-xp";
+import { grantXp } from "../progression.service";
 import {
   getCollection,
   type XpLedgerDoc,

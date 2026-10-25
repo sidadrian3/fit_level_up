@@ -1,4 +1,3 @@
 import "server-only";
-export { auth } from "./auth";
-export { getSessionUserId } from "./session";
+export { auth, getSessionUserId } from "./auth";
 export { getAccount, getAccounts, getUserTimeZone, type Account } from "./account";

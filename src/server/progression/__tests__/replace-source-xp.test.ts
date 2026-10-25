@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { replaceSourceXp } from "../replace-source-xp";
+import { replaceSourceXp } from "../progression.service";
 import {
   getCollection,
   type PlayerProfileDoc,

@@ -1,10 +1,5 @@
 export { calcLifetimeXp, levelFromTotalXp } from "./progression.rules";
-export { getPlayerState, getPlayerStates } from "./get-player-state";
-export type { PlayerState } from "./get-player-state";
-export { recordActivity } from "./record-activity";
-export { grantXp } from "./grant-xp";
+export { getPlayerState, getPlayerStates, recordActivity, grantXp, replaceSourceXp, revokeSource } from "./progression.service";
+export type { PlayerState, ActivityDays } from "./progression.service";
 export type { XpSource } from "./xp-ledger.repository";
-export { replaceSourceXp } from "./replace-source-xp";
-export { revokeSource } from "./revoke-source";
-export type { ActivityDays } from "./revoke-source";
 export type { Totals } from "./profile.repository";

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { getPlayerState } from "../get-player-state";
+import { getPlayerState } from "../progression.service";
 import { getCollection } from "@/server/platform/database";
 import { deletePlayer, seedPlayer } from "@/testing/players";
 

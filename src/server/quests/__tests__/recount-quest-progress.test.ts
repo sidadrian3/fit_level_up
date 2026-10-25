@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { recountQuestProgress, type QuestMeasure } from "../recount-quest-progress";
+import { recountQuestProgress, type QuestMeasure } from "../quest.service";
 import { getCollection, type PlayerProfileDoc, type UserQuestDoc } from "@/server/platform/database";
 import { deletePlayer, seedPlayer } from "@/testing/players";
 import { inTransaction } from "@/testing/transactions";

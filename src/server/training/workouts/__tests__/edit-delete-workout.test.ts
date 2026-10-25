@@ -1,9 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
-import { logWorkout } from "../log-workout";
-import { updateWorkout } from "../update-workout";
-import { deleteWorkout } from "../delete-workout";
+import { logWorkout, updateWorkout, deleteWorkout } from "../workout.service";
 import {
   getCollection,
   type PlayerProfileDoc,

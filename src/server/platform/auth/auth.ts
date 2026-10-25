@@ -1,3 +1,5 @@
+import "server-only";
+import { headers } from "next/headers";
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { client } from "@/server/platform/database";
@@ -24,3 +26,13 @@ export const auth = betterAuth({
         },
     },
 });
+
+export async function getSessionUserId(): Promise<string | null> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    return session?.user?.id ?? null;
+  } catch (error) {
+    console.error("Failed to get session in getSessionUserId:", error);
+    return null;
+  }
+}

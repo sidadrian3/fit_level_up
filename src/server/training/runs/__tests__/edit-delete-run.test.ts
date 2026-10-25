@@ -1,9 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
-import { logRun } from "../log-run";
-import { updateRun } from "../update-run";
-import { deleteRun } from "../delete-run";
+import { logRun, updateRun, deleteRun } from "../run.service";
 import { claimQuest } from "@/server/quests";
 import {
   getCollection,
