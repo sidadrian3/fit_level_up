@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { getCustomExercises } from '../get-custom-exercises';
+import { getCustomExercises } from "../exercise.service";
 import { getCollection, type CustomExerciseDoc } from "@/server/platform/database";
 import { TargetMuscle } from '@/lib/types';
 

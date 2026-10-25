@@ -1,8 +1,7 @@
-import type { TargetMuscle, CustomExercise } from "@/lib/types";
+import type { CustomExercise, TargetMuscle } from "@/lib/types";
 import { isDuplicateKeyError } from "@/server/platform/database";
 import { ConflictError } from "@/server/platform/http";
-import { insertCustomExercise } from "./custom-exercise.repository";
-import { formatExerciseName } from "./exercise.rules";
+import { insertCustomExercise, listCustomExercisesForUser } from "./custom-exercise.repository";
 
 export async function createCustomExercise(userId: string, rawName: string, targetMuscle: TargetMuscle): Promise<CustomExercise> {
     const name = formatExerciseName(rawName);
@@ -15,4 +14,16 @@ export async function createCustomExercise(userId: string, rawName: string, targ
         }
         throw error;
     }
+}
+
+export function getCustomExercises(userId: string): Promise<CustomExercise[]> {
+    return listCustomExercisesForUser(userId);
+}
+
+function formatExerciseName(name: string): string {
+    return name
+        .trim()
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
 }

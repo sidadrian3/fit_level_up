@@ -1,5 +1,10 @@
 import { WorkoutTemplateSchema } from "@/shared/contracts/template";
-import { insertTemplate, findTemplateByIdempotencyKey } from "./template.repository";
+import {
+  deleteTemplateById,
+  findTemplateByIdempotencyKey,
+  insertTemplate,
+  listTemplatesForUser,
+} from "./template.repository";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 import { z } from "zod";
 import type { WorkoutTemplate } from "@/lib/types";
@@ -22,4 +27,12 @@ export function createWorkoutTemplate(
         }),
         reusedMessage: "This template was already saved with your earlier details. Submit again to save a new one.",
     });
+}
+
+export function listTemplates(userId: string): Promise<WorkoutTemplate[]> {
+    return listTemplatesForUser(userId);
+}
+
+export function deleteTemplate(userId: string, templateId: string): Promise<boolean> {
+    return deleteTemplateById(userId, templateId);
 }
