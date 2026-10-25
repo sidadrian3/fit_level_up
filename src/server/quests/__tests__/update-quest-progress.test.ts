@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { logWorkout } from "@/server/training";
-import { getQuests } from "../get-quests";
+import { getQuests } from "../quest.service";
 import { getCollection, type UserDoc } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { TargetMuscle } from "@/lib/types";
