@@ -2,7 +2,7 @@ import type { ClientSession } from "mongodb";
 import type { IdempotentRecord } from "@/server/platform/http";
 import { userScopedRepository, type UserOwnedDoc, type WorkoutDoc } from "@/server/platform/database";
 import type { Exercise, Workout } from "@/lib/types";
-import type { LiftMax } from "../records/records.rules";
+import type { LiftMax } from "../stats/stats.rules";
 import * as dateQueries from "../dated.repository";
 import { dateFilter, type DateRange } from "../dated.repository";
 

@@ -6,5 +6,4 @@ export { createWorkoutTemplate, listTemplates, deleteTemplate } from "./template
 export { createCustomExercise, getCustomExercises } from "./exercises/exercise.service";
 export { logWorkout, updateWorkout, deleteWorkout, listWorkouts, getRecentWorkouts, getWorkoutDatesInRange } from "./workouts/workout.service";
 export { logRun, updateRun, deleteRun, listRuns, getRunStats } from "./runs/run.service";
-export { getDashboardStats } from "./dashboard/get-dashboard-stats";
-export { getPersonalRecords } from "./records/get-personal-records";
+export { getDashboardStats, getPersonalRecords } from "./stats/stats.service";

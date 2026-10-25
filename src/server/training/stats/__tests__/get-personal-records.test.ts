@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { ObjectId } from "mongodb";
 import { getCollection } from "@/server/platform/database";
 import { TargetMuscle } from "@/lib/types";
-import { getPersonalRecords } from "../get-personal-records";
+import { getPersonalRecords } from "../stats.service";
 
 const userId = "personal-records-user";
 

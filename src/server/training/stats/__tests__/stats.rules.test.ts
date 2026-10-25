@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPersonalRecords, FIVE_K_WINDOW_KM, TEN_K_WINDOW_KM } from "../records.rules";
+import { buildPersonalRecords, FIVE_K_WINDOW_KM, TEN_K_WINDOW_KM } from "../stats.rules";
 
 const noRuns = { longest: null, fastest5k: null, fastest10k: null };
 
