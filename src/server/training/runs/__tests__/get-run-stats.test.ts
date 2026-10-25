@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { getCollection } from "@/server/platform/database";
-import { getRunStats } from "../get-run-stats";
+import { getRunStats } from "../run.service";
 
 const userId = "run-stats-user";
 
