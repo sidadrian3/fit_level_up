@@ -1,3 +1,5 @@
+import "server-only";
+
 export type DomainErrorKind = "invalid" | "conflict";
 
 export class DomainError extends Error {

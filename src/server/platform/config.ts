@@ -1,3 +1,5 @@
+import "server-only";
+
 export const GAME_CONFIG = {
   xp: {
     workout: {
@@ -27,4 +29,18 @@ export const GAME_CONFIG = {
   social: {
     friendRequestCooldownDays: 7,
   },
+} as const;
+
+export const RATE_LIMIT_TIERS = {
+  standard: { requests: 30, window: "1 m" },
+  expensive: { requests: 10, window: "1 h" },
+} as const;
+
+export const OUTBOX_TUNING = {
+    leaseMs: 2 * 60_000,
+    maxAttempts: 8,
+    backoffBaseMs: 60_000,
+    backoffCapMs: 6 * 3_600_000,
+    overduePerRequest: 3,
+    cronBudgetMs: 240_000,
 } as const;
