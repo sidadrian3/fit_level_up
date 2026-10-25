@@ -24,12 +24,13 @@ Every MongoDB collection, every API route and every page in FitLevelUp. The code
 | Custom exercises | `custom_exercises` | A user-defined exercise: `name` (stored in canonical title case), `targetMuscle`; unique per user, name and muscle | `userId` |
 | User quests | `user_quests` | One user's instance of a quest for one period: `questTemplateId` (a quest id from `QUEST_DEFINITIONS`, such as `daily_workout_1`), `periodStart`, `periodEnd` (both `null` for an all-time quest), `progress`, `target`, `completed`, `claimed` | `userId` |
 | User achievements | `user_achievements` | Which achievements a user has unlocked: `achievementId`, `unlockedDate` | `userId` |
+| Notifications | `notifications` | One inbox entry for one recipient: `type` (`friend.requested`, `friend.accepted`, `friend.leveled-up`, `achievement.unlocked`), `data`, `actor` (name and avatar copied when the entry was written, or `null`), `sourceEventId` (the outbox event that produced it), `createdAt`, `readAt`; deleted by a TTL index after 90 days | `userId` |
 | Outbox | `outbox` | A pending side effect: `type`, `payload`, `status` (`pending`, `done`, `dead`), `availableAt`, `attempts`, `completedListeners[]`, `lastError`, `createdAt`, `processedAt`; written in the same transaction as the change that caused it | none (system-owned) |
-| Friendships | `friendships` | One document per unordered pair of users: `requesterId`, `receiverId`, `pairKey` (the two ids sorted and joined with `:`), `status` (`pending` / `accepted` / `declined`), `createdAt`, `updatedAt`. Re-requesting after a decline reopens the same document as `pending` with the new requester and receiver | `requesterId` / `receiverId` |
+| Friendships | `friendships` | One document per unordered pair of users: `requesterId`, `receiverId`, `pairKey` (the two ids sorted and joined with `:`), `status` (`pending` / `accepted` / `declined`), `createdAt`, `updatedAt`. Re-requesting after a decline reopens the same document as `pending` with the new requester and receiver; the person who was declined cannot reopen it for `GAME_CONFIG.social.friendRequestCooldownDays` (7) after `updatedAt`, while the person who declined can at any time | `requesterId` / `receiverId` |
 
 `user.timeZone` is an optional IANA zone (for example `Asia/Manila`) declared as a Better Auth `additionalFields` entry and validated by `timeZoneSchema`; a missing value reads as `UTC`. `player_profiles.lastActivityDay` holds the user's *local* calendar day as a `YYYY-MM-DD` string. Quest `periodStart` and `periodEnd` are local-day strings in the same zone, or `null` for an all-time quest.
 
-Quest and achievement definitions are typed constants in code (`QUEST_DEFINITIONS` in `src/server/quests`, `ACHIEVEMENT_DEFINITIONS` in `src/server/achievements`), reviewed in git with stable string ids, not rows in a collection. The `quest_templates` and `achievements` collections are no longer read or written; they stay in the database until the step 5.1 cleanup.
+Quest and achievement definitions are typed constants in code (`QUEST_DEFINITIONS` in `src/server/quests`, `ACHIEVEMENT_DEFINITIONS` in `src/shared/achievement-definitions.ts`), reviewed in git with stable string ids, not rows in a collection. The `quest_templates` and `achievements` collections are no longer read or written; they stay in the database until the step 5.1 cleanup.
 
 Better Auth also manages its own `session`, `account` and `verification` collections through its MongoDB adapter. Never write to them directly.
 
@@ -52,6 +53,10 @@ Declared in `SCHEMA` in `schema.ts` and created idempotently by `applySchema()`.
 | custom_exercises | `{ userId, name, targetMuscle }` unique | Listing a user's exercises (the `userId` prefix); duplicate protection |
 | friendships | `{ pairKey }` unique; receiver + status; requester + status; status | One document per pair; friend lists and pending requests |
 | workout_templates | `{ userId }`; `{ userId, idempotencyKey }` unique, partial | Listing, duplicate-submit protection |
+| notifications | `{ userId, sourceEventId }` unique | One entry per recipient and event, so a redelivered event writes once |
+| notifications | `{ userId, createdAt: -1 }` | The poll: entries since a time, newest first |
+| notifications | `{ userId }` partial on `readAt: null` | The unread count, without scanning read entries |
+| notifications | `{ createdAt }` TTL 90 days | Old entries expire |
 | outbox | `{ availableAt }` partial on `pending`; `{ processedAt }` TTL 7 days, partial on `done` | Claiming the next due row; `done` rows expire, `dead` rows stay as the record of what failed |
 
 ## 4. API routes
@@ -77,13 +82,15 @@ Every route is declared with `defineRoute` from `@/server/runtime`, which owns a
 | `/api/achievements` | GET | yes | — | Achievements with the user's unlock state |
 | `/api/stats/dashboard` | GET | yes | — | Weekly counts, distance, lifetime XP |
 | `/api/profile/records` | GET | yes | — | Personal records |
-| `/api/friends` | GET | yes | — | Accepted friends |
+| `/api/notifications` | GET | yes | — | The inbox: `?since=<ISO>` returns entries from that time (at most 50), without it the latest 20, plus the unread count |
+| `/api/notifications/read` | PATCH | yes | standard | Mark entries read by `ids` (1–50) or `{ all: true }` |
+| `/api/friends` | GET | yes | — | Accepted friends, highest level first, without personal records |
+| `/api/friends/[id]/records` | GET | yes | — | One friend's personal records; 404 unless the pair is accepted |
 | `/api/friends/request` | POST | yes | expensive | Send a friend request |
 | `/api/friends/requests` | GET | yes | — | Pending incoming requests |
 | `/api/friends/[id]/accept` | POST | yes | standard | Accept a request |
 | `/api/friends/[id]/decline` | POST | yes | standard | Decline a request |
 | `/api/friends/[id]` | DELETE | yes | standard | Remove a friend |
-| `/api/friends/events` | GET | yes | — | Server-Sent Events stream of friend events; the connection lasts 60 seconds and the browser reconnects |
 
 ## 5. Pages
 
@@ -105,9 +112,9 @@ Navigation links live in `src/lib/constants/navigation.ts`.
 
 ## 6. Background and real-time pieces
 
-- **Outbox:** a service calls `emit(type, payload, { session })` from `src/server/platform/events` inside its transaction, which inserts one `outbox` row (`activity.logged` after a workout or run, `progression.leveled-up` after a level-up). `defineRoute` collects the ids a request emitted and, after a response below 400, runs `after(() => dispatchEvents(ids))`, which delivers those rows plus at most three overdue ones; a request that emitted nothing makes no outbox query. The listener table lives in `src/server/runtime.ts`: `achievements.evaluate` (on both events) and `notification.friend-leveled-up`. A listener should be idempotent, because a row can be delivered more than once (the achievement unlock is; the Redis level-up publish is not, see below); the row records which listeners already succeeded, so a retry runs only the rest. A claim holds a row for two minutes; a failed attempt waits one minute doubled per attempt (capped at six hours), and the eighth failure marks the row `dead`.
-- **Cron:** `/api/cron/outbox-sweep` drains every due row until none is left or 240 seconds pass, daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token. `npm run outbox -- --dead` lists dead rows with their `lastError`, and `npm run outbox -- --requeue <id>` resets one to `pending`. The level-up fan-out still publishes to Redis, which has no dedupe, so a crash between the publish and the row being marked done can show friends one duplicate toast; the notification inbox replaces it.
-- **SSE:** services publish events to a per-user Redis list (`sse:{userId}`, 60-second TTL) through `src/lib/sse/sse-publisher.ts`; `/api/friends/events` drains it into the browser, where `FriendEventManager` and the level-up and achievement managers show toasts.
+- **Outbox:** a service calls `emit(type, payload, { session })` from `src/server/platform/events` inside its transaction, which inserts one `outbox` row (`activity.logged` after a workout or run, `progression.leveled-up` after a level-up). `defineRoute` collects the ids a request emitted and, after a response below 400, runs `after(() => dispatchEvents(ids))`, which delivers those rows plus at most three overdue ones; a request that emitted nothing makes no outbox query. The listener table lives in `src/server/runtime.ts`: `achievements.evaluate` (on `activity.logged` and `progression.leveled-up`, emitting `achievement.unlocked`) and the four `notification.*` listeners that write the inbox (`friendship.requested`, `friendship.accepted`, `progression.leveled-up`, `achievement.unlocked`). `social` emits the two friendship events in the same transaction as the write. A listener must be idempotent, because a row can be delivered more than once (an unlock is an upsert, and a notification is an upsert on `(userId, sourceEventId)`); the row records which listeners already succeeded, so a retry runs only the rest. A claim holds a row for two minutes; a failed attempt waits one minute doubled per attempt (capped at six hours), and the eighth failure marks the row `dead`.
+- **Cron:** `/api/cron/outbox-sweep` drains every due row until none is left or 240 seconds pass, daily at 03:00 UTC (`vercel.json`); Vercel sends the `CRON_SECRET` bearer token. `npm run outbox -- --dead` lists dead rows with their `lastError`, and `npm run outbox -- --requeue <id>` resets one to `pending`.
+- **Notifications inbox:** the `notification` listeners write one `notifications` row per recipient. The browser reads them with `useNotifications` (`src/lib/notifications/`), which polls `GET /api/notifications?since=` every 30 seconds while the tab is visible, on window focus, and every 2 seconds for 10 seconds after the user's own successful mutation (listeners run in `after()`, so one immediate refetch can miss the entry; the window is a known compromise, see [[Known Issues]]). `NotificationCenter` in the app layout shows one toast for entries that arrive while the user is looking (several collapse into one), the bell shows the unread count and the tab title carries it. Redis is used only for rate limiting.
 - **Scripts:** `src/scripts/migrate-db.ts` runs before every build, but only when `VERCEL_ENV` is `production` or unset: preview deployments share the production database, so they skip it. It runs the pending numbered migrations in `src/scripts/migrations/` (recorded in the `schema_migrations` collection), then `applySchema()`. Migration `001` renames a legacy `customExercises` collection to `custom_exercises`; `002` removes duplicate rows and backfills `friendships.pairKey` before the unique indexes build; `003` copies game state from `user` documents into `player_profiles` with `$setOnInsert` upserts and never writes to `user`; `004` rewrites `user_quests.questTemplateId` from the old template ObjectId to the quest id in `QUEST_DEFINITIONS` (matched by the seeded title) and turns the `"all-time"` periods into `null`, and it stops the build rather than delete rows when no template can be mapped; `005` writes an `xp_ledger` row for every workout, run and claimed quest that lacks one, then resets each profile's `totalXp`, `totalWorkouts` and `totalDistance` from the source data and raises `highestLevel` to the highest level that profile has held. `outbox.ts` is the operator tool above.
 
 [[Guides Index]]

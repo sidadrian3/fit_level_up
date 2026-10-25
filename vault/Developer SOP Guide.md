@@ -8,7 +8,7 @@ How to set up, run, check and change FitLevelUp. For what the system is, start a
 
 - Node.js 20 or newer, npm 9 or newer
 - A MongoDB instance for local development (Atlas, or `docker compose up` using `docker-compose.yml`). Tests do not need one.
-- An Upstash Redis database (rate limiting and SSE)
+- An Upstash Redis database (rate limiting)
 - Optional: `gh` (GitHub CLI) for the agent pipeline's issue-tracker step
 
 ## 2. First-time setup
@@ -24,7 +24,7 @@ Validated at startup by `src/server/platform/env/env.ts` (server variables) and 
 | Variable | Purpose |
 |---|---|
 | `MONGODB_URI`, `MONGODB_DB` | Database connection and name |
-| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limiter and SSE queues |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limiter |
 | `BETTER_AUTH_SECRET` | Session signing (at least 10 characters) |
 | `NEXT_PUBLIC_BETTER_AUTH_URL` | Public base URL of the app |
 | `CRON_SECRET` | Required (at least 16 characters); bearer token guarding `/api/cron/*`. Set it in Vercel for production and preview, or the build fails |

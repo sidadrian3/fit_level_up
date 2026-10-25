@@ -10,7 +10,7 @@ This is a map, not the territory. Every section points to a guide that covers it
 
 **What it is.** FitLevelUp is a gamified fitness tracker. Logging a gym workout or a run earns XP; XP raises your level; daily, weekly and special quests and milestone achievements reward consistency; a daily streak and a stamina meter (overtraining costs XP) shape how you train; friends see each other's levels and records. See [[Project Briefing]].
 
-**What it's made of.** One Next.js 16 App Router application (React 19, TypeScript, Tailwind v4) on MongoDB with Better Auth for email-and-password logins, Upstash Redis for rate limiting and for the Server-Sent Events queue, TanStack Query on the client, and Zod for input validation. Tested with Vitest against an in-memory MongoDB replica set, plus Playwright end to end. Targeted at Vercel for hosting. See [[Architecture Review]].
+**What it's made of.** One Next.js 16 App Router application (React 19, TypeScript, Tailwind v4) on MongoDB with Better Auth for email-and-password logins, Upstash Redis for rate limiting, TanStack Query on the client, and Zod for input validation. Tested with Vitest against an in-memory MongoDB replica set, plus Playwright end to end. Targeted at Vercel for hosting. See [[Architecture Review]].
 
 **How it's organised.** Every feature flows through four layers: a thin API route, a service that orchestrates one use case, pure domain rules for the game math, and a data layer that only talks to MongoDB. See [[Domain Architecture]].
 
@@ -60,7 +60,7 @@ Three layers, each answering a different question:
 | **TargetMuscle** | The enumeration of muscle groups an exercise trains; drives the anatomy model and heatmap | [[Workout Templates Anatomy]] |
 | **Idempotency key** | A client-generated id sent with a create so a retried request is recognised as the same one | [[Network Resilience Learning Record]] |
 | **Service / domain / data layer** | Orchestration / pure rules / MongoDB access | [[Domain Architecture]] |
-| **SSE** | Server-Sent Events: the one-way live channel used for friend, level-up and achievement toasts | [[Architecture Review]] |
+| **Inbox** | The `notifications` collection: per-user entries for friend requests, accepts, friend level-ups and achievement unlocks, polled by the browser | [[Data Model And API Reference]] §6 |
 | **Brain scan** | The first step of every pipeline: search this vault for prior decisions before reading code | [[Agent Workflow Design Spec]] |
 
 ---
@@ -76,7 +76,7 @@ The guides drift when nothing says who updates what. This table is that rule, an
 | Add a page or change the navigation | [[Data Model And API Reference]] §5 |
 | Add a service, a domain rule or change how the layers call each other | [[Domain Architecture]] |
 | Add a script, env var, hook, command or port | [[Developer SOP Guide]] |
-| Change infrastructure, the auth flow, SSE, rate limiting or another cross-cutting rule | [[Architecture Review]] |
+| Change infrastructure, the auth flow, rate limiting or another cross-cutting rule | [[Architecture Review]] |
 | Change a game rule or a user-visible behaviour (XP, streaks, stamina, quests, achievements) | [[Project Briefing]] |
 | Change workout templates or the muscle model | [[Workout Templates Anatomy]] |
 | Find a guide claim the code contradicts | Rewrite it in place so the guide states what is true now, in the present tense |

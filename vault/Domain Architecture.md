@@ -51,8 +51,11 @@ The back end is organised by feature, not by layer. Three modules own their whol
 | `src/server/progression` | XP, level, streak, stamina and totals on the player profile |
 | `src/server/quests` | Quest definitions (`QUEST_DEFINITIONS`), period rules, sync, progress and claim |
 | `src/server/training` | Workouts, runs, templates, custom exercises and records, one folder per use case |
+| `src/server/achievements` | Evaluates unlock conditions when `activity.logged` or `progression.leveled-up` is delivered, writes unlocks, emits `achievement.unlocked`; lists achievements. Imported only by `runtime.ts` and `src/app` |
+| `src/server/social` | Friendships: a `FRIENDSHIP_TRANSITIONS` table, batched friend and request lists, lazy personal records, the decline cooldown, and the `friendship.*` events |
+| `src/server/notification` | Listener-only: turns events into `notifications` rows and serves the inbox and mark-read; imported only by `runtime.ts` and `src/app` |
 
-`src/server/achievements` holds only the achievement definitions for now; the evaluation logic still sits in `src/lib/services/achievements` until it becomes an outbox listener. The remaining features (friends, users) still use the `src/lib/services`, `src/lib/domain` and `src/lib/data` folders until they are moved.
+The remaining feature (users) still uses the `src/lib/services`, `src/lib/domain` and `src/lib/data` folders until it is moved.
 
 Inside a module the four layers keep the same names: use cases are plain functions, `*.rules.ts` files are pure, and `*.repository.ts` files are the only code that touches a collection, built on `userScopedRepository` so every query is filtered by `userId`. Modules call each other directly inside the caller's transaction when the result must commit together (training → quests → progression), and through events otherwise.
 

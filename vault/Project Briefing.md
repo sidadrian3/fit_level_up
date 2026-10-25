@@ -26,7 +26,7 @@ Most fitness apps are boring. They capture data but give you no emotional reward
 - Fully authenticated accounts (email/password via Better Auth)
 - **Add friends by User ID**, accept/decline incoming requests, and remove friends
 - **View a friend's profile modal** — see their level, streak, total workouts, distance, and personal records (heaviest lifts, fastest 5K/10K, longest run)
-- **Receive real-time notifications** via SSE — when a friend accepts a request or logs activity, a toast notification appears instantly without a page refresh
+- **Receive notifications** in a bell inbox — friend requests, accepted requests, friends' level-ups and your own achievement unlocks are kept for 90 days, and a toast shows for entries that arrive while you are looking
 
 ---
 
@@ -76,10 +76,10 @@ To run the app locally you need **two infrastructure services**:
 | Service                     | How to Run                   | Required For                              |
 | --------------------------- | ---------------------------- | ----------------------------------------- |
 | **MongoDB 7 (Replica Set)** | `docker compose up -d`       | Everything — workouts, runs, quests, auth |
-| **Upstash Redis (cloud)**   | Set env vars in `.env.local` | SSE real-time friend notifications        |
+| **Upstash Redis (cloud)**   | Set env vars in `.env.local` | Rate limiting                             |
 
 **Why can't Redis just be a local Docker container?**  
-The SSE layer uses `@upstash/redis`, which speaks Upstash's **HTTP REST API** — not raw TCP Redis. A standard `redis:alpine` container is not compatible. You must point to a real Upstash endpoint. Free tier is sufficient for local dev.
+The rate limiter uses `@upstash/redis`, which speaks Upstash's **HTTP REST API** — not raw TCP Redis. A standard `redis:alpine` container is not compatible. You must point to a real Upstash endpoint. Free tier is sufficient for local dev.
 
 **Required `.env.local` variables for a full local setup:**
 
@@ -97,7 +97,7 @@ UPSTASH_REDIS_REST_URL="https://<your-instance>.upstash.io"
 UPSTASH_REDIS_REST_TOKEN="<your-token>"
 ```
 
-> **Note:** If `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are missing, SSE events will silently fail (the publisher catches and logs the error). The rest of the app works fine without them.
+> **Note:** If `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are missing, the rate limiter lets requests through and logs the error.
 
 ### Game Balance Configuration
 
@@ -206,8 +206,7 @@ POST /api/workouts
   - Friend cards show level, streak, and link to a detailed profile modal
   - Friend profile modal: avatar, name, level, streak, total workouts, total distance, and full personal records (top lifts, fastest 5K/10K, longest run)
   - Personal records calculated on-the-fly from all workouts and runs at query time
-  - Real-time SSE layer: friend events (accepted requests, friend activity) pushed to connected browsers
-  - Automatic reconnection on SSE drop with exponential backoff
+  - Notification inbox in MongoDB with polling delivery, an unread bell and one live toast
 
 **Infrastructure:**
 
@@ -217,7 +216,7 @@ POST /api/workouts
 - Proper MongoDB indexes on all hot-path queries (including unique indexes that keep friendships to one document per pair and prevent duplicate achievement unlocks, custom exercises and quest rows)
 - Zod validation on every API endpoint
 - Type-safe environment variables (validated at startup — server won't start with missing env vars)
-- Unit tests (Vitest + in-memory MongoDB) covering domain rules, data layer, service layer, and SSE registry
+- Unit tests (Vitest + in-memory MongoDB) covering domain rules, data layer and service layer
 - Service layer uses `targetUserId` (the other person's ID) — no internal document IDs exposed to frontend
 
 **Code quality improvements already applied (from the P0/P2 audit fixes):**
@@ -231,7 +230,7 @@ POST /api/workouts
 
 **Architectural Refactors (Vercel Compatibility & Deep Modules):**
 
-- **Transactional outbox:** Background side effects (`evaluateAchievements`, `notifyFriendsLevelUp`) are outbox rows written in the caller's transaction and delivered with the Next.js `after()` API once the response is sent, so a function killed after commit delays them but never loses them.
+- **Transactional outbox:** Background side effects (achievement evaluation and the notification inbox writes) are outbox rows written in the caller's transaction and delivered with the Next.js `after()` API once the response is sent, so a function killed after commit delays them but never loses them.
 - **Progression module:** `src/server/progression` owns XP, level, streak, stamina and totals in the `player_profiles` collection. `recordActivity` (workouts and runs) and `grantXp` (quest claims) share one XP path that writes an `xp_ledger` row, increments `totalXp` and emits `progression.leveled-up` when the level passes `highestLevel`, so a level lost and re-earned announces nothing. Editing or deleting an activity goes through `replaceSourceXp` and `revokeSource`, which replace or remove the activity's ledger row and set `totalXp` to the ledger sum, so the level can fall. Level and `xpToNextLevel` are computed from `totalXp`.
 - **Quests and training modules:** `src/server/quests` owns the quest definitions (typed constants with stable string ids), period rules, sync, progress and claim. `src/server/training` owns workouts, runs, templates, custom exercises and records; personal records and run stats are computed by database aggregation. Workout and run dates are returned as ISO instants and formatted in the user's time zone by the client.
 - **Pure Data Mappers:** Dynamic state assembly (calculating stamina recovery, zeroing a broken streak) happens in progression's `getPlayerState`, not in the data layer; `getUser` in `lib/services/users` composes the account and the player state into the `User` the API returns.
@@ -269,7 +268,7 @@ These are architectural upgrades that make the system more scalable and robust. 
 This feature has been fully implemented. It serves two purposes:
 
 1. **Product value:** Users can add friends, see their stats, and compete socially — a huge motivation multiplier for fitness apps.
-2. **Technical showcase:** Demonstrates **real-time updates** using Server-Sent Events (SSE). When your friend accepts a request, you see a toast notification live without refreshing.
+2. **Technical showcase:** Demonstrates **near-real-time updates** with a persistent inbox. When your friend accepts a request, a toast appears within about 30 seconds without refreshing, and the entry waits in the bell if you were away.
 
 ### Track C — Network Loss Resilience & Concurrency ✅ COMPLETED
 
@@ -298,37 +297,37 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 | `POST`   | `/api/friends/request`      | Send a friend request by target User ID                |
 | `POST`   | `/api/friends/[id]/accept`  | Accept a request (using target's User ID)              |
 | `POST`   | `/api/friends/[id]/decline` | Decline a request (using target's User ID)             |
-| `GET`    | `/api/friends`              | List your accepted friends with full profile + records |
+| `GET`    | `/api/friends`              | List your accepted friends with their profile |
 | `GET`    | `/api/friends/requests`     | List pending incoming requests with requester profile  |
 | `DELETE` | `/api/friends/[id]`         | Remove a friend (using target's User ID)               |
-| `GET`    | `/api/friends/events`       | SSE stream — pushes live events to the browser         |
+| `GET`    | `/api/friends/[id]/records` | One friend's personal records (accepted friends only)  |
+| `GET`    | `/api/notifications`        | Your inbox, with `?since=` and the unread count        |
+| `PATCH`  | `/api/notifications/read`   | Mark entries read                                      |
 
-> **Important design decision:** All friendship mutation endpoints accept the **other user's `userId`** (not an opaque MongoDB `_id`). The backend internally resolves the correct `Friendship` document using `getFriendshipBetweenFromDb(currentUserId, targetUserId)`. This was a deliberate refactor to fix a bug where the frontend was passing the wrong ID type.
+> **Important design decision:** All friendship mutation endpoints accept the **other user's `userId`** (not an opaque MongoDB `_id`). The backend internally resolves the correct `Friendship` document from the pair key of the current user and the target user. This was a deliberate refactor to fix a bug where the frontend was passing the wrong ID type.
 
-#### Real-Time Layer (SSE)
+#### Notifications
 
-- `src/lib/sse/sse-publisher.ts` — the Redis queue publisher. Uses Upstash Redis `RPUSH` to send events to per-user message queues (`"sse:{userId}"`) with a 60-second auto-expiry. Allows any serverless container to push an event to any connected user by ID, fixing the Vercel container isolation problem.
-- `src/lib/hooks/useFriendEvents.ts` — client-side hook. Opens a persistent `EventSource` connection to `/api/friends/events`, listens for named events, and calls `queryClient.invalidateQueries()` on arrival so TanStack Query auto-refreshes the UI.
-- Events pushed: `friend_request`, `friend_accepted`, `friend_level_up`.
-- Auto-reconnects on drop (standard `EventSource` browser behaviour).
-- The `/api/friends/events` route uses a 5-second polling loop (`LPOP`) to check Redis for messages and forward them to the browser. It sets `maxDuration = 60` for Vercel Hobby compatibility.
+- `src/server/notification` — listener-only. The outbox listeners turn `friendship.requested`, `friendship.accepted`, `progression.leveled-up` (to each accepted friend) and `achievement.unlocked` into rows in the `notifications` collection, one per recipient, so offline users and second tabs see them too. Entries expire after 90 days.
+- `GET /api/notifications?since=` and `PATCH /api/notifications/read` serve the inbox.
+- `src/lib/notifications/useNotifications.ts` — client hook. Polls every 30 seconds while the tab is visible, on focus and, for 10 seconds after the user's own successful action, every 2 seconds. `NotificationCenter` shows one toast for entries that arrive while the user is looking, the bell shows the unread count, and the tab title carries it.
 
 #### Friend Page UI
 
 - Three tabs: **My Friends**, **Requests** (with unread badge count), **Add Friends**
 - Add Friends tab uses User ID lookup (not username/email search) — shows a preview of the found user before sending
 - `FriendCard` — clickable card that opens the profile modal on click
-- `FriendProfileModal` — glassmorphic modal with: gradient cover, avatar, level/streak badges, total workouts/distance stats, and a full personal records list (strength, cardio, endurance icons)
+- `FriendProfileModal` — modal with: gradient cover, avatar, level/streak badges, total workouts/distance stats, and a full personal records list (strength, cardio, endurance icons)
 - `FriendRequestCard` — shows requester's avatar, name, level with Accept/Decline actions
-- Personal records calculated on-the-fly via `calculatePersonalRecords(workouts, runs)` in `get-friends.ts`
+- Personal records load when the modal opens, from `GET /api/friends/[id]/records`, which answers `404` unless the pair is accepted; the friend list itself carries none
 
-#### Business Rules (`src/lib/domain/friend-rules.ts`)
+#### Business Rules (`src/server/social/friendship.rules.ts`)
 
 - Cannot send a request to yourself
-- Cannot send a duplicate request (checked by existing friendship document)
-- Only the receiver can accept or decline a request
-- Either party can remove an accepted friendship
-- Re-requesting after a decline creates a new document
+- Cannot send a duplicate request: the pair has one document, keyed by `pairKey`, and an existing pending or accepted pair answers `409 "Friend request already sent."`
+- Only the receiver can accept or decline a pending request
+- Either party can remove a pending or accepted friendship; a declined pair answers `404`, so a decline stays silent
+- After a decline, the person who was declined cannot re-request for 7 days (`GAME_CONFIG.social.friendRequestCooldownDays`) and gets the same `409`; the person who declined can request at any time, which reopens the same document with the roles swapped
 
 ---
 
@@ -344,10 +343,9 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 | [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                              |
 | [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                             |
 | [schema.ts](file:///z:/Projects/fit_level_up/src/server/platform/database/schema.ts)        | Collection names, document types, indexes and validators. Applied at build by `applySchema`. |
-| [friendships-db.ts](file:///z:/Projects/fit_level_up/src/lib/data/friendships-db.ts)        | All MongoDB CRUD for the `friendships` collection.                                         |
-| [sse-publisher.ts](file:///z:/Projects/fit_level_up/src/lib/sse/sse-publisher.ts)           | Redis-backed publisher. Pushes SSE events to per-user queues for serverless compatibility. |
-| [useFriendEvents.ts](file:///z:/Projects/fit_level_up/src/lib/hooks/useFriendEvents.ts)     | Client hook — opens SSE stream and invalidates TanStack Query cache on events.             |
-| [friend-rules.ts](file:///z:/Projects/fit_level_up/src/lib/domain/friend-rules.ts)          | Pure domain rules: who can send/accept/remove friendships.                                 |
+| [friendship.rules.ts](file:///z:/Projects/fit_level_up/src/server/social/friendship.rules.ts) | The transition table: who can accept, decline, remove or reopen a friendship, and the cooldown. |
+| [listeners.ts](file:///z:/Projects/fit_level_up/src/server/notification/listeners.ts)       | Outbox listeners that write the notification inbox.                                        |
+| [useNotifications.ts](file:///z:/Projects/fit_level_up/src/lib/notifications/useNotifications.ts) | Client hook — polls the inbox, runs the fast window and picks what to toast.         |
 | [get-personal-records.ts](file:///z:/Projects/fit_level_up/src/server/training/records/get-personal-records.ts) | Top lifts and fastest runs, computed by database aggregation instead of loading the history. |
 | [quest.definitions.ts](file:///z:/Projects/fit_level_up/src/server/quests/quest.definitions.ts) | Every quest as a typed constant with a stable id; achievements live in `src/server/achievements`. |
 
@@ -358,7 +356,7 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 | Priority | Issue                          | Status    |
 | -------- | ------------------------------ | --------- |
 | ✅ Done  | Centralized API error handling | Completed |
-| ✅ Done  | Friend System + Real-Time SSE  | Completed |
+| ✅ Done  | Friend System + notification inbox | Completed |
 
 |
 
