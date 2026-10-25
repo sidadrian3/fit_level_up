@@ -1,10 +1,11 @@
 import { ACHIEVEMENT_DEFINITIONS } from "@/shared/achievement-definitions";
 import { getPlayerState } from "@/server/progression";
-import { defineListener, emit, type AnyListener } from "@/server/platform/events";
+import { emit } from "@/server/platform/events";
 import { clientPromise } from "@/server/platform/database";
 import { findNewUnlocks } from "./achievement.rules";
-import { findUnlocks, upsertUnlocks } from "./achievement.repository";
-import "./events";
+import { countUnlocks, findUnlocks, upsertUnlocks } from "./achievement.repository";
+import type { Achievement } from "@/lib/types";
+import "./achievement.events";
 
 export async function evaluateAchievements(userId: string, now: Date = new Date()): Promise<string[]> {
   const player = await getPlayerState(userId, { now });
@@ -29,19 +30,21 @@ export async function evaluateAchievements(userId: string, now: Date = new Date(
   }
 }
 
-export const achievementListeners: AnyListener[] = [
-  defineListener({
-    name: "achievements.evaluate",
-    event: "activity.logged",
-    handle: async ({ userId }) => {
-      await evaluateAchievements(userId);
-    },
-  }),
-  defineListener({
-    name: "achievements.evaluate",
-    event: "progression.leveled-up",
-    handle: async ({ userId }) => {
-      await evaluateAchievements(userId);
-    },
-  }),
-];
+export async function listAchievements(userId: string): Promise<Achievement[]> {
+  const unlocks = await findUnlocks(userId);
+  const unlockedDateById = new Map(unlocks.map((unlock) => [unlock.achievementId, unlock.unlockedDate]));
+
+  return ACHIEVEMENT_DEFINITIONS.map(({ id, title, description, icon, rarity }) => ({
+    id,
+    title,
+    description,
+    icon,
+    rarity,
+    unlocked: unlockedDateById.has(id),
+    unlockedDate: unlockedDateById.get(id),
+  }));
+}
+
+export function countUnlockedAchievements(userId: string): Promise<number> {
+  return countUnlocks(userId);
+}
