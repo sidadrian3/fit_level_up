@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNotifications } from "@/lib/notifications/useNotifications";
 import { NotificationBell } from "./NotificationBell";
 import { NotificationPanel } from "./NotificationPanel";
+import { useNotificationFeed } from "./NotificationProvider";
 import { NotificationToast } from "./NotificationToast";
 
 const UNREAD_PREFIX_PATTERN = /^\(\d+\) /;
@@ -33,7 +33,7 @@ function useUnreadTabTitle(unreadCount: number) {
 
 export function NotificationCenter() {
   const { items, unreadCount, toastBatch, clearToast, markRead, markAllRead } =
-    useNotifications();
+    useNotificationFeed();
   const [panelOpen, setPanelOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
   const closePanel = useCallback(() => setPanelOpen(false), []);

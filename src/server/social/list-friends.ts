@@ -4,6 +4,10 @@ import { getPlayerStates } from "@/server/progression";
 import { findAccepted, findIncomingPending, toFriendship } from "./friendship.repository";
 import type { FriendshipDoc } from "@/server/platform/database";
 
+function otherParty(friendship: FriendshipDoc, userId: string): string {
+  return friendship.requesterId === userId ? friendship.receiverId : friendship.requesterId;
+}
+
 async function toProfiles(
   friendships: FriendshipDoc[],
   otherPartyId: (friendship: FriendshipDoc) => string,
@@ -31,9 +35,7 @@ async function toProfiles(
 
 export async function listFriends(userId: string): Promise<FriendProfile[]> {
   const friendships = await findAccepted(userId);
-  const profiles = await toProfiles(friendships, (friendship) =>
-    friendship.requesterId === userId ? friendship.receiverId : friendship.requesterId,
-  );
+  const profiles = await toProfiles(friendships, (friendship) => otherParty(friendship, userId));
   return profiles.sort((a, b) => b.level - a.level);
 }
 
@@ -45,5 +47,5 @@ export async function listFriendRequests(userId: string): Promise<FriendProfile[
 
 export async function getAcceptedFriendIds(userId: string): Promise<string[]> {
   const friendships = await findAccepted(userId);
-  return friendships.map((friendship) => (friendship.requesterId === userId ? friendship.receiverId : friendship.requesterId));
+  return friendships.map((friendship) => otherParty(friendship, userId));
 }

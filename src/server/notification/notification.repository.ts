@@ -31,11 +31,11 @@ export function findFeed(userId: string, since?: Date): Promise<NotificationDoc[
 }
 
 export function countUnread(userId: string): Promise<number> {
-  return notifications.count(userId, { readAt: null });
+  return notifications.count(userId, { readAt: { $type: "null" } });
 }
 
 export async function markRead(userId: string, target: { ids: string[] } | { all: true }, now: Date): Promise<void> {
   const idFilter = "all" in target ? {} : { _id: { $in: target.ids.flatMap((id) => parseObjectId(id) ?? []) } };
   const collection = await getCollection<NotificationDoc>("notifications");
-  await collection.updateMany({ ...idFilter, userId, readAt: null }, { $set: { readAt: now } });
+  await collection.updateMany({ ...idFilter, userId, readAt: { $type: "null" } }, { $set: { readAt: now } });
 }
