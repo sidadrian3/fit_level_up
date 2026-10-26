@@ -264,7 +264,7 @@ export function WorkoutForm({
                         ...prev,
                         exercises: [
                             ...(prev.exercises.length === 1 && prev.exercises[0].name === "" ? [] : prev.exercises),
-                            { ...EMPTY_EXERCISE, name: newExercise.name }
+                            { ...EMPTY_EXERCISE, name: newExercise.name, targetMuscle: newExercise.targetMuscle }
                         ]
                     }));
                 }} 

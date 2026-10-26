@@ -127,4 +127,23 @@ test.describe('Cross-screen refresh', () => {
     const modal = page.getByRole('dialog', { name: 'Start from Template' });
     await expect(modal.getByText(templateName)).toBeVisible();
   });
+
+  test('A custom exercise logged from the workout form keeps its target muscle', async ({ page }) => {
+    await signUpThrowawayAccount(page);
+    const exerciseName = `E2e Sled Push ${Date.now()}`;
+    const workoutTitle = `E2E Legs ${Date.now()}`;
+
+    await goTo(page, 'Workouts', '/workouts');
+    await page.getByRole('button', { name: 'Create Custom' }).click();
+    await page.getByPlaceholder('e.g. Bulgarian Split Squat').fill(exerciseName);
+    const createForm = page.locator('form').filter({ has: page.getByPlaceholder('e.g. Bulgarian Split Squat') });
+    await createForm.getByRole('combobox').selectOption({ label: 'Legs' });
+    await createForm.getByRole('button', { name: 'Create', exact: true }).click();
+
+    await page.getByPlaceholder('e.g. Upper Body Power').fill(workoutTitle);
+    await page.getByRole('button', { name: 'Log Workout' }).click();
+
+    const card = page.locator('h3', { hasText: workoutTitle }).locator('xpath=ancestor::div[contains(@class,"flex-col")][1]');
+    await expect(card.getByText('Legs Day')).toBeVisible({ timeout: 10000 });
+  });
 });
