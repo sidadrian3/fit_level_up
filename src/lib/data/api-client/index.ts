@@ -8,4 +8,3 @@ export { ApiError, isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 export { getWorkouts, createWorkout, deleteWorkout, updateWorkout } from "./workouts";
 export { getRuns, createRun, deleteRun, updateRun, getRunStats } from "./runs";
 export { getAchievements } from "./achievements";
-export { getDashboardStats, getPersonalRecords } from "./stats";

@@ -2,8 +2,7 @@
 
 import { Card } from "@/components/ui/Card";
 import { Trophy } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getPersonalRecords } from "@/lib/data/api-client";
+import { usePersonalRecords } from "@/lib/stats/hooks/usePersonalRecords";
 
 export interface PersonalRecordsProps {
     className?: string;
@@ -13,10 +12,7 @@ export interface PersonalRecordsProps {
  * Displays personal bests and records.
  */
 export function PersonalRecords({ className = "" }: PersonalRecordsProps) {
-    const { data: records = [], isLoading, isError } = useQuery({
-        queryKey: ["personal-records"],
-        queryFn: getPersonalRecords,
-    });
+    const { data: records = [], isLoading, isError } = usePersonalRecords();
 
     return (
         <Card className={`p-0 overflow-hidden mt-4 ${className}`}>
