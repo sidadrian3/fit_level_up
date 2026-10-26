@@ -4,7 +4,7 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { formatDuration, formatPace } from "@/lib/utils";
 import { useActivityDateFormatter } from "@/lib/hooks/useActivityDateFormatter";
-import type { Run } from "@/lib/types";
+import type { Run } from "@/shared/contracts/run";
 import { Footprints, Edit2, Trash2 } from "lucide-react";
 
 export interface RunCardProps {

@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { isIdempotencyKeyReused } from "@/lib/data/api-client";
-import { progressionKeys } from "@/lib/progression/keys";
+import { isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 import { useIdempotencyKey } from "./useIdempotencyKey";
 
 type UseEntityFormOptions<TInput, TEntity> = {
@@ -35,7 +33,6 @@ export function useEntityForm<TInput, TEntity>({
   onSuccess,
   onAlreadySaved,
 }: UseEntityFormOptions<TInput, TEntity>) {
-  const queryClient = useQueryClient();
   const { key: idempotencyKey, rotate: rotateIdempotencyKey } = useIdempotencyKey();
   const isEditMode = !!initialEntity;
   const [fields, setFields] = useState<TInput>(defaults);
@@ -73,14 +70,11 @@ export function useEntityForm<TInput, TEntity>({
         rotateIdempotencyKey();
         resetForm();
       }
-      
-      await queryClient.invalidateQueries({ queryKey: progressionKeys.all });
-      
+
       onSuccess?.();
     } catch (err) {
       if (!isEditMode && isIdempotencyKeyReused(err)) {
         rotateIdempotencyKey();
-        await queryClient.invalidateQueries({ queryKey: progressionKeys.all });
         onAlreadySaved?.();
       }
       setError(
@@ -91,7 +85,7 @@ export function useEntityForm<TInput, TEntity>({
     } finally {
       setIsSubmitting(false);
     }
-  }, [fields, isEditMode, initialEntity, onCreate, onUpdate, getId, onSuccess, onAlreadySaved, resetForm, idempotencyKey, rotateIdempotencyKey, queryClient]);
+  }, [fields, isEditMode, initialEntity, onCreate, onUpdate, getId, onSuccess, onAlreadySaved, resetForm, idempotencyKey, rotateIdempotencyKey]);
 
   return {
     fields,

@@ -1,4 +1,4 @@
-import type { Run, CreateRunInput } from "@/lib/types";
+import type { Run, RunStats, CreateRunInput } from "@/shared/contracts/run";
 import type { PaginatedResponse } from "@/shared/contracts/pagination";
 import { apiFetch } from "@/lib/shared/api-fetch";
 
@@ -34,6 +34,6 @@ export async function updateRun(
   });
 }
 
-export async function getRunStats() {
-  return apiFetch<{ totalKm: number; totalRuns: number; avgPace: number }>("/api/runs/stats");
+export async function getRunStats(): Promise<RunStats> {
+  return apiFetch<RunStats>("/api/runs/stats");
 }
