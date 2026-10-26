@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useExerciseCatalog } from "@/lib/exercises/hooks/useExerciseCatalog";
@@ -8,15 +8,15 @@ import { useLogWorkout } from "@/lib/workouts/hooks/useLogWorkout";
 import { useUpdateWorkout } from "@/lib/workouts/hooks/useUpdateWorkout";
 import type { Workout } from "@/shared/contracts/workout";
 import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
 import { CreateWorkoutSchema } from "@/shared/contracts/workout";
 import { EMPTY_EXERCISE } from "@/lib/constants/exercises";
 import { CreateExerciseModal } from "@/components/shared/exercises/CreateExerciseModal";
 import { TemplateSelectorModal } from "./TemplateSelectorModal";
 import { BookmarkPlus } from "lucide-react";
-import { AnatomyModel } from "@/components/ui/AnatomyModel";
-import { calcMuscleVolume } from "@/shared/muscle-volume";
+import { LivePumpTracker } from "./LivePumpTracker";
+import { WorkoutExerciseRow, workoutInputClass } from "./WorkoutExerciseRow";
 
 /**
  * Workout form — creates new or edits existing workout.
@@ -37,7 +37,7 @@ export function WorkoutForm({
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
 
-    const { exercises: allExercises, exerciseGroups: groupedExercises, createCustomExercise } = useExerciseCatalog();
+    const catalog = useExerciseCatalog();
     const logWorkoutMutation = useLogWorkout();
     const updateWorkoutMutation = useUpdateWorkout();
 
@@ -83,18 +83,6 @@ export function WorkoutForm({
         onAlreadySaved: onWorkoutLogged,
     });
 
-    const currentIntensities = useMemo(() => {
-        const mockWorkout: Workout = {
-            id: "temp",
-            title: "temp",
-            duration: 1,
-            xpEarned: 0,
-            date: new Date().toISOString(),
-            exercises: fields.exercises.filter(ex => ex.name.trim() !== "")
-        };
-        return calcMuscleVolume([mockWorkout], 1, new Date());
-    }, [fields.exercises]);
-
     const addExercise = () => {
         setFields((prev) => ({ ...prev, exercises: [...prev.exercises, { ...EMPTY_EXERCISE }] }));
     };
@@ -106,14 +94,10 @@ export function WorkoutForm({
         }));
     };
 
-    const updateExercise = (
-        index: number,
-        field: keyof Exercise,
-        value: string | number | null
-    ) => {
+    const updateExercise = (index: number, patch: Partial<Exercise>) => {
         setFields((prev) => ({
             ...prev,
-            exercises: prev.exercises.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex)),
+            exercises: prev.exercises.map((ex, i) => (i === index ? { ...ex, ...patch } : ex)),
         }));
     };
 
@@ -136,9 +120,6 @@ export function WorkoutForm({
 
         await handleSubmit();
     }
-
-    const inputBase =
-        "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-foreground text-sm placeholder:text-muted focus:border-accent-green focus:ring-1 focus:ring-accent-green/50 focus:outline-none transition-default";
 
     return (
         <div className={`w-full ${className}`}>
@@ -183,7 +164,7 @@ export function WorkoutForm({
                                 placeholder="e.g. Upper Body Power"
                                 value={fields.title}
                                 onChange={(e) => setFields((prev) => ({ ...prev, title: e.target.value }))}
-                                className={inputBase}
+                                className={workoutInputClass}
                             />
                         </div>
 
@@ -202,139 +183,14 @@ export function WorkoutForm({
                         </div>
                         <div className="space-y-3">
                             {fields.exercises.map((exercise, index) => (
-                                <div
+                                <WorkoutExerciseRow
                                     key={index}
-                                    className="flex items-start gap-2 p-3 rounded-lg border border-border bg-background"
-                                >
-                                    <div className="flex-1 min-w-0">
-                                        <select
-                                            onFocus={() => {
-                                                const currentEx = fields.exercises[index];
-                                                if (currentEx.name) {
-                                                    const found = allExercises.find(ex => ex.name === currentEx.name);
-                                                    if (found) setActiveMuscle(found.targetMuscle);
-                                                }
-                                            }}
-                                            value={exercise.name}
-                                            onChange={(e) => {
-                                                const selectedName = e.target.value;
-                                                const found = allExercises.find(ex => ex.name === selectedName);
-                                                if (found) {
-                                                    setActiveMuscle(found.targetMuscle);
-                                                    setFields(prev => ({
-                                                        ...prev,
-                                                        exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, name: found.name, targetMuscle: found.targetMuscle } : ex)
-                                                    }));
-                                                } else if (selectedName === "") {
-                                                    // Handle clearing the select if we had an empty option
-                                                    setFields(prev => ({
-                                                        ...prev,
-                                                        exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, name: "" } : ex)
-                                                    }));
-                                                }
-                                            }}
-                                            className={`${inputBase} mb-2 appearance-none`}
-                                        >
-                                            <option value="" disabled>Select an exercise...</option>
-                                            {Object.entries(groupedExercises).map(([muscle, exercises]) => {
-                                                if (exercises.length === 0) return null;
-                                                return (
-                                                    <optgroup key={muscle} label={muscle}>
-                                                        {exercises.map(ex => (
-                                                            <option key={ex.name} value={ex.name}>{ex.name}</option>
-                                                        ))}
-                                                    </optgroup>
-                                                );
-                                            })}
-                                        </select>
-                                        
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <div>
-                                                <label className="block text-xs text-muted mb-1">
-                                                    Sets
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
-                                                    value={exercise.sets}
-                                                    onChange={(e) =>
-                                                        updateExercise(
-                                                            index,
-                                                            "sets",
-                                                            parseInt(
-                                                                e.target.value
-                                                            ) || 1
-                                                        )
-                                                    }
-                                                    className={inputBase}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs text-muted mb-1">
-                                                    Reps
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
-                                                    value={exercise.reps}
-                                                    onChange={(e) =>
-                                                        updateExercise(
-                                                            index,
-                                                            "reps",
-                                                            parseInt(
-                                                                e.target.value
-                                                            ) || 1
-                                                        )
-                                                    }
-                                                    className={inputBase}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs text-muted mb-1">
-                                                    Weight (kg)
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    placeholder="BW"
-                                                    onFocus={() => exercise.name && setActiveMuscle(exercise.targetMuscle)}
-                                                    value={
-                                                        exercise.weight !== null
-                                                            ? exercise.weight
-                                                            : ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        updateExercise(
-                                                            index,
-                                                            "weight",
-                                                            e.target.value === ""
-                                                                ? null
-                                                                : parseFloat(
-                                                                    e.target.value
-                                                                )
-                                                        )
-                                                    }
-                                                    className={inputBase}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {fields.exercises.length > 1 && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                removeExercise(index)
-                                            }
-                                            className="mt-1 p-2 text-muted hover:text-accent-red transition-default rounded-lg hover:bg-accent-red/10"
-                                            aria-label="Remove exercise"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    )}
-                                </div>
+                                    exercise={exercise}
+                                    catalog={catalog}
+                                    onChange={(patch) => updateExercise(index, patch)}
+                                    onRemove={fields.exercises.length > 1 ? () => removeExercise(index) : undefined}
+                                    onFocusMuscle={setActiveMuscle}
+                                />
                             ))}
 
                             <button
@@ -359,7 +215,7 @@ export function WorkoutForm({
                             onChange={(e) =>
                                 setFields((prev) => ({ ...prev, duration: parseInt(e.target.value) || 1 }))
                             }
-                            className={inputBase}
+                            className={workoutInputClass}
                         />
                     </div>
 
@@ -395,24 +251,14 @@ export function WorkoutForm({
                     </form>
                 </div>
 
-                {/* Right side: Compact Live Pump Tracker */}
-                <div className="w-full lg:w-48 shrink-0 flex flex-col items-center border-t lg:border-t-0 lg:border-l border-border pt-8 lg:pt-0 lg:pl-8">
-                    <h4 className="text-center font-bold text-muted text-xs mb-4 uppercase tracking-wider">Live Pump Tracker</h4>
-                    <div className="w-32 lg:w-40">
-                        <AnatomyModel 
-                            intensities={currentIntensities} 
-                            activeMuscle={activeMuscle} 
-                            view={activeMuscle === TargetMuscle.Back ? 'back' : 'front'} 
-                        />
-                    </div>
-                </div>
+                <LivePumpTracker exercises={fields.exercises} activeMuscle={activeMuscle} />
             </Card>
 
             <CreateExerciseModal 
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
                 onSubmit={async (data) => {
-                    const newExercise = await createCustomExercise(data);
+                    const newExercise = await catalog.createCustomExercise(data);
                     
                     setFields(prev => ({
                         ...prev,
