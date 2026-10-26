@@ -6,7 +6,7 @@ import { friendKeys } from "../keys";
 
 export function useRemoveFriend() {
   const queryClient = useQueryClient();
-  return useMutation<{ success: true }, Error, string>({
+  return useMutation<{ success: boolean }, Error, string>({
     mutationFn: removeFriend,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: friendKeys.all });
