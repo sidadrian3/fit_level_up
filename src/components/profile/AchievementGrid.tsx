@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import type { Achievement } from "@/lib/types";
+import type { Achievement } from "@/shared/contracts/achievement";
 import { Trophy } from "lucide-react";
 
 export interface AchievementGridProps {

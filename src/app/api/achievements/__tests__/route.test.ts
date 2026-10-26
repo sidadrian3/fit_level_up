@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "../route";
 import { getCollection } from "@/server/platform/database";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import type { Achievement } from "@/lib/types";
+import type { Achievement } from "@/shared/contracts/achievement";
 
 vi.mock("@/lib/auth/auth-helpers", () => ({
   getAuthUserId: vi.fn(),
