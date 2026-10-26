@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
-import { RunCard } from "@/components/runs/RunCard";
-import { RunForm } from "@/components/runs/RunForm";
+import { RunCard } from "./_components/RunCard";
+import { RunForm } from "./_components/RunForm";
 import { useRuns } from "@/lib/runs/hooks/useRuns";
 import { useRunStats } from "@/lib/runs/hooks/useRunStats";
 import { useDeleteRun } from "@/lib/runs/hooks/useDeleteRun";
