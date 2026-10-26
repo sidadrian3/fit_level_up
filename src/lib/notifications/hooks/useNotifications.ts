@@ -3,23 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { friendKeys } from "@/lib/friends/keys";
-import { getNotifications, markNotificationsRead } from "@/lib/data/api-client";
+import { notificationKeys } from "../keys";
+import { getNotifications, markNotificationsRead } from "../api";
 import type {
   MarkNotificationsReadInput,
   Notification,
 } from "@/shared/contracts/notification";
-import { NOTIFICATION_FEED_LIMIT } from "./constants";
+import { NOTIFICATION_FEED_LIMIT } from "../utils/constants";
 import {
   extendFastWindow,
   mergeFeed,
   nextPollInterval,
   selectToastBatch,
-} from "./notification-feed";
+} from "../utils/notification-feed";
 
 type Feed = { items: Notification[]; unreadCount: number };
 
-const FEED_KEY = ["notifications"] as const;
-const READ_MUTATION_KEY = ["notifications", "read"] as const;
 const EMPTY_FEED: Feed = { items: [], unreadCount: 0 };
 
 function markItemsRead(
@@ -62,19 +61,21 @@ export function useNotifications(): {
   useEffect(() => {
     return queryClient.getMutationCache().subscribe((event) => {
       if (event.type !== "updated" || event.action.type !== "success") return;
-      if (event.mutation.options.mutationKey?.[0] === "notifications") return;
+      if (event.mutation.options.mutationKey?.[0] === notificationKeys.all[0])
+        return;
       fastUntilRef.current = Math.max(
         fastUntilRef.current,
         extendFastWindow(Date.now()),
       );
-      void queryClient.refetchQueries({ queryKey: FEED_KEY });
+      void queryClient.refetchQueries({ queryKey: notificationKeys.feed() });
     });
   }, [queryClient]);
 
   const { data = EMPTY_FEED } = useQuery<Feed>({
-    queryKey: FEED_KEY,
+    queryKey: notificationKeys.feed(),
     queryFn: async () => {
-      const cached = queryClient.getQueryData<Feed>(FEED_KEY) ?? EMPTY_FEED;
+      const cached =
+        queryClient.getQueryData<Feed>(notificationKeys.feed()) ?? EMPTY_FEED;
       const response = await getNotifications(cached.items[0]?.createdAt);
       const knownIds = new Set(cached.items.map((item) => item.id));
       const arrived = response.items.filter((item) => !knownIds.has(item.id));
@@ -110,30 +111,42 @@ export function useNotifications(): {
     MarkNotificationsReadInput,
     { previous: Feed }
   >({
-    mutationKey: READ_MUTATION_KEY,
+    mutationKey: notificationKeys.markRead(),
     mutationFn: markNotificationsRead,
     onMutate: (input) => {
-      const previous = queryClient.getQueryData<Feed>(FEED_KEY) ?? EMPTY_FEED;
-      queryClient.setQueryData<Feed>(FEED_KEY, (current = EMPTY_FEED) => {
-        const items = markItemsRead(current.items, input);
-        const newlyRead = current.items.filter(
-          (item, index) => item.readAt === null && items[index].readAt !== null,
-        );
-        return {
-          items,
-          unreadCount: Math.max(0, current.unreadCount - newlyRead.length),
-        };
-      });
+      const previous =
+        queryClient.getQueryData<Feed>(notificationKeys.feed()) ?? EMPTY_FEED;
+      queryClient.setQueryData<Feed>(
+        notificationKeys.feed(),
+        (current = EMPTY_FEED) => {
+          const items = markItemsRead(current.items, input);
+          const newlyRead = current.items.filter(
+            (item, index) =>
+              item.readAt === null && items[index].readAt !== null,
+          );
+          return {
+            items,
+            unreadCount: Math.max(0, current.unreadCount - newlyRead.length),
+          };
+        },
+      );
       return { previous };
     },
     onSuccess: ({ unreadCount }) => {
-      queryClient.setQueryData<Feed>(FEED_KEY, (current = EMPTY_FEED) => ({
-        ...current,
-        unreadCount,
-      }));
+      queryClient.setQueryData<Feed>(
+        notificationKeys.feed(),
+        (current = EMPTY_FEED) => ({
+          ...current,
+          unreadCount,
+        }),
+      );
     },
     onError: (_error, _input, context) => {
-      if (context) queryClient.setQueryData<Feed>(FEED_KEY, context.previous);
+      if (context)
+        queryClient.setQueryData<Feed>(
+          notificationKeys.feed(),
+          context.previous,
+        );
     },
   });
 

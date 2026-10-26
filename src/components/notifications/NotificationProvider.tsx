@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { useNotifications } from "@/lib/notifications/useNotifications";
+import { useNotifications } from "@/lib/notifications/hooks/useNotifications";
 
 type NotificationFeed = ReturnType<typeof useNotifications>;
 
