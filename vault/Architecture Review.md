@@ -77,7 +77,7 @@ Service (log-workout.ts)
 
 **Facade**
 
-- `api-client/index.ts` is a barrel facade. Consumers import from one place, and the internals are split across 9 focused modules (`workouts.ts`, `runs.ts`, etc.).
+- Each client domain folder `src/lib/<domain>/` is a facade over its endpoint wrappers (`api.ts`) and query keys (`keys.ts`): pages and components import its hooks (`hooks/`) and nothing else. ESLint rejects a direct `@tanstack/react-query` import in `src/app` and `src/components`.
 
 **Decorator (Auth Guard)**
 

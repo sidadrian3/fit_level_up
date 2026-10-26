@@ -60,7 +60,7 @@ Services    ← use-case orchestration (the "what happens when you log a workout
 
 - **React 19** with the Next.js App Router (server components where possible, client components for interactive UI)
 - **TanStack Query v5** for all data fetching, caching, and mutation state
-- **UserContext** wraps the currently logged-in user's data globally so any component can read it
+- **`useCurrentUser`** (`src/lib/progression/hooks/`) reads the currently logged-in user through the shared query cache, so any component can read it
 - **Tailwind CSS v4** for styling
 
 ### Database
@@ -128,16 +128,14 @@ src/
 ├── lib/
 │   ├── config/            ← game-config.ts  (all balance constants)
 │   ├── constants/         ← Other shared constants
-│   ├── context/           ← UserContext (global current-user state)
-│   ├── data/              ← *-db.ts files  (MongoDB access)
-│   │   └── api-client/    ← Client-side fetch helpers for TanStack Query
+│   ├── <domain>/          ← One folder per client domain: keys.ts, api.ts, hooks/
+│   ├── shared/            ← api-fetch.ts (apiFetch, ApiError)
 │   ├── domain/            ← Pure business rules (*-rules.ts)
 │   ├── hooks/             ← Custom React hooks
 │   ├── services/          ← Use-case services (one folder per domain)
 │   ├── utils/             ← Utility helpers (formatters, date math)
 │   ├── validations/       ← Zod schemas (API input validation)
 │   ├── auth/              ← Better Auth config and helpers
-│   ├── types.ts           ← Shared TypeScript domain types
 │   └── mongodb.ts         ← Singleton MongoDB client
 ├── scripts/               ← DB migration scripts
 ├── env.ts                 ← Type-safe environment variable validation
@@ -222,7 +220,7 @@ POST /api/workouts
 **Code quality improvements already applied (from the P0/P2 audit fixes):**
 
 - Game balance constants extracted from magic numbers into `game-config.ts` (was P2 item #10)
-- `UserContext` now uses TanStack Query (`invalidateQueries`) instead of the `window` event bus anti-pattern (was P2 item #11)
+- The current user is read through TanStack Query (`invalidateQueries`) instead of the `window` event bus anti-pattern (was P2 item #11)
 - `UserMongoDoc` fields made non-optional where game data is always present
 - Dead batch fetch in `updateQuestProgress` removed
 - XP race condition in `grantUserXP` fixed (read moved inside the session)
@@ -310,7 +308,7 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 
 - `src/server/notification` — listener-only. The outbox listeners turn `friendship.requested`, `friendship.accepted`, `progression.leveled-up` (to each accepted friend) and `achievement.unlocked` into rows in the `notifications` collection, one per recipient, so offline users and second tabs see them too. Entries expire after 90 days.
 - `GET /api/notifications?since=` and `PATCH /api/notifications/read` serve the inbox.
-- `src/lib/notifications/useNotifications.ts` — client hook. Polls every 30 seconds while the tab is visible, on focus and, for 10 seconds after the user's own successful action, every 2 seconds. `NotificationCenter` shows one toast for entries that arrive while the user is looking, the bell shows the unread count, and the tab title carries it.
+- `src/lib/notifications/hooks/useNotifications.ts` — client hook. Polls every 30 seconds while the tab is visible, on focus and, for 10 seconds after the user's own successful action, every 2 seconds. `NotificationCenter` shows one toast for entries that arrive while the user is looking, the bell shows the unread count, and the tab title carries it.
 
 #### Friend Page UI
 
@@ -339,13 +337,13 @@ This track was completed to eliminate edge-case bugs that occur during bad netwo
 | [progression.rules.ts](file:///z:/Projects/fit_level_up/src/server/progression/progression.rules.ts) | XP leveling, streak calculation, stamina recovery — the core game math.            |
 | [config.ts](file:///z:/Projects/fit_level_up/src/server/platform/config.ts)                  | Every balance constant. Change here to tune the game feel.                                 |
 | [index.ts](file:///z:/Projects/fit_level_up/src/server/progression/index.ts)                | The progression module's public API: player state, activity and XP writes, level rules.    |
-| [types.ts](file:///z:/Projects/fit_level_up/src/lib/types.ts)                               | Every shared TypeScript type. The "language" of the whole app.                             |
-| [UserContext.tsx](file:///z:/Projects/fit_level_up/src/lib/context/UserContext.tsx)         | Global React context for the logged-in user. Used everywhere.                              |
+| [contracts](file:///z:/Projects/fit_level_up/src/shared/contracts)                          | Request schemas and the response types the browser and server share. The "language" of the whole app. |
+| [useCurrentUser.ts](file:///z:/Projects/fit_level_up/src/lib/progression/hooks/useCurrentUser.ts) | Client hook for the logged-in user, shared through the query cache. Used everywhere.       |
 | [proxy.ts](file:///z:/Projects/fit_level_up/src/proxy.ts)                                   | Next.js middleware — redirects unauthenticated users to login.                             |
 | [schema.ts](file:///z:/Projects/fit_level_up/src/server/platform/database/schema.ts)        | Collection names, document types, indexes and validators. Applied at build by `applySchema`. |
 | [friendship.rules.ts](file:///z:/Projects/fit_level_up/src/server/social/friendship.rules.ts) | The transition table: who can accept, decline, remove or reopen a friendship, and the cooldown. |
 | [notification.listeners.ts](file:///z:/Projects/fit_level_up/src/server/notification/notification.listeners.ts) | Outbox listeners that write the notification inbox.                                        |
-| [useNotifications.ts](file:///z:/Projects/fit_level_up/src/lib/notifications/useNotifications.ts) | Client hook — polls the inbox, runs the fast window and picks what to toast.         |
+| [useNotifications.ts](file:///z:/Projects/fit_level_up/src/lib/notifications/hooks/useNotifications.ts) | Client hook — polls the inbox, runs the fast window and picks what to toast.         |
 | [stats.service.ts](file:///z:/Projects/fit_level_up/src/server/training/stats/stats.service.ts) | Dashboard stats, top lifts and fastest runs, computed by database aggregation instead of loading the history. |
 | [quest.definitions.ts](file:///z:/Projects/fit_level_up/src/server/quests/quest.definitions.ts) | Every quest as a typed constant with a stable id; achievements live in `src/server/achievements`. |
 

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Achievement } from "@/lib/types";
+import type { Achievement } from "@/shared/contracts/achievement";
 import { Trophy } from "lucide-react";
 import { AchievementIconMap } from "@/lib/constants/achievement-icons";
 

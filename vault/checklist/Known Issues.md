@@ -18,7 +18,7 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 ## 2. Notification fast-poll window is a timing heuristic
 
-**Where:** `useNotifications` in `src/lib/notifications/useNotifications.ts` polls every 2 s for up to 10 s after the user's own successful mutation, then returns to 30 s.
+**Where:** `useNotifications` in `src/lib/notifications/hooks/useNotifications.ts` polls every 2 s for up to 10 s after the user's own successful mutation, then returns to 30 s.
 
 **Effect:** the achievement and notification listeners run in `after()`, so an immediate refetch can miss the entry. The window bets that a listener finishes within 10 s. A slower listener falls back to the 30 s poll, so the entry still arrives, only later.
 
@@ -26,7 +26,21 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 - The mutation response carries the emitted event ids and the client polls a status endpoint until they are processed. Exact, but new machinery on every mutation route.
 - Push delivery (Pusher, Ably), which removes polling entirely.
 
-**Found in:** `src/lib/notifications/useNotifications.ts`. See [[Achievements Social And Notifications Design Spec]].
+**Found in:** `src/lib/notifications/hooks/useNotifications.ts`. See [[Achievements Social And Notifications Design Spec]].
+
+---
+
+## 3. Dashboard and profile can show old numbers after browser Back
+
+**Where:** `/dashboard` and `/profile` are `force-dynamic` Server Components. They render XP, level, the stat cards, achievements and recent activity on the server, so no client query holds those values. See [[Frontend Domain Hooks Plan]] for why they stay server-rendered.
+
+**Effect:** reaching either page by a sidebar link or a reload is fresh. Next 16's client cache reuses a visited page on browser back/forward navigation (Next docs, Glossary: Client Cache), so pressing Back to one of them after logging a workout or run or claiming a quest shows the numbers from when the page was last rendered. The sidebar XP bar is a client query and is already fresh, so the two can disagree until the next forward navigation. This comes from the Next docs and has not been reproduced in a browser.
+
+**Fix:** either of:
+- Call `router.refresh()` when one of these pages is restored by a back navigation (a small client component that detects it). Cheap, and keeps the pages on the server.
+- Move the dashboard and profile numbers to client queries whose keys the activity mutations already invalidate. This reverses the decision to keep them server-rendered.
+
+**Found in:** `src/app/(app)/dashboard/page.tsx`, `src/app/(app)/profile/page.tsx`.
 
 ---
 

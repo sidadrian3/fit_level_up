@@ -4,7 +4,7 @@ import { emit } from "@/server/platform/events";
 import { clientPromise } from "@/server/platform/database";
 import { findNewUnlocks } from "./achievement.rules";
 import { countUnlocks, findUnlocks, upsertUnlocks } from "./achievement.repository";
-import type { Achievement } from "@/lib/types";
+import type { Achievement } from "@/shared/contracts/achievement";
 import "./achievement.events";
 
 export async function evaluateAchievements(userId: string, now: Date = new Date()): Promise<string[]> {

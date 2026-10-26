@@ -182,7 +182,7 @@ Ranked most severe first. "F-n" ids are referenced from §5. Findings marked _Fi
 
 **F-18. Dead and deprecated code.** `sse-registry.ts` is marked `@deprecated` and kept alive by its own tests. `achievements-db.ts` still has ~45 lines of commented-out seed data. `calcActiveDays` has no service caller (only the dashboard page uses it, with this week's workout instants from `getWorkoutDatesInRange`). The `@better-fetch/fetch` call in `proxy.ts` makes an HTTP round trip to its own server on every protected navigation.
 
-**F-19. Front-end cache keys are scattered.** Query keys are string literals in pages and components (`["workouts", page]`, `["runs-stats"]`, `["personal-records"]`, `["workoutTemplates"]`). Logging a workout invalidates `["user"]` (in `useEntityForm`) and the workouts page adds three more, but nothing invalidates dashboard stats or achievements. The custom-exercise query and mutation are copy-pasted in `WorkoutForm` and `CreateTemplateForm`. `WorkoutForm.tsx` is 469 lines.
+**F-19. Front-end cache keys are scattered.** _Fixed in step 4.1: every query key lives in its domain's `keys.ts` table, mutations own their invalidation (workout and run changes also refresh progression, quests and stats), and the custom-exercise hook is shared. Splitting `WorkoutForm` remains for step 4.2._ Query keys are string literals in pages and components (`["workouts", page]`, `["runs-stats"]`, `["personal-records"]`, `["workoutTemplates"]`). Logging a workout invalidates `["user"]` (in `useEntityForm`) and the workouts page adds three more, but nothing invalidates dashboard stats or achievements. The custom-exercise query and mutation are copy-pasted in `WorkoutForm` and `CreateTemplateForm`. `WorkoutForm.tsx` is 469 lines.
 
 **F-20. Idempotency detection is string-based.** `apiFetch` decides a POST is retry-safe if the JSON body _contains the text_ `idempotencyKey`. An `Idempotency-Key` header, as in apartment-system, is explicit.
 
@@ -437,7 +437,7 @@ All seven are settled in [[Architecture Overhaul Design Spec]]: polling an inbox
 | **3.6** | `/refactor` | `achievements` module as an outbox listener                                         | F-5 (finish), F-16                    | 3.4, 2.5   | Done   |
 | **3.7** | `/refactor` | `social` module, transition table, no N+1                                           | F-9 (friends), F-16                   | 2.5        | Done   |
 | **3.8** | `/feature`  | `notification` module: inbox + polling delivery (SSE retires)                       | F-10, F-18 (SSE)                      | 3.6, 3.7   | Done   |
-| **4.1** | `/refactor` | `lib/<domain>/hooks` own query keys and invalidation (one PR per domain)            | F-19                                  | Phase 3    | Open   |
+| **4.1** | `/refactor` | `lib/<domain>/hooks` own query keys and invalidation (one PR per domain)            | F-19                                  | Phase 3    | Done   |
 | **4.2** | `/refactor` | Page `_components/`, `WorkoutForm` split, shared custom-exercise hook               | F-19                                  | 4.1        | Open   |
 | **5.1** | `/refactor` | Delete old `lib/` back-end folders and dead code; sync `AGENTS.md` and vault guides | F-18                                  | 4.2        | Open   |
 

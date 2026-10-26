@@ -9,9 +9,9 @@ This document details how the **Workout Templates** and **Human Anatomy** featur
 In this application, "Human Anatomy" is modeled as a strict enumeration called `TargetMuscle`. It dictates which muscle group a specific exercise is targeting.
 
 ### Where it lives:
-This is defined in the shared Types/Domain layer (`src/lib/types.ts`) so both the frontend and backend strictly adhere to the same anatomical definitions.
+This is defined in the shared contracts (`src/shared/contracts/exercise.ts`) so both the frontend and backend strictly adhere to the same anatomical definitions.
 
-**Code Snippet (`src/lib/types.ts`):**
+**Code Snippet (`src/shared/contracts/exercise.ts`):**
 ```typescript
 export enum TargetMuscle {
     Chest = "Chest",

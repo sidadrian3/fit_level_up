@@ -57,7 +57,7 @@ The back end is organised by feature, not by layer. Three modules own their whol
 
 Inside a module every file is `index.ts` or `<noun>.<role>.ts`, with role `service`, `repository`, `rules`, `definitions`, `events`, `listeners` or `adapters`. `index.ts` is the public surface. Routes and `<noun>.listeners.ts` files are the controllers: they call services, may wire one module's function into another, and hold no business rules. [[Server File Layout Plan]] records why.
 
-The remaining feature (users) still uses the `src/lib/services`, `src/lib/domain` and `src/lib/data` folders until it is moved.
+The remaining feature (users) still uses the `src/lib/services` and `src/lib/domain` folders until it is moved.
 
 Inside a module the four layers keep the same names: use cases are plain functions, `*.rules.ts` files are pure, and `*.repository.ts` files are the only code that touches a collection, built on `userScopedRepository` so every query is filtered by `userId`. Modules call each other directly inside the caller's transaction when the result must commit together (training → quests → progression), and through events otherwise.
 
@@ -147,9 +147,9 @@ export function evaluateWorkout(input: CreateWorkoutInput, currentStamina: numbe
 ```
 
 ### 4. Data (Persistence Layer)
-**Location:** `src/server/<module>/**/*.repository.ts` (or `src/lib/data/...` for features not yet moved)
+**Location:** `src/server/<module>/**/*.repository.ts`
 
-The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`src/server/platform/database/mongo-utils.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (same file) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or, for the create routes, let `createOnce` replay the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/lib/types.ts`.
+The Data layer is the only place that talks directly to MongoDB. Two helpers keep Mongo's raw failure modes out of the other layers: `parseObjectId` (`src/server/platform/database/mongo-utils.ts`) turns a malformed id into `null`, so a lookup becomes a 404 instead of a crash, and `isDuplicateKeyError` (same file) recognizes a unique-index violation, so a service can turn it into a `ConflictError` or, for the create routes, let `createOnce` replay the existing row. It is responsible for raw insertion, fetching, and ensuring the documents returned strictly match the TypeScript interfaces defined in `src/shared/contracts/`.
 
 **Example Snippet (`src/server/training/workouts/workout.repository.ts`):**
 ```typescript
@@ -165,6 +165,24 @@ export async function deleteWorkoutById(userId: string, id: string, session?: Cl
     return doc ? toWorkout(doc) : null;
 }
 ```
+
+---
+
+## 🖥️ Front-End Data Access
+
+The browser side follows the same one-owner rule. Each domain has a folder, `src/lib/<domain>/`, with the same three parts:
+
+| Part | Holds |
+|---|---|
+| `keys.ts` | The domain's query-key table, the only place a key appears. `all` is the prefix that invalidates the whole domain. |
+| `api.ts` | Endpoint wrappers over `apiFetch` (`src/lib/shared/api-fetch.ts`). |
+| `hooks/` | One hook per file: `use<Thing>` for a query, `use<Verb><Thing>` for a mutation. |
+
+The domains are progression, quests, friends, notifications, exercises, templates, stats, workouts and runs. The response types and Zod schemas the browser shares with the server live in `src/shared/contracts/<domain>.ts`.
+
+Pages and components import hooks and never `@tanstack/react-query`; ESLint enforces that, with `QueryProvider` as the one exception. A mutation hook owns the invalidation for everything its server change touches. Logging, editing or deleting a workout or run calls `invalidateActivityChange(queryClient, activityKey)`, which refreshes that activity's own list plus progression (XP, level, streak and stamina, read through `useCurrentUser`), quests and stats (personal records). Claiming a quest refreshes quests and progression. The workout, run and quest-claim hooks return their invalidation promise, so `mutateAsync` resolves once the screens are fresh and a form stays busy until then.
+
+The dashboard and profile are server-rendered, so no client query holds their numbers; [[Known Issues]] records what that means after browser Back.
 
 ---
 

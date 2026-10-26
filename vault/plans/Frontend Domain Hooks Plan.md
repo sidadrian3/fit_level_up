@@ -304,4 +304,19 @@ After Task 23, the coordinator runs the handbook sync and writes the history log
 - Workout and run logs now open the notification fast-poll window: a few extra 2-second polls for 10 seconds after each log. That's the intended "stale data now refreshes" change.
 - `invalidateActivityEffects` sits in `lib/progression` but imports quest and stats keys. The arrow points the same way as on the server, where progression owns activity side-effects.
 
+## Amendments During Build
+
+Decisions that changed the plan while the nine PRs were built, each with its reason:
+
+- **`invalidateActivityEffects(queryClient)` became `invalidateActivityChange(queryClient, activityKey)`** (PR 7 review). Three workout hooks repeated the same two-line invalidation and the run hooks would have added three more, so the helper now also invalidates the activity's own key. Tasks 17, 18 and 20 above describe the earlier name.
+- **The workout, run and quest-claim mutation hooks return their invalidation promise** so `mutateAsync` waits until the screens are fresh. `useEntityForm` used to await the progression refetch itself; the wait moved into the mutations when Task 20 took React Query out of it. The form stays busy slightly longer than before.
+- **The custom-exercise wrappers moved from raw `fetch()` to `apiFetch`** (Task 12), because the repo rules forbid raw `fetch`. The error text falls back to "Request failed: <url>" when the server sends none, and the list load retries on a network error like other GET calls.
+- **Create-input types are inferred from their Zod schemas** (`CreateCustomExerciseInput`, `CreateWorkoutTemplateInput`, `CreateWorkoutInput`, `CreateRunInput`) instead of being moved as hand-written types, so a schema change cannot drift from the type.
+- **`RunStats` joined `src/shared/contracts/run.ts`**, and the run service imports it, replacing its own copy of the same type (Task 20).
+- **`useFriendRecords(friendId)` uses `skipToken`** and builds its key with an empty string while the modal is closed, so the key factory only ever receives a string. Real ids are 24-character hex, so the key cannot collide.
+- **`removeFriend` is typed `{ success: boolean }`**, which is what the server returns; it was typed `{ success: true }`.
+- **`stats` became a tenth client domain** (Task 16) for personal records, named after `src/server/training/stats/`.
+- **Task 2's quest check reads Weekly Consistency**, because Daily Burn swaps its progress text for a Claim button after one workout.
+- **Playwright runs on `PLAYWRIGHT_PORT`**, and the config passes `NEXT_PUBLIC_BETTER_AUTH_URL` so signup follows the port (Task 1). `package.json` still pins `@playwright/test` to `^1.61.1` while `playwright` is `^1.64.1`; that mismatch was left alone.
+
 [[Plans Index]]
