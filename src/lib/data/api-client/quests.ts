@@ -1,4 +1,4 @@
-import type { Quest } from "@/lib/types";
+import type { Quest } from "@/shared/contracts/quest";
 import { apiFetch } from "@/lib/shared/api-fetch";
 
 export async function getQuests(): Promise<readonly Quest[]> {

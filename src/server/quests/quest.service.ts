@@ -17,7 +17,8 @@ import {
   upsertQuestRows,
 } from "./quest.repository";
 import type { ClientSession } from "mongodb";
-import type { Quest, QuestActivity, QuestMetric } from "@/lib/types";
+import type { Quest } from "@/shared/contracts/quest";
+import type { QuestActivity, QuestMetric } from "./quest.rules";
 import { toLocalDay } from "@/shared/time/calendar";
 import { getUserTimeZone } from "@/server/platform/auth";
 import { clientPromise, type UserQuestDoc } from "@/server/platform/database";

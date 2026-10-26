@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { QuestCard } from "./QuestCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import type { Quest } from "@/lib/types";
+import type { Quest } from "@/shared/contracts/quest";
 import { Target } from "lucide-react";
 
 export interface QuestSectionProps {

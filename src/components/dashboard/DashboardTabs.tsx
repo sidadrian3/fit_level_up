@@ -4,7 +4,8 @@ import { useState } from "react";
 import { DailyQuests } from "./DailyQuests";
 import { RecentActivity } from "./RecentActivity";
 import { MuscleHeatmap } from "./MuscleHeatmap";
-import { Quest, Workout } from "@/lib/types";
+import type { Quest } from "@/shared/contracts/quest";
+import { Workout } from "@/lib/types";
 
 export function DashboardTabs({ quests, recentWorkouts }: { quests: Quest[], recentWorkouts: Workout[] }) {
     const [activeTab, setActiveTab] = useState<"activity" | "quests" | "heatmap">("activity");
