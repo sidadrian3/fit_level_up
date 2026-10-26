@@ -30,4 +30,18 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 ---
 
+## 3. Dashboard and profile can show old numbers after browser Back
+
+**Where:** `/dashboard` and `/profile` are `force-dynamic` Server Components. They render XP, level, the stat cards, achievements and recent activity on the server, so no client query holds those values. See [[Frontend Domain Hooks Plan]] for why they stay server-rendered.
+
+**Effect:** reaching either page by a sidebar link or a reload is fresh. Next 16's client cache reuses a visited page on browser back/forward navigation (Next docs, Glossary: Client Cache), so pressing Back to one of them after logging a workout or run or claiming a quest shows the numbers from when the page was last rendered. The sidebar XP bar is a client query and is already fresh, so the two can disagree until the next forward navigation. This comes from the Next docs and has not been reproduced in a browser.
+
+**Fix:** either of:
+- Call `router.refresh()` when one of these pages is restored from history (a small client component listening for `pageshow`). Cheap, and keeps the pages on the server.
+- Move the dashboard and profile numbers to client queries whose keys the activity mutations already invalidate. This reverses the decision to keep them server-rendered.
+
+**Found in:** `src/app/(app)/dashboard/page.tsx`, `src/app/(app)/profile/page.tsx`.
+
+---
+
 [[Guides Index]]
