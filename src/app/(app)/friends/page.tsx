@@ -8,7 +8,7 @@ import { FriendCard } from "@/components/friends/FriendCard";
 import { FriendRequestCard } from "@/components/friends/FriendRequestCard";
 import { AddFriendSection } from "@/components/friends/AddFriendSection";
 import { FriendProfileModal } from "@/components/friends/FriendProfileModal";
-import type { FriendProfile } from "@/lib/types";
+import type { FriendProfile } from "@/shared/contracts/friendship";
 import {
   getFriends,
   getFriendRequests,

@@ -1,6 +1,6 @@
 import { UserMinus } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import type { FriendProfile } from "@/lib/types";
+import type { FriendProfile } from "@/shared/contracts/friendship";
 import { useState } from "react";
 
 interface FriendCardProps {

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/shared/api-fetch";
-import type { Friendship, FriendProfile } from "@/lib/types";
+import type { Friendship, FriendProfile } from "@/shared/contracts/friendship";
 import type { PersonalRecord } from "@/shared/contracts/personal-record";
 
 export async function getFriends(): Promise<FriendProfile[]> {

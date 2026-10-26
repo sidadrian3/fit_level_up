@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Copy, UserPlus, CheckCircle2, Loader2 } from "lucide-react";
 import { useCurrentUser } from "@/lib/progression/hooks/useCurrentUser";
-import { Friendship } from "@/lib/types";
+import type { Friendship } from "@/shared/contracts/friendship";
 
 interface AddFriendSectionProps {
   onSendRequest: (id: string) => Promise<Friendship>;

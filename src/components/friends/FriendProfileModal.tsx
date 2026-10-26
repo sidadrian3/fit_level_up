@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { X, Dumbbell, Timer, Map, Activity } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { getFriendRecords } from "@/lib/data/api-client/friends";
-import type { FriendProfile } from "@/lib/types";
+import type { FriendProfile } from "@/shared/contracts/friendship";
 
 const SKELETON_ROW_COUNT = 3;
 

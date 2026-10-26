@@ -1,6 +1,6 @@
 import { Check, X, Loader2 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import type { FriendProfile } from "@/lib/types";
+import type { FriendProfile } from "@/shared/contracts/friendship";
 
 interface FriendRequestCardProps {
   request: FriendProfile;
