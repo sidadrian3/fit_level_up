@@ -5,53 +5,28 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { RunCard } from "@/components/runs/RunCard";
 import { RunForm } from "@/components/runs/RunForm";
-import { getRuns, deleteRun, updateRun, getRunStats } from "@/lib/data/api-client";
-import { invalidateActivityChange } from "@/lib/progression/utils/invalidate-activity-change";
+import { useRuns } from "@/lib/runs/hooks/useRuns";
+import { useRunStats } from "@/lib/runs/hooks/useRunStats";
+import { useDeleteRun } from "@/lib/runs/hooks/useDeleteRun";
 import { formatPace } from "@/lib/utils";
 import { MapPin, Activity, Timer } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pagination } from "@/components/ui/Pagination";
 
 
 export default function RunsPage() {
-    const queryClient = useQueryClient();
-
     const [page, setPage] = useState(1);
-
-    // 1. Pagination Query
-    const {
-        data,
-        isLoading,
-        isError,
-    } = useQuery({
-        queryKey: ["runs", page],
-        queryFn: () => getRuns(page, 4),
-    });
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    // Get runs from paginated response
+    const { data, isLoading, isError } = useRuns(page, 4);
+    const { data: statsData } = useRunStats();
+    const deleteMutation = useDeleteRun();
+
     const runs = data?.data || [];
     const editingRun = runs.find((r) => r.id === editingId);
-
-    const { data: statsData } = useQuery({
-        queryKey: ["runs-stats"],
-        queryFn: getRunStats,
-    });
-
     const stats = statsData || { totalKm: 0, totalRuns: 0, avgPace: 0 };
-
-    const deleteMutation = useMutation({
-        mutationFn: deleteRun,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
-            invalidateActivityChange(queryClient, ["runs"]);
-        },
-    });
 
     const handleEditComplete = () => {
         setEditingId(null);
-        queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
-        invalidateActivityChange(queryClient, ["runs"]);
     };
 
     const handleUpdate = async (id: string) => {

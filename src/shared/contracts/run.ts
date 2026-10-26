@@ -17,3 +17,9 @@ export interface Run {
   xpEarned: number;
   date: string;
 }
+
+export interface RunStats {
+  totalKm: number;
+  totalRuns: number;
+  avgPace: number;
+}

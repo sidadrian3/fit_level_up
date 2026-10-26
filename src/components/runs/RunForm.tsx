@@ -3,7 +3,8 @@
 import React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { createRun, updateRun } from "@/lib/data/api-client";
+import { useLogRun } from "@/lib/runs/hooks/useLogRun";
+import { useUpdateRun } from "@/lib/runs/hooks/useUpdateRun";
 import type { Run } from "@/shared/contracts/run";
 import { X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
@@ -54,6 +55,8 @@ export function RunForm({
     initialRun?: Run;
     onCancel?: () => void;
 }) {
+    const logRunMutation = useLogRun();
+    const updateRunMutation = useUpdateRun();
     const {
         fields,
         setFields,
@@ -71,8 +74,8 @@ export function RunForm({
             duration: run.duration,
             difficulty: run.difficulty,
         }),
-        onCreate: (input, key) => createRun(input, key),
-        onUpdate: (id, input) => updateRun(id, input),
+        onCreate: (input, key) => logRunMutation.mutateAsync({ input, idempotencyKey: key }),
+        onUpdate: (id, input) => updateRunMutation.mutateAsync({ id, input }),
         getId: (run) => run.id,
         onSuccess: () => {
             if (onRunLogged) onRunLogged();
