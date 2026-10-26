@@ -1,4 +1,4 @@
-import type { User } from "@/lib/types";
+import type { User } from "@/shared/contracts/user";
 import { apiFetch } from "@/lib/shared/api-fetch";
 
 export async function getUser(): Promise<User> {

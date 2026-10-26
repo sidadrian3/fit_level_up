@@ -2,7 +2,7 @@
 
 import { Flame } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
-import type { User } from "@/lib/types";
+import type { User } from "@/shared/contracts/user";
 
 export function SidebarFooter({ user }: { user: User }) {
   return (

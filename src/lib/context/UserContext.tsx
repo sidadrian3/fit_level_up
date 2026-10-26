@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useCallback, type ReactNode, useEffect } from "react";
-import type { User } from "@/lib/types";
+import type { User } from "@/shared/contracts/user";
 import { apiFetch } from "@/lib/shared/api-fetch";
 import { authClient } from "@/lib/auth/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
