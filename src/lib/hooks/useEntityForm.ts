@@ -74,7 +74,6 @@ export function useEntityForm<TInput, TEntity>({
         resetForm();
       }
       
-      // Invalidate the user cache to trigger a global refresh of XP/Stamina
       await queryClient.invalidateQueries({ queryKey: progressionKeys.all });
       
       onSuccess?.();

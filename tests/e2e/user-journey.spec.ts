@@ -31,6 +31,12 @@ async function readSidebarXp(page: Page): Promise<string> {
   return (await sidebarXp(page).innerText()).trim();
 }
 
+async function logWorkout(page: Page, title: string): Promise<void> {
+  await page.getByPlaceholder('e.g. Upper Body Power').fill(title);
+  await page.getByRole('combobox').first().selectOption({ label: 'Bench Press' });
+  await page.getByRole('button', { name: 'Log Workout' }).click();
+}
+
 function questCard(page: Page, title: string): Locator {
   return page.getByRole('heading', { name: title, exact: true }).locator('xpath=ancestor::div[contains(@class,"flex-col")][1]');
 }
@@ -46,12 +52,8 @@ test.describe('Critical User Journey', () => {
   test('Signup, view dashboard, and log a workout', async ({ page }) => {
     await signUpThrowawayAccount(page);
 
-    await page.click('text=Workouts');
-    await page.waitForURL('/workouts');
-
-    await page.getByPlaceholder('e.g. Upper Body Power').fill('E2E Power Session');
-    await page.getByRole('combobox').first().selectOption({ label: 'Bench Press' });
-    await page.getByRole('button', { name: 'Log Workout' }).click();
+    await goTo(page, 'Workouts', '/workouts');
+    await logWorkout(page, 'E2E Power Session');
 
     const workoutCard = page.locator('h3', { hasText: 'E2E Power Session' });
     await expect(workoutCard).toBeVisible({ timeout: 10000 });
@@ -63,15 +65,14 @@ test.describe('Cross-screen refresh', () => {
     await signUpThrowawayAccount(page);
 
     await goTo(page, 'Quests', '/quests');
+    // Daily Burn completes after one workout and swaps its progress for a Claim button, so the +1 is read on Weekly Consistency.
     const weeklyWorkouts = questCard(page, 'Weekly Consistency');
     const weeklyBefore = await readQuestProgress(weeklyWorkouts);
     await expect(questCard(page, 'Daily Burn').getByText('Progress')).toBeVisible();
 
     await goTo(page, 'Workouts', '/workouts');
     const xpAtStart = await readSidebarXp(page);
-    await page.getByPlaceholder('e.g. Upper Body Power').fill('E2E Refresh Session');
-    await page.getByRole('combobox').first().selectOption({ label: 'Bench Press' });
-    await page.getByRole('button', { name: 'Log Workout' }).click();
+    await logWorkout(page, 'E2E Refresh Session');
     const workoutCard = page.locator('h3', { hasText: 'E2E Refresh Session' });
     await expect(workoutCard).toBeVisible();
     await expect(sidebarXp(page)).not.toHaveText(xpAtStart);
