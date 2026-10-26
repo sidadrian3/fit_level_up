@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { WorkoutTemplate } from "@/lib/types";
+import type { WorkoutTemplate } from "@/shared/contracts/template";
 import { X, Trash2, Loader2, Plus, BookmarkPlus } from "lucide-react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

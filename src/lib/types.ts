@@ -19,20 +19,6 @@ export type CreateWorkoutInput = {
     duration: number;
 }
 
-export interface WorkoutTemplate {
-    id: string;
-    userId: string;
-    name: string;
-    exercises: Exercise[];
-    createdAt: DateString;
-}
-
-export type CreateWorkoutTemplateInput = {
-    name: string;
-    exercises: Exercise[];
-}
-
-
 export interface Run {
     id: string;
     distance: number;       // km
