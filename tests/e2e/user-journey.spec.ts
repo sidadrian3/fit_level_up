@@ -26,17 +26,9 @@ test.describe('Critical User Journey', () => {
     await page.waitForURL('/workouts');
     
     // 3. Log a Workout
-    await page.fill('input[placeholder="e.g. Upper Body Power"]', 'E2E Power Session');
-    
-    // Select workout type (Strength is default, but let's click Cardio just to test)
-    await page.click('button:has-text("Cardio")');
-
-    // Fill exercise details
-    await page.fill('input[placeholder="Exercise name"]', 'Treadmill Sprints');
-    // The inputs for sets/reps/weight don't have explicit placeholders, but we can use their labels
-    // Wait, the easiest is to just use the default sets=3, reps=10 and submit.
-    
-    await page.click('button:has-text("Log Workout")');
+    await page.getByPlaceholder('e.g. Upper Body Power').fill('E2E Power Session');
+    await page.getByRole('combobox').first().selectOption({ label: 'Bench Press' });
+    await page.getByRole('button', { name: 'Log Workout' }).click();
 
     // 4. Verify Workout appears in history
     // After logging, the form resets and the history updates. 
