@@ -70,7 +70,7 @@ Unlike logging a *real* workout—which requires heavy math for Stamina costs, X
 
 ### 💻 Code Snippets across the Stack
 
-**1. The Client UI (`src/components/workouts/CreateTemplateForm.tsx`)**
+**1. The Client UI (`src/app/(app)/templates/new/_components/CreateTemplateForm.tsx`)**
 The user builds the template. Notice how the payload directly bundles the exercises.
 ```tsx
 const onSubmit = async (e: React.FormEvent) => {

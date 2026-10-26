@@ -145,4 +145,10 @@ Commit: `fix(workouts): a custom exercise created while logging keeps its target
 - Server code, API routes and the 4.1 hooks other than adding `useExerciseCatalog`.
 - AGENTS.md's broader rewrite (step 5.1); only the lines that name component locations change in the handbook sync.
 
+## Amendments During Build
+
+- **`WorkoutForm` ends at 286 lines, not ~200.** The header, title, duration, buttons, error and both modals are all form shell, and the file still has one responsibility, so it was not split further.
+- **Task 1's depcruise change is a path list**, `["^src/(lib|components)", "^src/app/.*/_components/"]`, on G3's `from.path`.
+- **`WorkoutExerciseRow` takes the whole `catalog`** (typed to `exerciseGroups` and `findExercise`) instead of two props.
+
 [[Plans Index]]
