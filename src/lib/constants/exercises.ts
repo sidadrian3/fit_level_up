@@ -1,4 +1,12 @@
-import { TargetMuscle } from "@/shared/contracts/exercise";
+import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
+
+export const EMPTY_EXERCISE: Exercise = {
+    name: "",
+    targetMuscle: TargetMuscle.Chest,
+    sets: 3,
+    reps: 10,
+    weight: null,
+};
 
 export interface PredefinedExercise {
     id: string;

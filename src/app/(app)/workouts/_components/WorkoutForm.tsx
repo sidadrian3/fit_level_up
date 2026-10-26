@@ -3,8 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { useCustomExercises } from "@/lib/exercises/hooks/useCustomExercises";
-import { useCreateCustomExercise } from "@/lib/exercises/hooks/useCreateCustomExercise";
+import { useExerciseCatalog } from "@/lib/exercises/hooks/useExerciseCatalog";
 import { useLogWorkout } from "@/lib/workouts/hooks/useLogWorkout";
 import { useUpdateWorkout } from "@/lib/workouts/hooks/useUpdateWorkout";
 import type { Workout } from "@/shared/contracts/workout";
@@ -12,21 +11,12 @@ import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2, X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
 import { CreateWorkoutSchema } from "@/shared/contracts/workout";
-import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
-import { mergeAndSortExercises } from "@/shared/exercise-list";
+import { EMPTY_EXERCISE } from "@/lib/constants/exercises";
 import { CreateExerciseModal } from "@/components/shared/exercises/CreateExerciseModal";
 import { TemplateSelectorModal } from "./TemplateSelectorModal";
 import { BookmarkPlus } from "lucide-react";
 import { AnatomyModel } from "@/components/ui/AnatomyModel";
-import { MuscleIntensity, calcMuscleVolume } from "@/shared/muscle-volume";
-
-const emptyExercise: Exercise = {
-    name: "",
-    targetMuscle: TargetMuscle.Chest,
-    sets: 3,
-    reps: 10,
-    weight: null,
-};
+import { calcMuscleVolume } from "@/shared/muscle-volume";
 
 /**
  * Workout form — creates new or edits existing workout.
@@ -47,27 +37,9 @@ export function WorkoutForm({
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
 
-    const { data: customExercises = [] } = useCustomExercises();
-    const createExerciseMutation = useCreateCustomExercise();
+    const { exercises: allExercises, exerciseGroups: groupedExercises, createCustomExercise } = useExerciseCatalog();
     const logWorkoutMutation = useLogWorkout();
     const updateWorkoutMutation = useUpdateWorkout();
-
-    // Combine and group exercises
-    const allExercises = useMemo(() => {
-        return mergeAndSortExercises(PREDEFINED_EXERCISES, customExercises);
-    }, [customExercises]);
-
-    const groupedExercises = useMemo(() => {
-        const groups: Record<string, typeof allExercises> = {};
-        Object.values(TargetMuscle).forEach(m => groups[m] = []);
-        groups["Other"] = [];
-        
-        allExercises.forEach(ex => {
-            const groupKey = groups[ex.targetMuscle] ? ex.targetMuscle : "Other";
-            groups[groupKey].push(ex);
-        });
-        return groups;
-    }, [allExercises]);
 
     const {
         fields,
@@ -82,7 +54,7 @@ export function WorkoutForm({
         defaults: {
             title: "",
             duration: 45,
-            exercises: [{ ...emptyExercise }],
+            exercises: [{ ...EMPTY_EXERCISE }],
         },
         initialEntity: initialWorkout,
         entityToInput: (workout) => ({
@@ -124,7 +96,7 @@ export function WorkoutForm({
     }, [fields.exercises]);
 
     const addExercise = () => {
-        setFields((prev) => ({ ...prev, exercises: [...prev.exercises, { ...emptyExercise }] }));
+        setFields((prev) => ({ ...prev, exercises: [...prev.exercises, { ...EMPTY_EXERCISE }] }));
     };
 
     const removeExercise = (index: number) => {
@@ -440,13 +412,13 @@ export function WorkoutForm({
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
                 onSubmit={async (data) => {
-                    const newExercise = await createExerciseMutation.mutateAsync(data);
+                    const newExercise = await createCustomExercise(data);
                     
                     setFields(prev => ({
                         ...prev,
                         exercises: [
                             ...(prev.exercises.length === 1 && prev.exercises[0].name === "" ? [] : prev.exercises),
-                            { ...emptyExercise, name: newExercise.name }
+                            { ...EMPTY_EXERCISE, name: newExercise.name }
                         ]
                     }));
                 }} 
