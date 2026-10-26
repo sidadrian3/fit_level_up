@@ -1,4 +1,4 @@
-import type { CreateRunInput, Run } from "@/shared/contracts/run";
+import type { CreateRunInput, Run, RunStats } from "@/shared/contracts/run";
 import { recountQuestProgress, updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import {
@@ -161,8 +161,6 @@ export async function deleteRun(userId: string, runId: string): Promise<boolean>
 export function listRuns(userId: string, page: number, limit: number): Promise<{ data: Run[]; totalCount: number }> {
     return listRunsPage(userId, page, limit);
 }
-
-export type RunStats = { totalKm: number; totalRuns: number; avgPace: number };
 
 export async function getRunStats(userId: string): Promise<RunStats> {
     const totals = await aggregateRunStats(userId);
