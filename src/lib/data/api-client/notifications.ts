@@ -1,4 +1,4 @@
-import { apiFetch } from "./api-fetch";
+import { apiFetch } from "@/lib/shared/api-fetch";
 import type {
   MarkNotificationsReadInput,
   Notification,

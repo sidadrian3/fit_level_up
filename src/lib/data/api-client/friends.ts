@@ -1,4 +1,4 @@
-import { apiFetch } from "./api-fetch";
+import { apiFetch } from "@/lib/shared/api-fetch";
 import type { Friendship, FriendProfile } from "@/lib/types";
 import type { PersonalRecord } from "@/shared/contracts/personal-record";
 

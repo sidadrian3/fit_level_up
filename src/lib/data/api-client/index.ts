@@ -4,7 +4,7 @@
  * keep working unchanged.
  */
 
-export { ApiError, isIdempotencyKeyReused } from "./api-fetch";
+export { ApiError, isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 export { getUser } from "./user";
 export { getWorkouts, createWorkout, deleteWorkout, updateWorkout } from "./workouts";
 export { getRuns, createRun, deleteRun, updateRun, getRunStats } from "./runs";
