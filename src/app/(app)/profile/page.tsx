@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { PageHeader } from "@/components/shared/layout/PageHeader";
-import { ProfileHeader } from "@/components/profile/ProfileHeader";
-import { AchievementGrid } from "@/components/profile/AchievementGrid";
-import { PersonalRecords } from "@/components/profile/PersonalRecords";
+import { ProfileHeader } from "./_components/ProfileHeader";
+import { AchievementGrid } from "./_components/AchievementGrid";
+import { PersonalRecords } from "./_components/PersonalRecords";
 
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getUser } from "@/lib/services/users/get-user";
