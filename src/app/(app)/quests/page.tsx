@@ -1,33 +1,15 @@
 "use client";
-import { getQuests, claimQuest } from "@/lib/data/api-client";
-import { progressionKeys } from "@/lib/progression/keys";
+import { useQuests } from "@/lib/quests/hooks/useQuests";
+import { useClaimQuest } from "@/lib/quests/hooks/useClaimQuest";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { QuestSection } from "@/components/quests/QuestSection";
 import { Calendar, Sun, Target } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 
 export default function QuestsPage() {
 
-    const queryClient = useQueryClient();
-
-    const { data: quests = [], isLoading, isError } =
-        useQuery({
-            queryKey: ["quests"],
-            queryFn: getQuests,
-
-        });
-
-    const claimMutation = useMutation({
-        mutationFn: claimQuest,
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["quests"] }),
-                queryClient.invalidateQueries({ queryKey: progressionKeys.all })
-            ]);
-        },
-    });
-
+    const { data: quests = [] } = useQuests();
+    const claimMutation = useClaimQuest();
 
     // Group quests
     const dailyQuests = quests.filter(q => q.category === "daily");

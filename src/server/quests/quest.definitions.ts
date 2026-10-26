@@ -1,4 +1,5 @@
-import type { QuestCategory, QuestMetric } from "@/lib/types";
+import type { QuestCategory } from "@/shared/contracts/quest";
+import type { QuestMetric } from "./quest.rules";
 
 type QuestDefinition = {
   title: string;

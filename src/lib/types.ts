@@ -60,40 +60,6 @@ export type CreateRunInput = {
 }
 
 
-export interface Quest {
-    id: string;
-    title: string;
-    description: string;
-    category: "daily" | "weekly" | "special";
-    xpReward: number;
-    progress: number;
-    target: number;
-    completed: boolean;
-    claimed: boolean;
-    icon: string;
-}
-
-export type QuestCategory = "daily" | "weekly" | "special";
-
-export type QuestMetric =
-    | "workout_count"
-    | "run_count"
-    | "run_distance";
-
-
-export type QuestActivity =
-    | {
-        type: "workout_created";
-        xpEarned: number;
-    }
-    | {
-        type: "run_created";
-        distance: number;
-        xpEarned: number;
-    };
-
-
-
 export interface Achievement {
     id: string;
     title: string;

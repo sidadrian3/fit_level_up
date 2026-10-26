@@ -7,7 +7,6 @@
 export { ApiError, isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 export { getWorkouts, createWorkout, deleteWorkout, updateWorkout } from "./workouts";
 export { getRuns, createRun, deleteRun, updateRun, getRunStats } from "./runs";
-export { getQuests, claimQuest } from "./quests";
 export { getAchievements } from "./achievements";
 export { getDashboardStats, getPersonalRecords } from "./stats";
 export { createCustomExercise, fetchCustomExercises } from "./exercises";

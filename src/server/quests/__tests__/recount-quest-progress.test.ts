@@ -3,7 +3,7 @@ import { recountQuestProgress, type QuestMeasure } from "../quest.service";
 import { getCollection, type PlayerProfileDoc, type UserQuestDoc } from "@/server/platform/database";
 import { deletePlayer, seedPlayer } from "@/testing/players";
 import { inTransaction } from "@/testing/transactions";
-import type { QuestMetric } from "@/lib/types";
+import type { QuestMetric } from "../quest.rules";
 
 const occurredAt = new Date("2026-03-10T08:00:00Z");
 

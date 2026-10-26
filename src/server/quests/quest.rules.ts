@@ -1,6 +1,22 @@
 import { DomainError } from "@/server/platform/domain";
-import type { QuestCategory, QuestActivity, QuestMetric } from "@/lib/types";
+import type { QuestCategory } from "@/shared/contracts/quest";
 import { toLocalDay, addDays, startOfWeek, startOfLocalDay } from "@/shared/time/calendar";
+
+export type QuestMetric =
+  | "workout_count"
+  | "run_count"
+  | "run_distance";
+
+export type QuestActivity =
+  | {
+    type: "workout_created";
+    xpEarned: number;
+  }
+  | {
+    type: "run_created";
+    distance: number;
+    xpEarned: number;
+  };
 
 export type QuestCalendar = { now: Date; timeZone: string };
 

@@ -7,6 +7,7 @@ import { RunCard } from "@/components/runs/RunCard";
 import { RunForm } from "@/components/runs/RunForm";
 import { getRuns, deleteRun, updateRun, getRunStats } from "@/lib/data/api-client";
 import { progressionKeys } from "@/lib/progression/keys";
+import { questKeys } from "@/lib/quests/keys";
 import { formatPace } from "@/lib/utils";
 import { MapPin, Activity, Timer } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,7 +46,7 @@ export default function RunsPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["runs"] });
             queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
-            queryClient.invalidateQueries({ queryKey: ["quests"] });
+            queryClient.invalidateQueries({ queryKey: questKeys.all });
             queryClient.invalidateQueries({ queryKey: ["personal-records"] });
             queryClient.invalidateQueries({ queryKey: progressionKeys.all });
         },
@@ -55,7 +56,7 @@ export default function RunsPage() {
         setEditingId(null);
         queryClient.invalidateQueries({ queryKey: ["runs"] });
         queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
-        queryClient.invalidateQueries({ queryKey: ["quests"] });
+        queryClient.invalidateQueries({ queryKey: questKeys.all });
         queryClient.invalidateQueries({ queryKey: ["personal-records"] });
 
     };

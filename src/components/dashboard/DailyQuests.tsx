@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import type { Quest } from "@/lib/types";
+import type { Quest } from "@/shared/contracts/quest";
 import { CheckCircle2, Target } from "lucide-react";
 import { QuestIconMap } from "@/lib/constants/quest-icons";
 

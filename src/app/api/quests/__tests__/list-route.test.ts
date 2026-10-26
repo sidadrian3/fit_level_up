@@ -3,7 +3,7 @@ import { GET } from "../route";
 import { getCollection } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import type { Quest } from "@/lib/types";
+import type { Quest } from "@/shared/contracts/quest";
 
 vi.mock("@/lib/auth/auth-helpers", () => ({
   getAuthUserId: vi.fn(),
