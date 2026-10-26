@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { AnatomyModel } from "../ui/AnatomyModel";
+import { AnatomyModel } from "@/components/ui/AnatomyModel";
 import { calcMuscleVolume } from "@/shared/muscle-volume";
 
 import { Card } from "@/components/ui/Card";
