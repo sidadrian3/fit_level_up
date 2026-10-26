@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/shared/api-fetch";
-import type { Friendship, FriendProfile } from "@/lib/types";
+import type { Friendship, FriendProfile } from "@/shared/contracts/friendship";
 import type { PersonalRecord } from "@/shared/contracts/personal-record";
 
 export async function getFriends(): Promise<FriendProfile[]> {
@@ -33,8 +33,8 @@ export async function declineFriendRequest(id: string): Promise<Friendship> {
   });
 }
 
-export async function removeFriend(id: string): Promise<{ success: true }> {
-  return apiFetch<{ success: true }>(`/api/friends/${id}`, {
+export async function removeFriend(id: string): Promise<{ success: boolean }> {
+  return apiFetch<{ success: boolean }>(`/api/friends/${id}`, {
     method: "DELETE",
   });
 }

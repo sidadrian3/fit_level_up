@@ -1,6 +1,6 @@
 import type { ClientSession } from "mongodb";
 import { getCollection, MAX_FIND_LIMIT, type FriendshipDoc } from "@/server/platform/database";
-import type { Friendship } from "@/lib/types";
+import type { Friendship } from "@/shared/contracts/friendship";
 import { buildFriendshipPairKey, type FriendshipStatus } from "./friendship.rules";
 
 // friendships has no userId field, so each function takes the acting user and scopes by pairKey or participant.

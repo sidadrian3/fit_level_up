@@ -83,25 +83,3 @@ export interface PaginatedResponse<T> {
     totalPages: number;
     currentPage: number;
 }
-
-export type FriendshipStatus = "pending" | "accepted" | "declined";
-
-export interface Friendship {
-  id: string;
-  requesterId: string;
-  receiverId: string;
-  status: FriendshipStatus;
-  createdAt: DateString;
-}
-
-export interface FriendProfile {
-  userId: string;
-  name: string;
-  avatar: string;
-  level: number;
-  streak: number;
-  totalWorkouts: number;
-  totalDistance: number;
-  friendship: Friendship;
-}
-

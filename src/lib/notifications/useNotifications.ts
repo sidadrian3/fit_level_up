@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { friendKeys } from "@/lib/friends/keys";
 import { getNotifications, markNotificationsRead } from "@/lib/data/api-client";
 import type {
   MarkNotificationsReadInput,
@@ -88,7 +89,7 @@ export function useNotifications(): {
         if (batch.length > 0)
           setToastBatch((previous) => [...previous, ...batch]);
         if (arrived.some((item) => item.type.startsWith("friend."))) {
-          void queryClient.invalidateQueries({ queryKey: ["friends"] });
+          void queryClient.invalidateQueries({ queryKey: friendKeys.all });
         }
       }
 

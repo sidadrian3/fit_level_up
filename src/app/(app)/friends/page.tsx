@@ -1,68 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Inbox, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FriendCard } from "@/components/friends/FriendCard";
 import { FriendRequestCard } from "@/components/friends/FriendRequestCard";
 import { AddFriendSection } from "@/components/friends/AddFriendSection";
 import { FriendProfileModal } from "@/components/friends/FriendProfileModal";
-import type { FriendProfile } from "@/lib/types";
-import {
-  getFriends,
-  getFriendRequests,
-  sendFriendRequest,
-  acceptFriendRequest,
-  declineFriendRequest,
-  removeFriend,
-} from "@/lib/data/api-client";
+import type { FriendProfile } from "@/shared/contracts/friendship";
+import { useFriends } from "@/lib/friends/hooks/useFriends";
+import { useFriendRequests } from "@/lib/friends/hooks/useFriendRequests";
+import { useSendFriendRequest } from "@/lib/friends/hooks/useSendFriendRequest";
+import { useAcceptFriendRequest } from "@/lib/friends/hooks/useAcceptFriendRequest";
+import { useDeclineFriendRequest } from "@/lib/friends/hooks/useDeclineFriendRequest";
+import { useRemoveFriend } from "@/lib/friends/hooks/useRemoveFriend";
 type Tab = "friends" | "requests" | "add";
 
 export default function FriendsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("friends");
   const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
-  const queryClient = useQueryClient();
+  const { data: friends = [], isLoading: loadingFriends } = useFriends();
+  const { data: requests = [], isLoading: loadingRequests } = useFriendRequests();
 
-  // Queries
-  const { data: friends = [], isLoading: loadingFriends } = useQuery({
-    queryKey: ["friends"],
-    queryFn: getFriends,
-  });
-
-  const { data: requests = [], isLoading: loadingRequests } = useQuery({
-    queryKey: ["friends", "requests"],
-    queryFn: getFriendRequests,
-  });
-
-  // Mutations
-  const acceptMutation = useMutation({
-    mutationFn: acceptFriendRequest,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["friends"] });
-    },
-    onError: (err: Error) => console.error("Failed to accept request", err),
-  });
-
-  const declineMutation = useMutation({
-    mutationFn: declineFriendRequest,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["friends", "requests"] });
-    },
-    onError: (err: Error) => console.error("Failed to decline request", err),
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: removeFriend,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["friends"] });
-    },
-    onError: (err: Error) => console.error("Failed to remove friend", err),
-  });
-
-  const sendMutation = useMutation({
-    mutationFn: sendFriendRequest,
-  });
+  const acceptMutation = useAcceptFriendRequest();
+  const declineMutation = useDeclineFriendRequest();
+  const removeMutation = useRemoveFriend();
+  const sendMutation = useSendFriendRequest();
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">

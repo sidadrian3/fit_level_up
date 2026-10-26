@@ -1,4 +1,4 @@
-import type { FriendProfile, Friendship } from "@/lib/types";
+import type { FriendProfile, Friendship } from "@/shared/contracts/friendship";
 import { getAccounts } from "@/server/platform/auth";
 import { clientPromise, isDuplicateKeyError, type FriendshipDoc } from "@/server/platform/database";
 import { GAME_CONFIG } from "@/server/platform/config";
