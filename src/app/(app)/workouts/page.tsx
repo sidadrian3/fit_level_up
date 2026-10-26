@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/layout/PageHeader";
-import { WorkoutCard } from "@/components/workouts/WorkoutCard";
-import { WorkoutForm } from "@/components/workouts/WorkoutForm";
+import { WorkoutCard } from "./_components/WorkoutCard";
+import { WorkoutForm } from "./_components/WorkoutForm";
 import { useWorkouts } from "@/lib/workouts/hooks/useWorkouts";
 import { useDeleteWorkout } from "@/lib/workouts/hooks/useDeleteWorkout";
 import { Pagination } from "@/components/ui/Pagination";

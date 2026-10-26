@@ -17,7 +17,7 @@ import { mergeAndSortExercises } from "@/shared/exercise-list";
 import { CreateExerciseModal } from "@/components/shared/exercises/CreateExerciseModal";
 import { TemplateSelectorModal } from "./TemplateSelectorModal";
 import { BookmarkPlus } from "lucide-react";
-import { AnatomyModel } from "../ui/AnatomyModel";
+import { AnatomyModel } from "@/components/ui/AnatomyModel";
 import { MuscleIntensity, calcMuscleVolume } from "@/shared/muscle-volume";
 
 const emptyExercise: Exercise = {
