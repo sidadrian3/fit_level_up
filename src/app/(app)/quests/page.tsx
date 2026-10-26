@@ -1,5 +1,6 @@
 "use client";
 import { getQuests, claimQuest } from "@/lib/data/api-client";
+import { progressionKeys } from "@/lib/progression/keys";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { QuestSection } from "@/components/quests/QuestSection";
 import { Calendar, Sun, Target } from "lucide-react";
@@ -22,7 +23,7 @@ export default function QuestsPage() {
         onSuccess: async () => {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["quests"] }),
-                queryClient.invalidateQueries({ queryKey: ["user"] })
+                queryClient.invalidateQueries({ queryKey: progressionKeys.all })
             ]);
         },
     });

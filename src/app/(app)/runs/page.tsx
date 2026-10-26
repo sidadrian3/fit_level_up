@@ -6,6 +6,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { RunCard } from "@/components/runs/RunCard";
 import { RunForm } from "@/components/runs/RunForm";
 import { getRuns, deleteRun, updateRun, getRunStats } from "@/lib/data/api-client";
+import { progressionKeys } from "@/lib/progression/keys";
 import { formatPace } from "@/lib/utils";
 import { MapPin, Activity, Timer } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,7 +47,7 @@ export default function RunsPage() {
             queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
             queryClient.invalidateQueries({ queryKey: ["quests"] });
             queryClient.invalidateQueries({ queryKey: ["personal-records"] });
-            queryClient.invalidateQueries({ queryKey: ["user"] });
+            queryClient.invalidateQueries({ queryKey: progressionKeys.all });
         },
     });
 

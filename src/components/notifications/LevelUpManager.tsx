@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useRef } from "react";
 import { LevelUpToast } from "./LevelUpToast";
-import { useUser } from "@/lib/context/UserContext";
+import { useCurrentUser } from "@/lib/progression/hooks/useCurrentUser";
 
 export function LevelUpManager() {
-    const { user } = useUser();
+    const { user } = useCurrentUser();
     const [levelUpData, setLevelUpData] = useState<{ level: number } | null>(null);
     const prevLevelRef = useRef<number | null>(null);
 

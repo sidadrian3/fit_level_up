@@ -1,13 +1,13 @@
 "use client";
 
-import { useUser } from "@/lib/context/UserContext";
+import { useCurrentUser } from "@/lib/progression/hooks/useCurrentUser";
 import { SidebarBrand } from "./sidebar/SidebarBrand";
 import { SidebarUserProfile } from "./sidebar/SidebarUserProfile";
 import { SidebarNav } from "./sidebar/SidebarNav";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
 
 export function Sidebar() {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
 
   if (!user) {
     return (
