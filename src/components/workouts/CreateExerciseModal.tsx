@@ -2,13 +2,13 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { TargetMuscle } from "@/shared/contracts/exercise";
+import { TargetMuscle, type CreateCustomExerciseInput } from "@/shared/contracts/exercise";
 import { X } from "lucide-react";
 
 interface CreateExerciseModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: { name: string; targetMuscle: TargetMuscle }) => Promise<void>;
+    onSubmit: (data: CreateCustomExerciseInput) => Promise<void>;
 }
 
 export function CreateExerciseModal({ isOpen, onClose, onSubmit }: CreateExerciseModalProps) {

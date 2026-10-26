@@ -37,3 +37,5 @@ export const CreateCustomExerciseSchema = z.object({
   name: z.string().trim().min(1, "Exercise name is required").max(100),
   targetMuscle: z.enum(TargetMuscle),
 });
+
+export type CreateCustomExerciseInput = z.infer<typeof CreateCustomExerciseSchema>;

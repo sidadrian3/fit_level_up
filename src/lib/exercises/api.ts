@@ -1,11 +1,11 @@
 import { apiFetch } from "@/lib/shared/api-fetch";
-import type { CustomExercise, TargetMuscle } from "@/shared/contracts/exercise";
+import type { CreateCustomExerciseInput, CustomExercise } from "@/shared/contracts/exercise";
 
 export async function fetchCustomExercises(): Promise<CustomExercise[]> {
   return apiFetch<CustomExercise[]>("/api/exercises");
 }
 
-export async function createCustomExercise(data: { name: string; targetMuscle: TargetMuscle }): Promise<CustomExercise> {
+export async function createCustomExercise(data: CreateCustomExerciseInput): Promise<CustomExercise> {
   return apiFetch<CustomExercise>("/api/exercises", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
