@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { isIdempotencyKeyReused } from "@/lib/data/api-client";
+import { isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 import { useIdempotencyKey } from "./useIdempotencyKey";
 
 type UseEntityFormOptions<TInput, TEntity> = {
