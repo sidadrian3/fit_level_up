@@ -3,17 +3,16 @@
 import React, { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { createWorkoutTemplate } from "@/lib/data/api-client";
+import { useCreateWorkoutTemplate } from "@/lib/templates/hooks/useCreateWorkoutTemplate";
 import { useCustomExercises } from "@/lib/exercises/hooks/useCustomExercises";
 import { useCreateCustomExercise } from "@/lib/exercises/hooks/useCreateCustomExercise";
 import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/shared/exercise-list";
 import { CreateExerciseModal } from "./CreateExerciseModal";
 import { useRouter } from "next/navigation";
-import { isIdempotencyKeyReused } from "@/lib/data/api-client";
+import { isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 import { useIdempotencyKey } from "@/lib/hooks/useIdempotencyKey";
 
 const emptyExercise: Exercise = {
@@ -26,7 +25,6 @@ const emptyExercise: Exercise = {
 
 export function CreateTemplateForm() {
     const router = useRouter();
-    const queryClient = useQueryClient();
     const [name, setName] = useState("");
     const [exercises, setExercises] = useState<Exercise[]>([{ ...emptyExercise }]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,6 +34,7 @@ export function CreateTemplateForm() {
 
     const { data: customExercises = [] } = useCustomExercises();
     const createExerciseMutation = useCreateCustomExercise();
+    const createTemplateMutation = useCreateWorkoutTemplate();
 
     const allExercises = useMemo(() => {
         return mergeAndSortExercises(PREDEFINED_EXERCISES, customExercises);
@@ -82,13 +81,14 @@ export function CreateTemplateForm() {
 
         setIsSubmitting(true);
         try {
-            await createWorkoutTemplate({ name: name.trim(), exercises: namedExercises }, idempotencyKey);
-            queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
+            await createTemplateMutation.mutateAsync({
+                input: { name: name.trim(), exercises: namedExercises },
+                idempotencyKey,
+            });
             router.push("/workouts");
         } catch (err) {
             if (isIdempotencyKeyReused(err)) {
                 rotateIdempotencyKey();
-                queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
             }
             if (err instanceof Error) {
                 setError(err.message);
