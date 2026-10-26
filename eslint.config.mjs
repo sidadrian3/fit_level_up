@@ -33,6 +33,19 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+    ignores: ["src/components/providers/QueryProvider.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [{ name: "@tanstack/react-query", message: "Use a hook from @/lib/<domain>/hooks." }],
+          patterns: entryOnlyPatterns,
+        },
+      ],
+    },
+  },
+  {
     files: ["src/server/**/*.rules.ts"],
     rules: {
       "no-restricted-imports": [

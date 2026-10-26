@@ -24,7 +24,6 @@ src/
   app/            # pages ((app), (auth), (landing) route groups) and api/ route handlers
   components/     # React components by feature; components/ui/ holds the shared primitives
   lib/
-    data/         # MongoDB access, *-db.ts only; data/api-client/ is the browser-side fetch layer
     domain/       # pure business rules, *-rules.ts / *-evaluator.ts
     services/     # use-case orchestration, one folder per domain
     auth/  api/  sse/  hooks/  context/  utils/  validations/  constants/  config/
@@ -69,13 +68,13 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 - `src/server/platform/` is infrastructure, one file per concern or a folder when a concern has several distinct parts: `config`, `env`, `domain`, `auth/`, `database/`, `events/`, `http/`.
 - A service that touches more than one collection uses `client.startSession()` + `session.withTransaction(...)` and passes the `session` into every repository call (see `logWorkout`).
 - Services are plain exported functions, not classes. `src/server/progression` owns every game-state transition (XP, level, streak, stamina, totals) through `recordActivity` and `grantXp`, so those rules cannot be applied twice or differently; no other code reads or writes `player_profiles`.
-- Older code under `src/lib/services`, `src/lib/domain` and `src/lib/data` has not moved into `src/server` yet.
+- Older code under `src/lib/services` and `src/lib/domain` has not moved into `src/server` yet.
 
 ### Front-end structure (Next.js App Router)
 
 - Pages are thin — they compose components, call hooks, and handle loading/error boundaries (`loading.tsx`, `error.tsx` sit next to the page).
 - Feature components live in `src/components/<feature>/`. Layout chrome lives in `components/layout/`.
-- Browser-side data access goes through `src/lib/data/api-client/*` wrapped in TanStack Query hooks. Components never call `fetch()` directly.
+- Browser-side data access lives in `src/lib/<domain>/`: endpoint wrappers in `api.ts`, query keys in `keys.ts`, TanStack Query hooks in `hooks/`. Components import those hooks only and never call `fetch()` directly.
 - Shared cross-feature code lives under `src/lib/utils/`, `src/lib/hooks/`, `src/lib/constants/`.
 
 ---
@@ -122,7 +121,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 ### Shared Type Definitions
 
 - A type used by one file stays in that file.
-- A type shared across files lives in `src/lib/types.ts`. Zod input schemas live in `src/shared/contracts/` with their inferred types.
+- A type shared across files lives in `src/shared/contracts/<domain>.ts`, next to the Zod schemas it is inferred from.
 - Domain-owned database documents (`UserMongoDoc`, etc.) stay next to their `-db.ts` file.
 
 ### No Deprecated APIs
@@ -168,8 +167,9 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 
 ### React Query & API Types
 
-- **Shared Fetch Helper.** Never write raw `fetch()` in a hook or component. Browser calls go through `apiFetch` (`src/lib/data/api-client/api-fetch.ts`), which owns the error shape and the retry of idempotent requests on network failure. Add an endpoint wrapper in `src/lib/data/api-client/<domain>.ts`.
-- **Cross-feature cache invalidation.** A mutation that changes state shown elsewhere (logging a workout moves XP, quests, achievements, the dashboard and the profile) must invalidate every affected query key, not only its own.
+- **Shared Fetch Helper.** Never write raw `fetch()` in a hook or component. Browser calls go through `apiFetch` (`src/lib/shared/api-fetch.ts`), which owns the error shape and the retry of idempotent requests on network failure. Add an endpoint wrapper in `src/lib/<domain>/api.ts`.
+- **Cross-feature cache invalidation.** A mutation that changes state shown elsewhere (logging a workout moves XP, quests, achievements, the dashboard and the profile) must invalidate every affected query key, not only its own. The mutation hook owns the invalidation, using the `keys.ts` tables of the domains it touches (and `invalidateActivityChange` for workout and run changes).
+- **Hooks only in the UI.** Pages and components never import `@tanstack/react-query` (ESLint enforces it); they use a hook from `src/lib/<domain>/hooks`. Query keys come from the domain's `keys.ts` table, never string literals.
 - **Stable idempotency keys.** Generate a form's `idempotencyKey` once when the form mounts (`useState`), so a retried submit is recognised as the same request.
 - **Explicit generics** on mutations and `apiFetch<T>` calls — never let the response type fall back to `unknown`.
 
