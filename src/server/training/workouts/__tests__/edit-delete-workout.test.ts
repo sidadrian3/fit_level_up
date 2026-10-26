@@ -9,7 +9,7 @@ import {
 } from "@/server/platform/database";
 import { deletePlayer, seedPlayer } from "@/testing/players";
 import { levelFromTotalXp } from "@/server/progression";
-import { TargetMuscle } from "@/lib/types";
+import { TargetMuscle } from "@/shared/contracts/exercise";
 
 const lift = { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 3, reps: 10, weight: 60 };
 const input = (duration: number) => ({ title: "Push Day", duration, exercises: [lift] });

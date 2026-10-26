@@ -5,7 +5,8 @@ import { Dumbbell, Edit, Trash2, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { formatDuration } from "@/lib/utils";
 import { useActivityDateFormatter } from "@/lib/hooks/useActivityDateFormatter";
-import type { Workout, Exercise } from "@/lib/types";
+import type { Workout } from "@/lib/types";
+import type { Exercise } from "@/shared/contracts/exercise";
 
 export interface WorkoutCardProps {
   workout: Workout;

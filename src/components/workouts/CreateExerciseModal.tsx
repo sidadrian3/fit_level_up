@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { TargetMuscle } from "@/lib/types";
+import { TargetMuscle } from "@/shared/contracts/exercise";
 import { X } from "lucide-react";
 
 interface CreateExerciseModalProps {

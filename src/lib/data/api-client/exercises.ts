@@ -1,4 +1,4 @@
-import { CustomExercise, TargetMuscle } from "@/lib/types";
+import { CustomExercise, TargetMuscle } from "@/shared/contracts/exercise";
 
 export async function createCustomExercise(data: { name: string, targetMuscle: TargetMuscle }): Promise<CustomExercise> {
     const res = await fetch("/api/exercises", {

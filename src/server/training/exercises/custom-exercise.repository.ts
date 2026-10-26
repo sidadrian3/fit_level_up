@@ -1,4 +1,4 @@
-import type { CustomExercise } from "@/lib/types";
+import type { CustomExercise } from "@/shared/contracts/exercise";
 import {
     MAX_FIND_LIMIT,
     userScopedRepository,

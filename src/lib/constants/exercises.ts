@@ -1,4 +1,4 @@
-import { TargetMuscle } from "@/lib/types";
+import { TargetMuscle } from "@/shared/contracts/exercise";
 
 export interface PredefinedExercise {
     id: string;

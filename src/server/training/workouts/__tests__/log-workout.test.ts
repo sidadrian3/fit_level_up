@@ -5,7 +5,7 @@ import { getCollection, type PlayerProfileDoc, type UserDoc } from "@/server/pla
 import { getPlayerState } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { ObjectId } from 'mongodb';
-import { TargetMuscle } from '@/lib/types';
+import { TargetMuscle } from '@/shared/contracts/exercise';
 import crypto from 'crypto';
 
 describe('logWorkout Integration Test', () => {

@@ -6,7 +6,7 @@ import {
     findTemplateByIdempotencyKey,
     deleteTemplateById
 } from '../template.repository';
-import { TargetMuscle } from '@/lib/types';
+import { TargetMuscle } from '@/shared/contracts/exercise';
 import crypto from 'crypto';
 
 describe("template repository Test", () => {

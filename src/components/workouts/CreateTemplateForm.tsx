@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { createWorkoutTemplate, fetchCustomExercises, createCustomExercise } from "@/lib/data/api-client";
-import { Exercise, TargetMuscle, CustomExercise } from "@/lib/types";
+import { TargetMuscle, type CustomExercise, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";

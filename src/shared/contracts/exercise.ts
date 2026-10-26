@@ -18,6 +18,13 @@ export interface Exercise {
     weight: number | null; // null for bodyweight exercises
 }
 
+export interface CustomExercise {
+    id: string;
+    userId: string;
+    name: string;
+    targetMuscle: TargetMuscle;
+}
+
 export const ExerciseSchema = z.object({
   name: z.string(),
   targetMuscle: z.nativeEnum(TargetMuscle),

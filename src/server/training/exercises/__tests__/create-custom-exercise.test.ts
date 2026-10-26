@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { createCustomExercise } from "../exercise.service";
 import { getCollection } from "@/server/platform/database";
 import { ConflictError } from '@/server/platform/http';
-import { TargetMuscle } from '@/lib/types';
+import { TargetMuscle } from '@/shared/contracts/exercise';
 
 describe('createCustomExercise Integration Test', () => {
     const userId = "test-user-id-123";

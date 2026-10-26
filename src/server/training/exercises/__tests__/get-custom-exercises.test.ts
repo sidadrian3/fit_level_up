@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getCustomExercises } from "../exercise.service";
 import { getCollection, type CustomExerciseDoc } from "@/server/platform/database";
-import { TargetMuscle } from '@/lib/types';
+import { TargetMuscle } from '@/shared/contracts/exercise';
 
 describe('getCustomExercises Integration Test', () => {
     const userId1 = "user-1";

@@ -5,7 +5,7 @@ import { logWorkout } from "@/server/training";
 import { getQuests } from "../quest.service";
 import { getCollection, type UserDoc } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
-import { TargetMuscle } from "@/lib/types";
+import { TargetMuscle } from "@/shared/contracts/exercise";
 
 const request = () => ({ key: crypto.randomUUID(), fingerprint: "f1" });
 

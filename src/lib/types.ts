@@ -1,18 +1,8 @@
 import type { AchievementRarity } from "@/shared/achievement-definitions";
-import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
-
-export { TargetMuscle };
-export type { Exercise };
+import type { Exercise } from "@/shared/contracts/exercise";
 
 /** Type alias for ISO date strings (activity `date`s are full instants) — makes refactoring to Date objects easier later */
 export type DateString = string;
-
-export interface CustomExercise {
-    id: string;
-    userId: string;
-    name: string;
-    targetMuscle: TargetMuscle;
-}
 
 export interface Workout {
     id: string;
