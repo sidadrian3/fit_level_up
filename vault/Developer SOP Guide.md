@@ -39,7 +39,7 @@ Validated at startup by `src/server/platform/env/env.ts` (server variables) and 
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:run` | All Vitest tests once, against an in-memory MongoDB replica set |
 | `npm test` | Vitest in watch mode |
-| `npm run test:e2e` | Playwright end-to-end tests |
+| `npm run test:e2e` | Playwright end-to-end tests against `http://localhost:3000`. Set `PLAYWRIGHT_PORT` (for example `PLAYWRIGHT_PORT=3100`) to run on another port, which also points the auth client at it. The tests sign up throwaway accounts in the database `.env.local` names, and there is no route to delete them |
 | `npm run outbox -- --dead` / `-- --requeue <id>` | List dead outbox rows with their last error, or reset one to pending (needs `.env.local`) |
 | `npm run build` | Run `migrate-db.ts`, then `next build` |
 | `node scripts/check-vault.mjs` | Verify vault wikilinks and the no-marker rule |
@@ -71,7 +71,7 @@ The pre-commit hook lints staged files, then runs the dependency-cruiser rules o
 
 ## 8. Changing the data model
 
-1. Update the document type, the validator and the indexes of the collection in `src/server/platform/database/schema.ts`, and the shared type in `src/lib/types.ts` if the browser sees it. A validator rejects writes that do not match it, so change it together with the code that writes the field.
+1. Update the document type, the validator and the indexes of the collection in `src/server/platform/database/schema.ts`, and the shared type in `src/shared/contracts/<domain>.ts` if the browser sees it. A validator rejects writes that do not match it, so change it together with the code that writes the field.
 2. Add an index to the collection's `SCHEMA` entry for any new query shape.
 3. Existing documents will not have the new field: read it with a default (see `getAccount` in `platform/auth`), or backfill it with a numbered migration in `src/scripts/migrations/` (add it to `MIGRATIONS` in `index.ts`). `src/scripts/migrate-db.ts` runs the pending migrations and then `applySchema()` on every production build; preview builds skip both. Write migrations to be idempotent, and run a de-duplication migration before the unique index it needs.
 4. Update [[Data Model And API Reference]] §2–§3.

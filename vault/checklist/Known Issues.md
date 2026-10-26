@@ -18,7 +18,7 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 ## 2. Notification fast-poll window is a timing heuristic
 
-**Where:** `useNotifications` in `src/lib/notifications/useNotifications.ts` polls every 2 s for up to 10 s after the user's own successful mutation, then returns to 30 s.
+**Where:** `useNotifications` in `src/lib/notifications/hooks/useNotifications.ts` polls every 2 s for up to 10 s after the user's own successful mutation, then returns to 30 s.
 
 **Effect:** the achievement and notification listeners run in `after()`, so an immediate refetch can miss the entry. The window bets that a listener finishes within 10 s. A slower listener falls back to the 30 s poll, so the entry still arrives, only later.
 
@@ -26,7 +26,7 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 - The mutation response carries the emitted event ids and the client polls a status endpoint until they are processed. Exact, but new machinery on every mutation route.
 - Push delivery (Pusher, Ably), which removes polling entirely.
 
-**Found in:** `src/lib/notifications/useNotifications.ts`. See [[Achievements Social And Notifications Design Spec]].
+**Found in:** `src/lib/notifications/hooks/useNotifications.ts`. See [[Achievements Social And Notifications Design Spec]].
 
 ---
 
