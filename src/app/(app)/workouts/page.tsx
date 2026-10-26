@@ -11,10 +11,8 @@ export default function WorkoutsPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [page, setPage] = useState(1);
 
-    // 1. Pagination Query
     const { data, isLoading, isError } = useWorkouts(page, 4);
 
-    // Get workouts from paginated response
     const workouts = data?.data || [];
     const editingWorkout = workouts.find((w) => w.id === editingId);
 
