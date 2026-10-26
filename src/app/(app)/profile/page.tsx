@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { AchievementGrid } from "@/components/profile/AchievementGrid";
 import { PersonalRecords } from "@/components/profile/PersonalRecords";

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
 import { useWorkouts } from "@/lib/workouts/hooks/useWorkouts";

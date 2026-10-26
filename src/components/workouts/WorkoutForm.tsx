@@ -14,7 +14,7 @@ import { useEntityForm } from "@/lib/hooks/useEntityForm";
 import { CreateWorkoutSchema } from "@/shared/contracts/workout";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/shared/exercise-list";
-import { CreateExerciseModal } from "./CreateExerciseModal";
+import { CreateExerciseModal } from "@/components/shared/exercises/CreateExerciseModal";
 import { TemplateSelectorModal } from "./TemplateSelectorModal";
 import { BookmarkPlus } from "lucide-react";
 import { AnatomyModel } from "../ui/AnatomyModel";

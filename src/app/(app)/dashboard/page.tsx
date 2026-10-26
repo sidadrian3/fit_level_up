@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
 import { XPCard } from "@/components/dashboard/XPCard";
 import { ActivityTracker } from "@/components/dashboard/ActivityTracker";
 import { DailyQuests } from "@/components/dashboard/DailyQuests";

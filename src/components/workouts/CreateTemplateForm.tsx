@@ -10,7 +10,7 @@ import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2 } from "lucide-react";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/shared/exercise-list";
-import { CreateExerciseModal } from "./CreateExerciseModal";
+import { CreateExerciseModal } from "@/components/shared/exercises/CreateExerciseModal";
 import { useRouter } from "next/navigation";
 import { isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 import { useIdempotencyKey } from "@/lib/hooks/useIdempotencyKey";

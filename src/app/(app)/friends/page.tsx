@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Users, Inbox, Loader2 } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
 import { FriendCard } from "@/components/friends/FriendCard";
 import { FriendRequestCard } from "@/components/friends/FriendRequestCard";
 import { AddFriendSection } from "@/components/friends/AddFriendSection";
