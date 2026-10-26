@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Copy, UserPlus, CheckCircle2, Loader2 } from "lucide-react";
-import { useUser } from "@/lib/context/UserContext";
+import { useCurrentUser } from "@/lib/progression/hooks/useCurrentUser";
 import { Friendship } from "@/lib/types";
 
 interface AddFriendSectionProps {
@@ -11,7 +11,7 @@ interface AddFriendSectionProps {
 }
 
 export function AddFriendSection({ onSendRequest, isSending }: AddFriendSectionProps) {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
   const [friendId, setFriendId] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");

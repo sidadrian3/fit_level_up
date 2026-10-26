@@ -1,6 +1,6 @@
 import { NotificationMenu } from "@/components/notifications/NotificationMenu";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import type { User } from "@/lib/types";
+import type { User } from "@/shared/contracts/user";
 
 export function SidebarUserProfile({ user }: { user: User }) {
   const xpPercent = Math.round((user.xp / user.xpToNextLevel) * 100);

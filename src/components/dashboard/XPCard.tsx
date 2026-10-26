@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { calcXPPercent } from "@/lib/utils";
-import type { User } from "@/lib/types";
+import type { User } from "@/shared/contracts/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export interface XPCardProps {

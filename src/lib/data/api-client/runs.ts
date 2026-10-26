@@ -1,5 +1,5 @@
 import type { Run, CreateRunInput, PaginatedResponse } from "@/lib/types";
-import { apiFetch } from "./api-fetch";
+import { apiFetch } from "@/lib/shared/api-fetch";
 
 export async function getRuns(page = 1, limit = 4): Promise<PaginatedResponse<Run>> {
   return apiFetch<PaginatedResponse<Run>>(`/api/runs?page=${page}&limit=${limit}`);

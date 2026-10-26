@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { isIdempotencyKeyReused } from "@/lib/data/api-client";
+import { progressionKeys } from "@/lib/progression/keys";
 import { useIdempotencyKey } from "./useIdempotencyKey";
 
 type UseEntityFormOptions<TInput, TEntity> = {
@@ -73,14 +74,13 @@ export function useEntityForm<TInput, TEntity>({
         resetForm();
       }
       
-      // Invalidate the user cache to trigger a global refresh of XP/Stamina
-      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      await queryClient.invalidateQueries({ queryKey: progressionKeys.all });
       
       onSuccess?.();
     } catch (err) {
       if (!isEditMode && isIdempotencyKeyReused(err)) {
         rotateIdempotencyKey();
-        await queryClient.invalidateQueries({ queryKey: ["user"] });
+        await queryClient.invalidateQueries({ queryKey: progressionKeys.all });
         onAlreadySaved?.();
       }
       setError(

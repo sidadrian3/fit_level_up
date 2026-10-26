@@ -4,26 +4,8 @@ import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 export { TargetMuscle };
 export type { Exercise };
 
-/** Type alias for ISO date strings (activity `date`s are full instants; `joinDate` is date-only) — makes refactoring to Date objects easier later */
+/** Type alias for ISO date strings (activity `date`s are full instants) — makes refactoring to Date objects easier later */
 export type DateString = string;
-
-export interface User {
-    id: string;
-    email: string;
-    name: string;
-    avatar: string;
-    level: number;
-    xp: number;
-    xpToNextLevel: number;
-    streak: number;
-    totalWorkouts: number;
-    totalDistance: number; //km
-    joinDate: DateString;
-    lastActivityDate?: DateString;
-    stamina: number;
-    lastStaminaUpdate: DateString;
-    timeZone: string;
-}
 
 export interface CustomExercise {
     id: string;

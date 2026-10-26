@@ -1,6 +1,7 @@
 import { weekInstants } from "@/shared/time/calendar";
 import { calcLifetimeXp } from "@/server/progression";
-import type { DashboardStats, User } from "@/lib/types";
+import type { DashboardStats } from "@/lib/types";
+import type { User } from "@/shared/contracts/user";
 import { countWorkoutsInRange, findLiftMaxes } from "../workouts/workout.repository";
 import { findFastestRunInWindow, findLongestRun, sumDistanceInRange } from "../runs/run.repository";
 import type { PersonalRecord } from "@/shared/contracts/personal-record";

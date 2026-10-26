@@ -2,7 +2,7 @@ import type { ClientSession } from "mongodb";
 import { getAccount } from "@/server/platform/auth";
 import { NotFoundError } from "@/server/platform/http";
 import { getPlayerState } from "@/server/progression";
-import type { User } from "@/lib/types";
+import type { User } from "@/shared/contracts/user";
 
 export async function getUser(
   userId: string,

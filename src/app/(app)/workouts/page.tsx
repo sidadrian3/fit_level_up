@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
 import { getWorkouts, deleteWorkout } from "@/lib/data/api-client";
+import { progressionKeys } from "@/lib/progression/keys";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pagination } from "@/components/ui/Pagination";
 
@@ -32,7 +33,7 @@ export default function WorkoutsPage() {
             queryClient.invalidateQueries({ queryKey: ["workouts"] });
             queryClient.invalidateQueries({ queryKey: ["quests"] });
             queryClient.invalidateQueries({ queryKey: ["personal-records"] });
-            queryClient.invalidateQueries({ queryKey: ["user"] });
+            queryClient.invalidateQueries({ queryKey: progressionKeys.all });
         },
     });
 

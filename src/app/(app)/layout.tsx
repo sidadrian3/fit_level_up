@@ -4,7 +4,7 @@ import { LevelUpManager } from "@/components/notifications/LevelUpManager";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import { TimeZoneSync } from "@/components/auth/TimeZoneSync";
-import { UserProvider } from "@/lib/context/UserContext";
+import { SessionGuard } from "@/components/auth/SessionGuard";
 
 export default function AppLayout({
   children,
@@ -12,7 +12,8 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <UserProvider>
+    <>
+      <SessionGuard />
       <NotificationProvider>
         <div className="flex min-h-screen w-full">
           {/* Sidebar — fixed left navigation on desktop */}
@@ -31,6 +32,6 @@ export default function AppLayout({
           <TimeZoneSync />
         </div>
       </NotificationProvider>
-    </UserProvider>
+    </>
   );
 }
