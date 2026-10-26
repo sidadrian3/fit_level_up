@@ -3,10 +3,12 @@
 import React, { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { createWorkoutTemplate, fetchCustomExercises, createCustomExercise } from "@/lib/data/api-client";
-import { Exercise, TargetMuscle, CustomExercise } from "@/lib/types";
+import { createWorkoutTemplate } from "@/lib/data/api-client";
+import { useCustomExercises } from "@/lib/exercises/hooks/useCustomExercises";
+import { useCreateCustomExercise } from "@/lib/exercises/hooks/useCreateCustomExercise";
+import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/shared/exercise-list";
 import { CreateExerciseModal } from "./CreateExerciseModal";
@@ -32,17 +34,8 @@ export function CreateTemplateForm() {
     const [error, setError] = useState("");
     const { key: idempotencyKey, rotate: rotateIdempotencyKey } = useIdempotencyKey();
 
-    const { data: customExercises = [] } = useQuery<CustomExercise[]>({
-        queryKey: ["customExercises"],
-        queryFn: fetchCustomExercises
-    });
-
-    const createExerciseMutation = useMutation({
-        mutationFn: createCustomExercise,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["customExercises"] });
-        }
-    });
+    const { data: customExercises = [] } = useCustomExercises();
+    const createExerciseMutation = useCreateCustomExercise();
 
     const allExercises = useMemo(() => {
         return mergeAndSortExercises(PREDEFINED_EXERCISES, customExercises);

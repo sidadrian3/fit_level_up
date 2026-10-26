@@ -1,4 +1,4 @@
-import type { CustomExercise, TargetMuscle } from "@/lib/types";
+import type { CustomExercise, TargetMuscle } from "@/shared/contracts/exercise";
 import { isDuplicateKeyError } from "@/server/platform/database";
 import { ConflictError } from "@/server/platform/http";
 import { insertCustomExercise, listCustomExercisesForUser } from "./custom-exercise.repository";

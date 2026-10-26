@@ -18,6 +18,13 @@ export interface Exercise {
     weight: number | null; // null for bodyweight exercises
 }
 
+export interface CustomExercise {
+    id: string;
+    userId: string;
+    name: string;
+    targetMuscle: TargetMuscle;
+}
+
 export const ExerciseSchema = z.object({
   name: z.string(),
   targetMuscle: z.nativeEnum(TargetMuscle),
@@ -30,3 +37,5 @@ export const CreateCustomExerciseSchema = z.object({
   name: z.string().trim().min(1, "Exercise name is required").max(100),
   targetMuscle: z.enum(TargetMuscle),
 });
+
+export type CreateCustomExerciseInput = z.infer<typeof CreateCustomExerciseSchema>;

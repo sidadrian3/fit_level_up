@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { listCustomExercisesForUser, insertCustomExercise } from '../custom-exercise.repository';
 import { getCollection } from "@/server/platform/database";
-import { TargetMuscle } from '@/lib/types';
+import { TargetMuscle } from '@/shared/contracts/exercise';
 
 describe('custom-exercise repository Test', () => {
     const userId = "db-user-id";

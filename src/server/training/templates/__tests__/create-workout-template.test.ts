@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { createWorkoutTemplate } from "../template.service";
 import { IdempotencyKeyReusedError } from "@/server/platform/http";
 import { getCollection } from "@/server/platform/database";
-import { TargetMuscle } from "@/lib/types";
+import { TargetMuscle } from "@/shared/contracts/exercise";
 
 const userId = "template-service-user";
 

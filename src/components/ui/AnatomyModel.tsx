@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { TargetMuscle } from "@/lib/types";
+import { TargetMuscle } from "@/shared/contracts/exercise";
 import { MuscleIntensity } from "@/shared/muscle-volume";
 
 interface Props {
