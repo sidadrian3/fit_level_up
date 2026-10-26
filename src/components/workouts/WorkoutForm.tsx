@@ -3,13 +3,14 @@
 import React, { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { createWorkout, updateWorkout, fetchCustomExercises, createCustomExercise } from "@/lib/data/api-client";
+import { createWorkout, updateWorkout } from "@/lib/data/api-client";
+import { useCustomExercises } from "@/lib/exercises/hooks/useCustomExercises";
+import { useCreateCustomExercise } from "@/lib/exercises/hooks/useCreateCustomExercise";
 import type { Workout } from "@/lib/types";
-import { TargetMuscle, type CustomExercise, type Exercise } from "@/shared/contracts/exercise";
+import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2, X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
 import { CreateWorkoutSchema } from "@/shared/contracts/workout";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
 import { mergeAndSortExercises } from "@/shared/exercise-list";
 import { CreateExerciseModal } from "./CreateExerciseModal";
@@ -44,20 +45,9 @@ export function WorkoutForm({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [activeMuscle, setActiveMuscle] = useState<TargetMuscle | null>(null);
-    const queryClient = useQueryClient();
 
-    // Fetch custom exercises
-    const { data: customExercises = [] } = useQuery<CustomExercise[]>({
-        queryKey: ["customExercises"],
-        queryFn: fetchCustomExercises
-    });
-
-    const createExerciseMutation = useMutation({
-        mutationFn: createCustomExercise,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["customExercises"] });
-        }
-    });
+    const { data: customExercises = [] } = useCustomExercises();
+    const createExerciseMutation = useCreateCustomExercise();
 
     // Combine and group exercises
     const allExercises = useMemo(() => {
