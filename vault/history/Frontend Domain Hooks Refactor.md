@@ -39,6 +39,6 @@ Handbook: Domain Architecture (new front-end section), Architecture Review, Data
 - `playwright-report/` and `test-results/` are tracked in git, so every e2e run dirties them. I restored them each time.
 - Left for step 5.1: other stale directory names in the `AGENTS.md` repo tree, the old `src/lib/data` layer rows in Architecture Review and Project Briefing, and the SSE passages in Architecture Review.
 - Existing lint warnings (13 unused variables and similar) were left alone.
-- PR #33's description still carries a "Generated with Claude Code" footer; it predates the rule about PR descriptions.
+- CI was already red on `master` before this work: every push since #28 fails the Linter step because the workflow pins Node 20 while `dependency-cruiser` needs Node 22 or newer, and the Vercel preview fails too. The stack was merged through that; fixing the workflow is a separate change.
 
 [[History Index]]
