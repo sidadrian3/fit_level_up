@@ -4,7 +4,7 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { createRun, updateRun } from "@/lib/data/api-client";
-import type { Run } from "@/lib/types";
+import type { Run } from "@/shared/contracts/run";
 import { X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
 import { CreateRunSchema } from "@/shared/contracts/run";

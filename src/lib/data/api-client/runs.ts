@@ -1,4 +1,4 @@
-import type { Run, CreateRunInput } from "@/lib/types";
+import type { Run, CreateRunInput } from "@/shared/contracts/run";
 import type { PaginatedResponse } from "@/shared/contracts/pagination";
 import { apiFetch } from "@/lib/shared/api-fetch";
 

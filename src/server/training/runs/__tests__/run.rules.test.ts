@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateRun } from '../run.rules';
-import { CreateRunInput } from '@/lib/types';
+import type { CreateRunInput } from '@/shared/contracts/run';
 
 const input: CreateRunInput = { distance: 5, duration: 25, difficulty: 'moderate' };
 

@@ -1,4 +1,4 @@
-import type { CreateRunInput, Run } from "@/lib/types";
+import type { CreateRunInput, Run } from "@/shared/contracts/run";
 import { recountQuestProgress, updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import {

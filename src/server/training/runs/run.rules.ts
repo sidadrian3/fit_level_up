@@ -1,4 +1,4 @@
-import type { CreateRunInput, Run } from "@/lib/types";
+import type { CreateRunInput, Run } from "@/shared/contracts/run";
 import { GAME_CONFIG } from "@/server/platform/config";
 import { DomainError } from "@/server/platform/domain";
 import { calcStaminaCost, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
