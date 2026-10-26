@@ -7,7 +7,7 @@ import {
 } from "./template.repository";
 import { createOnce, type IdempotencyRequest, type IdempotentResult } from "@/server/platform/http";
 import { z } from "zod";
-import type { WorkoutTemplate } from "@/lib/types";
+import type { WorkoutTemplate } from "@/shared/contracts/template";
 
 export function createWorkoutTemplate(
     input: z.infer<typeof WorkoutTemplateSchema>,

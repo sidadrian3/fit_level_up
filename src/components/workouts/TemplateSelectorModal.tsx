@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { WorkoutTemplate } from "@/lib/types";
+import type { WorkoutTemplate } from "@/shared/contracts/template";
 import { X, Trash2, Loader2, Plus, BookmarkPlus } from "lucide-react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWorkoutTemplates, deleteWorkoutTemplate } from "@/lib/data/api-client";
+import { useWorkoutTemplates } from "@/lib/templates/hooks/useWorkoutTemplates";
+import { useDeleteWorkoutTemplate } from "@/lib/templates/hooks/useDeleteWorkoutTemplate";
 
 interface Props {
   isOpen: boolean;
@@ -14,20 +14,8 @@ interface Props {
 }
 
 export function TemplateSelectorModal({ isOpen, onClose, onSelect }: Props) {
-  const queryClient = useQueryClient();
-  
-  const { data: templates = [], isLoading } = useQuery({
-    queryKey: ["workoutTemplates"],
-    queryFn: fetchWorkoutTemplates,
-    enabled: isOpen
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteWorkoutTemplate,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workoutTemplates"] });
-    }
-  });
+  const { data: templates = [], isLoading } = useWorkoutTemplates({ enabled: isOpen });
+  const deleteMutation = useDeleteWorkoutTemplate();
 
   if (!isOpen) return null;
 

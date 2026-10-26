@@ -5,7 +5,7 @@ import {
     type UserOwnedDoc,
     type WorkoutTemplateDoc,
 } from "@/server/platform/database";
-import type { WorkoutTemplate } from "@/lib/types";
+import type { WorkoutTemplate } from "@/shared/contracts/template";
 
 type OwnedTemplateDoc = WorkoutTemplateDoc & UserOwnedDoc;
 

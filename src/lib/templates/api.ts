@@ -1,4 +1,4 @@
-import { WorkoutTemplate, CreateWorkoutTemplateInput } from "../../types";
+import type { WorkoutTemplate, CreateWorkoutTemplateInput } from "@/shared/contracts/template";
 import { apiFetch } from "@/lib/shared/api-fetch";
 
 export async function fetchWorkoutTemplates(): Promise<WorkoutTemplate[]> {

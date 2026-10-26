@@ -9,4 +9,3 @@ export { getWorkouts, createWorkout, deleteWorkout, updateWorkout } from "./work
 export { getRuns, createRun, deleteRun, updateRun, getRunStats } from "./runs";
 export { getAchievements } from "./achievements";
 export { getDashboardStats, getPersonalRecords } from "./stats";
-export * from "./workout-templates";
