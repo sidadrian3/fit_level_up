@@ -4,9 +4,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
 import { getWorkouts, deleteWorkout } from "@/lib/data/api-client";
-import { progressionKeys } from "@/lib/progression/keys";
-import { questKeys } from "@/lib/quests/keys";
-import { statsKeys } from "@/lib/stats/keys";
+import { invalidateActivityEffects } from "@/lib/progression/utils/invalidate-activity-effects";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pagination } from "@/components/ui/Pagination";
 
@@ -33,17 +31,14 @@ export default function WorkoutsPage() {
         mutationFn: deleteWorkout,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["workouts"] });
-            queryClient.invalidateQueries({ queryKey: questKeys.all });
-            queryClient.invalidateQueries({ queryKey: statsKeys.all });
-            queryClient.invalidateQueries({ queryKey: progressionKeys.all });
+            invalidateActivityEffects(queryClient);
         },
     });
 
     const handleEditComplete = () => {
         setEditingId(null);
         queryClient.invalidateQueries({ queryKey: ["workouts"] });
-        queryClient.invalidateQueries({ queryKey: questKeys.all });
-        queryClient.invalidateQueries({ queryKey: statsKeys.all });
+        invalidateActivityEffects(queryClient);
     };
 
     return (

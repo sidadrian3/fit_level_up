@@ -6,9 +6,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { RunCard } from "@/components/runs/RunCard";
 import { RunForm } from "@/components/runs/RunForm";
 import { getRuns, deleteRun, updateRun, getRunStats } from "@/lib/data/api-client";
-import { progressionKeys } from "@/lib/progression/keys";
-import { questKeys } from "@/lib/quests/keys";
-import { statsKeys } from "@/lib/stats/keys";
+import { invalidateActivityEffects } from "@/lib/progression/utils/invalidate-activity-effects";
 import { formatPace } from "@/lib/utils";
 import { MapPin, Activity, Timer } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,9 +45,7 @@ export default function RunsPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["runs"] });
             queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
-            queryClient.invalidateQueries({ queryKey: questKeys.all });
-            queryClient.invalidateQueries({ queryKey: statsKeys.all });
-            queryClient.invalidateQueries({ queryKey: progressionKeys.all });
+            invalidateActivityEffects(queryClient);
         },
     });
 
@@ -57,9 +53,7 @@ export default function RunsPage() {
         setEditingId(null);
         queryClient.invalidateQueries({ queryKey: ["runs"] });
         queryClient.invalidateQueries({ queryKey: ["runs-stats"] });
-        queryClient.invalidateQueries({ queryKey: questKeys.all });
-        queryClient.invalidateQueries({ queryKey: statsKeys.all });
-
+        invalidateActivityEffects(queryClient);
     };
 
     const handleUpdate = async (id: string) => {
