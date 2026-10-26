@@ -1,7 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { X, Dumbbell, Timer, Map, Activity } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { getFriendRecords } from "@/lib/data/api-client/friends";
+import { useFriendRecords } from "@/lib/friends/hooks/useFriendRecords";
 import type { FriendProfile } from "@/shared/contracts/friendship";
 
 const SKELETON_ROW_COUNT = 3;
@@ -14,11 +13,7 @@ interface FriendProfileModalProps {
 
 export function FriendProfileModal({ friend, isOpen, onClose }: FriendProfileModalProps) {
   const friendId = isOpen && friend ? friend.userId : null;
-  const { data: records, isPending } = useQuery({
-    queryKey: ["friends", friendId, "records"],
-    queryFn: () => getFriendRecords(friendId!),
-    enabled: friendId !== null,
-  });
+  const { data: records, isPending } = useFriendRecords(friendId);
 
   if (!isOpen || !friend) return null;
 
