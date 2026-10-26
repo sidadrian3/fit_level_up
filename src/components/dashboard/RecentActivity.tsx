@@ -4,7 +4,7 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { formatDuration } from "@/lib/utils";
 import { useActivityDateFormatter } from "@/lib/hooks/useActivityDateFormatter";
-import type { Workout } from "@/lib/types";
+import type { Workout } from "@/shared/contracts/workout";
 import { Dumbbell } from "lucide-react";
 
 export interface RecentActivityProps {

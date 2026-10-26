@@ -1,19 +1,15 @@
 "use client";
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { AnatomyModel } from "../ui/AnatomyModel";
 import { calcMuscleVolume } from "@/shared/muscle-volume";
 
 import { Card } from "@/components/ui/Card";
-import { getWorkouts } from "@/lib/data/api-client";
+import { useWorkouts } from "@/lib/workouts/hooks/useWorkouts";
 
 export function MuscleHeatmap() {
   const [view, setView] = useState<"front" | "back">("front");
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["workouts", { page: 1, limit: 30 }],
-    queryFn: () => getWorkouts(1, 30),
-  });
+  const { data, isLoading, error } = useWorkouts(1, 30);
 
   if (isLoading || !data) {
     return <Card className="animate-pulse flex items-center justify-center text-muted h-[400px] w-full">Loading...</Card>;

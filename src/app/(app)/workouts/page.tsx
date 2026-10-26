@@ -3,46 +3,23 @@ import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WorkoutCard } from "@/components/workouts/WorkoutCard";
 import { WorkoutForm } from "@/components/workouts/WorkoutForm";
-import { getWorkouts, deleteWorkout } from "@/lib/data/api-client";
-import { progressionKeys } from "@/lib/progression/keys";
-import { questKeys } from "@/lib/quests/keys";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useWorkouts } from "@/lib/workouts/hooks/useWorkouts";
+import { useDeleteWorkout } from "@/lib/workouts/hooks/useDeleteWorkout";
 import { Pagination } from "@/components/ui/Pagination";
 
 export default function WorkoutsPage() {
-    const queryClient = useQueryClient();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [page, setPage] = useState(1);
 
-    // 1. Pagination Query
-    const {
-        data,
-        isLoading,
-        isError,
-    } = useQuery({
-        queryKey: ["workouts", page],
-        queryFn: () => getWorkouts(page, 4),
-    });
+    const { data, isLoading, isError } = useWorkouts(page, 4);
 
-    // Get workouts from paginated response
     const workouts = data?.data || [];
     const editingWorkout = workouts.find((w) => w.id === editingId);
 
-    const deleteMutation = useMutation({
-        mutationFn: deleteWorkout,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["workouts"] });
-            queryClient.invalidateQueries({ queryKey: questKeys.all });
-            queryClient.invalidateQueries({ queryKey: ["personal-records"] });
-            queryClient.invalidateQueries({ queryKey: progressionKeys.all });
-        },
-    });
+    const deleteMutation = useDeleteWorkout();
 
     const handleEditComplete = () => {
         setEditingId(null);
-        queryClient.invalidateQueries({ queryKey: ["workouts"] });
-        queryClient.invalidateQueries({ queryKey: questKeys.all });
-        queryClient.invalidateQueries({ queryKey: ["personal-records"] });
     };
 
     return (

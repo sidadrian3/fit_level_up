@@ -1,6 +1,6 @@
 // PURE FUNCTIONS — no imports from infrastructure, no database, no process.env
 
-import type { CreateWorkoutInput } from "@/lib/types";
+import type { CreateWorkoutInput } from "@/shared/contracts/workout";
 import type { Exercise } from "@/shared/contracts/exercise";
 import { GAME_CONFIG } from "@/server/platform/config";
 import { DomainError } from "@/server/platform/domain";

@@ -3,10 +3,11 @@
 import React, { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { createWorkout, updateWorkout } from "@/lib/data/api-client";
 import { useCustomExercises } from "@/lib/exercises/hooks/useCustomExercises";
 import { useCreateCustomExercise } from "@/lib/exercises/hooks/useCreateCustomExercise";
-import type { Workout } from "@/lib/types";
+import { useLogWorkout } from "@/lib/workouts/hooks/useLogWorkout";
+import { useUpdateWorkout } from "@/lib/workouts/hooks/useUpdateWorkout";
+import type { Workout } from "@/shared/contracts/workout";
 import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2, X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";
@@ -48,6 +49,8 @@ export function WorkoutForm({
 
     const { data: customExercises = [] } = useCustomExercises();
     const createExerciseMutation = useCreateCustomExercise();
+    const logWorkoutMutation = useLogWorkout();
+    const updateWorkoutMutation = useUpdateWorkout();
 
     // Combine and group exercises
     const allExercises = useMemo(() => {
@@ -89,11 +92,17 @@ export function WorkoutForm({
         }),
         onCreate: (input, key) => {
             const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-            return createWorkout({ ...input, title: input.title.trim(), exercises: namedExercises }, key);
+            return logWorkoutMutation.mutateAsync({
+                input: { ...input, title: input.title.trim(), exercises: namedExercises },
+                idempotencyKey: key,
+            });
         },
         onUpdate: (id, input) => {
             const namedExercises = input.exercises.filter((ex) => ex.name.trim());
-            return updateWorkout(id, { ...input, title: input.title.trim(), exercises: namedExercises });
+            return updateWorkoutMutation.mutateAsync({
+                id,
+                input: { ...input, title: input.title.trim(), exercises: namedExercises },
+            });
         },
         getId: (w) => w.id,
         onSuccess: () => {

@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { calcXPPercent, formatDate } from "@/lib/utils";
-import type { DashboardStats } from "@/lib/types";
+import type { DashboardStats } from "@/shared/contracts/stats";
 import type { User } from "@/shared/contracts/user";
 import { Dumbbell, MapPin, Zap, Flame, Trophy } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
