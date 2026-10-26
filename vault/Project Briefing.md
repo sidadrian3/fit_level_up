@@ -136,7 +136,6 @@ src/
 │   ├── utils/             ← Utility helpers (formatters, date math)
 │   ├── validations/       ← Zod schemas (API input validation)
 │   ├── auth/              ← Better Auth config and helpers
-│   ├── types.ts           ← Shared TypeScript domain types
 │   └── mongodb.ts         ← Singleton MongoDB client
 ├── scripts/               ← DB migration scripts
 ├── env.ts                 ← Type-safe environment variable validation

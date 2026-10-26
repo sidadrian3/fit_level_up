@@ -26,7 +26,7 @@ src/
   lib/
     domain/       # pure business rules, *-rules.ts / *-evaluator.ts
     services/     # use-case orchestration, one folder per domain
-    auth/  api/  sse/  hooks/  context/  utils/  validations/  constants/  config/
+    auth/  api/  sse/  hooks/  <domain>/  shared/  utils/  validations/  constants/  config/
   scripts/        # DB migration scripts
   env.ts          # validated environment variables
   proxy.ts        # route protection (Next.js middleware)
@@ -168,7 +168,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 ### React Query & API Types
 
 - **Shared Fetch Helper.** Never write raw `fetch()` in a hook or component. Browser calls go through `apiFetch` (`src/lib/shared/api-fetch.ts`), which owns the error shape and the retry of idempotent requests on network failure. Add an endpoint wrapper in `src/lib/<domain>/api.ts`.
-- **Cross-feature cache invalidation.** A mutation that changes state shown elsewhere (logging a workout moves XP, quests, achievements, the dashboard and the profile) must invalidate every affected query key, not only its own. The mutation hook owns the invalidation, using the `keys.ts` tables of the domains it touches (and `invalidateActivityChange` for workout and run changes).
+- **Cross-feature cache invalidation.** A mutation that changes state shown elsewhere (logging a workout moves XP, quests and personal records, which are client queries, and achievements and the dashboard, which are server-rendered) must invalidate every affected query key, not only its own. The mutation hook owns the invalidation, using the `keys.ts` tables of the domains it touches (and `invalidateActivityChange` for workout and run changes).
 - **Hooks only in the UI.** Pages and components never import `@tanstack/react-query` (ESLint enforces it); they use a hook from `src/lib/<domain>/hooks`. Query keys come from the domain's `keys.ts` table, never string literals.
 - **Stable idempotency keys.** Generate a form's `idempotencyKey` once when the form mounts (`useState`), so a retried submit is recognised as the same request.
 - **Explicit generics** on mutations and `apiFetch<T>` calls — never let the response type fall back to `unknown`.
