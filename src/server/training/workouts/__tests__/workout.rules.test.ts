@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateWorkout } from '../workout.rules';
-import type { CreateWorkoutInput } from '@/lib/types';
+import type { CreateWorkoutInput } from '@/shared/contracts/workout';
 import { TargetMuscle } from '@/shared/contracts/exercise';
 
 const input: CreateWorkoutInput = {

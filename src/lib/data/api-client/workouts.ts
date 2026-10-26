@@ -1,4 +1,5 @@
-import type { Workout, CreateWorkoutInput, PaginatedResponse } from "@/lib/types";
+import type { Workout, CreateWorkoutInput } from "@/shared/contracts/workout";
+import type { PaginatedResponse } from "@/shared/contracts/pagination";
 import { apiFetch } from "@/lib/shared/api-fetch";
 
 export async function getWorkouts(page = 1, limit = 4): Promise<PaginatedResponse<Workout>> {

@@ -1,4 +1,4 @@
-import type { DashboardStats } from "@/lib/types";
+import type { DashboardStats } from "@/shared/contracts/stats";
 import { apiFetch } from "@/lib/shared/api-fetch";
 import type { PersonalRecord } from "@/shared/contracts/personal-record";
 

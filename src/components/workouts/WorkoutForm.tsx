@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { createWorkout, updateWorkout } from "@/lib/data/api-client";
 import { useCustomExercises } from "@/lib/exercises/hooks/useCustomExercises";
 import { useCreateCustomExercise } from "@/lib/exercises/hooks/useCreateCustomExercise";
-import type { Workout } from "@/lib/types";
+import type { Workout } from "@/shared/contracts/workout";
 import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2, X } from "lucide-react";
 import { useEntityForm } from "@/lib/hooks/useEntityForm";

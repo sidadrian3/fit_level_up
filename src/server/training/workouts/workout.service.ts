@@ -1,4 +1,4 @@
-import type { CreateWorkoutInput, Workout } from "@/lib/types";
+import type { CreateWorkoutInput, Workout } from "@/shared/contracts/workout";
 import { recountQuestProgress, updateQuestProgress } from "@/server/quests";
 import { getUserTimeZone } from "@/server/platform/auth";
 import {
