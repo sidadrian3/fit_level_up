@@ -5,7 +5,7 @@ import { AchievementGrid } from "./_components/AchievementGrid";
 import { PersonalRecords } from "./_components/PersonalRecords";
 
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { getUser } from "@/lib/services/users/get-user";
+import { getUser } from "@/server/progression";
 import { getDashboardStats } from "@/server/training";
 import { countUnlockedAchievements, listAchievements } from "@/server/achievements";
 

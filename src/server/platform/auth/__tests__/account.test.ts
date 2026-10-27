@@ -3,10 +3,9 @@ import { ObjectId } from "mongodb";
 import crypto from "crypto";
 import { auth, getAccount, getUserTimeZone } from "@/server/platform/auth";
 import { getCollection, type UserDoc } from "@/server/platform/database";
-import { getUser } from "../users/get-user";
 import { seedPlayer } from "@/testing/players";
 
-describe("user time zone", () => {
+describe("account", () => {
   const createdEmails: string[] = [];
   const createdIds: ObjectId[] = [];
 
@@ -51,7 +50,6 @@ describe("user time zone", () => {
     createdIds.push(new ObjectId(userId));
 
     expect(await getUserTimeZone(userId)).toBe("UTC");
-    expect((await getUser(userId)).timeZone).toBe("UTC");
   });
 
   it("getAccount returns identity fields only, defaulting timeZone to UTC", async () => {

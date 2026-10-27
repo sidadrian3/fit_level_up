@@ -8,7 +8,7 @@ import { RecentActivity } from "./_components/RecentActivity";
 import { DashboardTabs } from "./_components/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { getUser } from "@/lib/services/users/get-user";
+import { getUser } from "@/server/progression";
 import { getActiveDaysThisWeek, getDashboardStats, getRecentWorkouts } from "@/server/training";
 import { getQuests } from "@/server/quests";
 import { countUnlockedAchievements } from "@/server/achievements";

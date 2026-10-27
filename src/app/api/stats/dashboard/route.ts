@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDashboardStats } from "@/server/training";
 import { countUnlockedAchievements } from "@/server/achievements";
-import { getUser } from "@/lib/services/users/get-user";
+import { getUser } from "@/server/progression";
 import { defineRoute } from "@/server/runtime";
 
 export const GET = defineRoute({ name: "stats.dashboard", auth: "user" }, async ({ userId }) => {
