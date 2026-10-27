@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcStaminaCost, calcExhaustionDebuff } from '../stamina-rules';
+import { calcStaminaCost, calcExhaustionDebuff } from '../stamina.rules';
 
 describe('stamina-rules', () => {
   describe('calcStaminaCost', () => {
