@@ -2,7 +2,7 @@ import { weekInstants } from "@/shared/time/calendar";
 import { calcLifetimeXp } from "@/server/progression";
 import type { DashboardStats } from "@/shared/contracts/stats";
 import type { User } from "@/shared/contracts/user";
-import { countWorkoutsInRange, findLiftMaxes } from "../workouts/workout.repository";
+import { countWorkoutsInRange, findLiftMaxes, findWorkoutDatesInRange } from "../workouts/workout.repository";
 import { findFastestRunInWindow, findLongestRun, sumDistanceInRange } from "../runs/run.repository";
 import type { PersonalRecord } from "@/shared/contracts/personal-record";
 import {
@@ -10,6 +10,7 @@ import {
   TEN_K_WINDOW_KM,
   TOP_LIFT_COUNT,
   buildPersonalRecords,
+  calcActiveDays,
 } from "./stats.rules";
 
 type DashboardStatsOptions = {
@@ -48,4 +49,13 @@ export async function getPersonalRecords(userId: string): Promise<PersonalRecord
         findFastestRunInWindow(userId, TEN_K_WINDOW_KM),
     ]);
     return buildPersonalRecords(liftMaxes, { longest, fastest5k, fastest10k });
+}
+
+export async function getActiveDaysThisWeek(
+    userId: string,
+    { timeZone, now = new Date() }: { timeZone: string; now?: Date },
+): Promise<boolean[]> {
+    const { thisWeekFrom, nextWeekFrom } = weekInstants(now, timeZone);
+    const instants = await findWorkoutDatesInRange(userId, thisWeekFrom, nextWeekFrom);
+    return calcActiveDays(instants, now, timeZone);
 }
