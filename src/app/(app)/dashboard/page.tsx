@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import { PageHeader } from "@/components/layout/PageHeader";
-import { XPCard } from "@/components/dashboard/XPCard";
-import { ActivityTracker } from "@/components/dashboard/ActivityTracker";
-import { DailyQuests } from "@/components/dashboard/DailyQuests";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
+import { XPCard } from "./_components/XPCard";
+import { ActivityTracker } from "./_components/ActivityTracker";
+import { DailyQuests } from "./_components/DailyQuests";
+import { RecentActivity } from "./_components/RecentActivity";
+import { DashboardTabs } from "./_components/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
 import { getAuthUserId } from "@/lib/auth/auth-helpers";
 import { getUser } from "@/lib/services/users/get-user";

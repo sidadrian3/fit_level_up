@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Users, Inbox, Loader2 } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { FriendCard } from "@/components/friends/FriendCard";
-import { FriendRequestCard } from "@/components/friends/FriendRequestCard";
-import { AddFriendSection } from "@/components/friends/AddFriendSection";
-import { FriendProfileModal } from "@/components/friends/FriendProfileModal";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
+import { FriendCard } from "./_components/FriendCard";
+import { FriendRequestCard } from "./_components/FriendRequestCard";
+import { AddFriendSection } from "./_components/AddFriendSection";
+import { FriendProfileModal } from "./_components/FriendProfileModal";
 import type { FriendProfile } from "@/shared/contracts/friendship";
 import { useFriends } from "@/lib/friends/hooks/useFriends";
 import { useFriendRequests } from "@/lib/friends/hooks/useFriendRequests";

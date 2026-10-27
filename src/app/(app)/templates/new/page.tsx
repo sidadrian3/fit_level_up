@@ -1,4 +1,4 @@
-import { CreateTemplateForm } from "@/components/workouts/CreateTemplateForm";
+import { CreateTemplateForm } from "./_components/CreateTemplateForm";
 
 export default function NewTemplatePage() {
     return (

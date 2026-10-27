@@ -1,10 +1,10 @@
-import { Sidebar } from "@/components/layout/Sidebar";
-import { MobileTabs } from "@/components/layout/MobileTabs";
-import { LevelUpManager } from "@/components/notifications/LevelUpManager";
-import { NotificationCenter } from "@/components/notifications/NotificationCenter";
-import { NotificationProvider } from "@/components/notifications/NotificationProvider";
-import { TimeZoneSync } from "@/components/auth/TimeZoneSync";
-import { SessionGuard } from "@/components/auth/SessionGuard";
+import { Sidebar } from "@/components/shared/layout/Sidebar";
+import { MobileTabs } from "@/components/shared/layout/MobileTabs";
+import { LevelUpManager } from "@/components/shared/notifications/LevelUpManager";
+import { NotificationCenter } from "@/components/shared/notifications/NotificationCenter";
+import { NotificationProvider } from "@/components/shared/notifications/NotificationProvider";
+import { TimeZoneSync } from "@/components/shared/auth/TimeZoneSync";
+import { SessionGuard } from "@/components/shared/auth/SessionGuard";
 
 export default function AppLayout({
   children,

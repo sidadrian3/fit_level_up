@@ -1,4 +1,4 @@
-import { NotificationMenu } from "@/components/notifications/NotificationMenu";
+import { NotificationMenu } from "@/components/shared/notifications/NotificationMenu";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import type { User } from "@/shared/contracts/user";
 

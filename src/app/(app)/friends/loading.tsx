@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
 
 export default function FriendsLoading() {
   return (

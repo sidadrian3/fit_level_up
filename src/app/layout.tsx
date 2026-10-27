@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
-import { QueryProvider } from "@/components/providers/QueryProvider";
+import { QueryProvider } from "@/components/shared/providers/QueryProvider";
 
 const barlow = Barlow({
   weight: ["300", "400", "500", "600", "700"],

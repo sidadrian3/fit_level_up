@@ -1,8 +1,8 @@
 "use client";
 import { useQuests } from "@/lib/quests/hooks/useQuests";
 import { useClaimQuest } from "@/lib/quests/hooks/useClaimQuest";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { QuestSection } from "@/components/quests/QuestSection";
+import { PageHeader } from "@/components/shared/layout/PageHeader";
+import { QuestSection } from "./_components/QuestSection";
 import { Calendar, Sun, Target } from "lucide-react";
 
 

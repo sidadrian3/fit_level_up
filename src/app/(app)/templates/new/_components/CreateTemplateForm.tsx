@@ -1,59 +1,32 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useCreateWorkoutTemplate } from "@/lib/templates/hooks/useCreateWorkoutTemplate";
-import { useCustomExercises } from "@/lib/exercises/hooks/useCustomExercises";
-import { useCreateCustomExercise } from "@/lib/exercises/hooks/useCreateCustomExercise";
-import { TargetMuscle, type Exercise } from "@/shared/contracts/exercise";
+import { useExerciseCatalog } from "@/lib/exercises/hooks/useExerciseCatalog";
+import type { Exercise } from "@/shared/contracts/exercise";
 import { Plus, Trash2 } from "lucide-react";
-import { PREDEFINED_EXERCISES } from "@/lib/constants/exercises";
-import { mergeAndSortExercises } from "@/shared/exercise-list";
-import { CreateExerciseModal } from "./CreateExerciseModal";
+import { EMPTY_EXERCISE } from "@/lib/constants/exercises";
+import { CreateExerciseModal } from "@/components/shared/exercises/CreateExerciseModal";
 import { useRouter } from "next/navigation";
 import { isIdempotencyKeyReused } from "@/lib/shared/api-fetch";
 import { useIdempotencyKey } from "@/lib/hooks/useIdempotencyKey";
 
-const emptyExercise: Exercise = {
-    name: "",
-    targetMuscle: TargetMuscle.Chest,
-    sets: 3,
-    reps: 10,
-    weight: null,
-};
-
 export function CreateTemplateForm() {
     const router = useRouter();
     const [name, setName] = useState("");
-    const [exercises, setExercises] = useState<Exercise[]>([{ ...emptyExercise }]);
+    const [exercises, setExercises] = useState<Exercise[]>([{ ...EMPTY_EXERCISE }]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
     const { key: idempotencyKey, rotate: rotateIdempotencyKey } = useIdempotencyKey();
 
-    const { data: customExercises = [] } = useCustomExercises();
-    const createExerciseMutation = useCreateCustomExercise();
+    const { exerciseGroups, findExercise, createCustomExercise } = useExerciseCatalog();
     const createTemplateMutation = useCreateWorkoutTemplate();
 
-    const allExercises = useMemo(() => {
-        return mergeAndSortExercises(PREDEFINED_EXERCISES, customExercises);
-    }, [customExercises]);
-
-    const groupedExercises = useMemo(() => {
-        const groups: Record<string, typeof allExercises> = {};
-        Object.values(TargetMuscle).forEach(m => groups[m] = []);
-        groups["Other"] = [];
-        
-        allExercises.forEach(ex => {
-            const groupKey = groups[ex.targetMuscle] ? ex.targetMuscle : "Other";
-            groups[groupKey].push(ex);
-        });
-        return groups;
-    }, [allExercises]);
-
     const addExercise = () => {
-        setExercises(prev => [...prev, { ...emptyExercise }]);
+        setExercises(prev => [...prev, { ...EMPTY_EXERCISE }]);
     };
 
     const removeExercise = (index: number) => {
@@ -142,7 +115,7 @@ export function CreateTemplateForm() {
                                             value={exercise.name}
                                             onChange={(e) => {
                                                 const selectedName = e.target.value;
-                                                const found = allExercises.find(ex => ex.name === selectedName);
+                                                const found = findExercise(selectedName);
                                                 if (found) {
                                                     updateExercise(index, "name", found.name);
                                                     updateExercise(index, "targetMuscle", found.targetMuscle);
@@ -154,7 +127,7 @@ export function CreateTemplateForm() {
                                             aria-label="Select exercise"
                                         >
                                             <option value="" disabled>Select an exercise...</option>
-                                            {Object.entries(groupedExercises).map(([muscle, exs]) => {
+                                            {Object.entries(exerciseGroups).map(([muscle, exs]) => {
                                                 if (exs.length === 0) return null;
                                                 return (
                                                     <optgroup key={muscle} label={muscle}>
@@ -244,10 +217,10 @@ export function CreateTemplateForm() {
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
                 onSubmit={async (data) => {
-                    const newEx = await createExerciseMutation.mutateAsync(data);
+                    const newEx = await createCustomExercise(data);
                     setExercises(prev => [
                         ...(prev.length === 1 && prev[0].name === "" ? [] : prev),
-                        { ...emptyExercise, name: newEx.name, targetMuscle: newEx.targetMuscle }
+                        { ...EMPTY_EXERCISE, name: newEx.name, targetMuscle: newEx.targetMuscle }
                     ]);
                 }} 
             />

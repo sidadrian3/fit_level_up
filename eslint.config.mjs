@@ -34,7 +34,7 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
-    ignores: ["src/components/providers/QueryProvider.tsx"],
+    ignores: ["src/components/shared/providers/QueryProvider.tsx"],
     rules: {
       "no-restricted-imports": [
         "error",

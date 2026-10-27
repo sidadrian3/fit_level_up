@@ -73,7 +73,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 ### Front-end structure (Next.js App Router)
 
 - Pages are thin — they compose components, call hooks, and handle loading/error boundaries (`loading.tsx`, `error.tsx` sit next to the page).
-- Feature components live in `src/components/<feature>/`. Layout chrome lives in `components/layout/`.
+- A component used by one page lives in that page's private `_components/` folder (`app/(app)/<page>/_components/`). A component rendered on several pages, or by the app shell, lives in `src/components/shared/<area>/`. `components/ui/` holds the shared primitives. UI code reaches `src/server` for types only.
 - Browser-side data access lives in `src/lib/<domain>/`: endpoint wrappers in `api.ts`, query keys in `keys.ts`, TanStack Query hooks in `hooks/`. Components import those hooks only and never call `fetch()` directly.
 - Shared cross-feature code lives under `src/lib/utils/`, `src/lib/hooks/`, `src/lib/constants/`.
 
