@@ -28,7 +28,7 @@ src/
     platform/     # infrastructure: config, env, domain, auth/, database/, events/, http/
     progression/  quests/  training/  achievements/  social/  notification/   # feature modules
   shared/         # isomorphic code: contracts/ (Zod schemas and wire types), time/, static definitions
-  lib/            # browser side only: <domain>/{api,keys,hooks}, auth/client.ts, shared/api-fetch.ts, utils/, constants/, hooks/
+  lib/            # browser side only: <domain>/{api,keys,hooks}, auth/client.ts, env.ts, shared/api-fetch.ts, utils/, constants/, hooks/
   testing/        # test helpers (seedPlayer, transactions)
   scripts/        # DB migration runner, numbered migrations, outbox operator tool
   proxy.ts        # route protection (Next.js middleware)

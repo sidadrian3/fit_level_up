@@ -53,29 +53,30 @@ A gamified fitness tracking web application that turns your workouts and runs in
 
 ## Architecture
 
-The codebase follows a **Clean Architecture / Application Service** pattern with strict separation of concerns across three backend layers:
+The back end lives in `src/server`, split into six feature modules (`progression`, `quests`, `training`, `achievements`, `social`, `notification`) and `platform/` for infrastructure. Every feature flows through four layers:
 
 ```
 ┌─────────────────────────────────────────────┐
-│             Next.js API Routes              │  ← Thin adapters: parse request, call service
+│             Next.js API Routes              │  ← Thin adapters: defineRoute() authenticates, validates, calls a service
 ├─────────────────────────────────────────────┤
 │              Services Layer                 │  ← Use-case orchestration (e.g. logWorkout)
-│         src/lib/services/{domain}/          │    Validates → Calculates → Persists → Side-effects
+│  src/server/<module>/**/<noun>.service.ts   │    Loads → Calculates → Persists → Emits events
 ├─────────────────────────────────────────────┤
-│               Domain Layer                  │  ← Pure business rules (zero infrastructure deps)
-│         src/lib/domain/*-rules.ts           │    XP formulas, streak logic, quest rules, etc.
+│                Rules Layer                  │  ← Pure business rules (zero infrastructure deps)
+│  src/server/<module>/**/<noun>.rules.ts     │    XP formulas, streak logic, quest rules, etc.
 ├─────────────────────────────────────────────┤
-│                Data Layer                   │  ← MongoDB CRUD only, no business logic
-│           src/lib/data/*-db.ts              │    Maps DB documents ↔ TypeScript domain types
+│              Repository Layer               │  ← MongoDB CRUD only, scoped by userId
+│ src/server/<module>/**/<noun>.repository.ts │    Maps DB documents ↔ TypeScript domain types
 └─────────────────────────────────────────────┘
 ```
 
 **Key architectural decisions:**
 
-- **Domain rules are pure functions** — testable without a database or any side effects.
-- **`-db.ts` files only persist** — they do not calculate XP, evaluate quests, or call other modules.
-- **Services orchestrate** — the service layer calls domain → data → side effects in sequence.
-- **API routes are thin** — they extract `userId` from the session, call the service, and return the response.
+- **Rules are pure functions** — testable without a database or any side effects.
+- **Repositories only persist** — they do not calculate XP, evaluate quests, or call other modules.
+- **Services orchestrate** — the service layer calls rules → repositories → events in sequence, in one transaction when several writes must agree.
+- **Modules talk through `index.ts`** — and through outbox events when a reaction must not block the request.
+- **API routes are thin** — `defineRoute` extracts `userId` from the session, rate-limits, validates with Zod and maps errors; the handler calls a service.
 - **Singleton MongoDB client** — uses a `global` variable in development to survive hot-reloads.
 - **Edge middleware auth** — `src/proxy.ts` protects routes at the Next.js middleware level.
 
@@ -104,27 +105,20 @@ src/
 │       ├── stats/
 │       ├── user/
 │       └── auth/           # Better Auth handler
-├── components/             # Shared React components
-├── lib/
-│   ├── data/               # MongoDB access layer (*-db.ts)
-│   │   └── api-client/     # Client-side fetch wrappers (used by TanStack Query)
-│   ├── domain/             # Pure business rules (*-rules.ts)
-│   ├── services/           # Use-case orchestration
-│   │   ├── workouts/
-│   │   ├── runs/
-│   │   ├── quests/
-│   │   ├── achievements/
-│   │   ├── exercises/
-│   │   └── users/
-│   ├── auth/               # Better Auth server config & helpers
-│   ├── context/            # React context providers
-│   ├── hooks/              # Custom React hooks
-│   ├── utils/              # Pure utility functions (formatters, calculations, dates)
-│   ├── validations/        # Zod schemas for API input validation
-│   ├── types.ts            # Shared TypeScript domain types
-│   └── mongodb.ts          # MongoDB singleton client
-├── scripts/                # One-off scripts (DB migrations)
-├── env.ts                  # Type-safe environment variable validation
+├── components/             # React components: ui/ primitives, shared/ app-shell components
+├── server/                 # The whole back end (server-only)
+│   ├── runtime.ts          # Composition root: wired defineRoute, outbox dispatcher, listeners
+│   ├── platform/           # config, env, domain errors, auth/, database/, events/, http/
+│   └── progression/ quests/ training/ achievements/ social/ notification/
+├── shared/                 # Zod contracts, wire types and calendar helpers used by both sides
+├── lib/                    # Browser-side code
+│   ├── <domain>/           # api.ts, keys.ts and hooks/ per client domain (TanStack Query)
+│   ├── shared/             # apiFetch
+│   ├── auth/               # Better Auth browser client
+│   ├── hooks/ utils/ constants/
+│   └── env.ts              # The one browser-readable environment variable
+├── testing/                # Test helpers
+├── scripts/                # DB migration runner and numbered migrations
 └── proxy.ts                # Next.js edge middleware (route protection)
 ```
 

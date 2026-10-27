@@ -35,7 +35,7 @@ Validated at startup by `src/server/platform/env/env.ts` (server variables) and 
 | Command | Does |
 |---|---|
 | `npm run dev` | Dev server on port 3000 |
-| `npm run lint` | ESLint (check only), then the dependency-cruiser rules in `.dependency-cruiser.cjs` (cycles and who may import whom; two cycles in old `src/lib` code are baselined in `.dependency-cruiser-known-violations.json`) |
+| `npm run lint` | ESLint (check only), then the dependency-cruiser rules in `.dependency-cruiser.cjs` (cycles and who may import whom; `.dependency-cruiser-known-violations.json` baselines known violations and is empty) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:run` | All Vitest tests once, against an in-memory MongoDB replica set |
 | `npm test` | Vitest in watch mode |
