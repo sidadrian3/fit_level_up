@@ -52,9 +52,9 @@ Services    ← use-case orchestration (the "what happens when you log a workout
 | Layer          | Where It Lives      | Job                                                                                                 |
 | -------------- | ------------------- | --------------------------------------------------------------------------------------------------- |
 | **API Routes** | `src/app/api/`      | Get the user's ID from the session cookie, call the right service, return the result. Nothing else. |
-| **Services**   | `src/lib/services/` | Orchestrate everything. Call domain rules → call DB → trigger side effects.                         |
-| **Domain**     | `src/lib/domain/`   | Pure functions. XP formulas, streak logic, stamina calculations. No database imports, ever.         |
-| **Data**       | `src/lib/data/`     | Raw MongoDB access. Convert DB documents to TypeScript types. No business logic.                    |
+| **Services**   | `src/server/<module>/**/<noun>.service.ts` | Orchestrate everything. Call domain rules → call DB → trigger side effects.          |
+| **Domain**     | `src/server/<module>/**/<noun>.rules.ts` | Pure functions. XP formulas, streak logic, stamina calculations. No database imports, ever. |
+| **Data**       | `src/server/<module>/**/<noun>.repository.ts` | Raw MongoDB access, scoped by `userId`. Convert DB documents to TypeScript types. No business logic. |
 
 ### Frontend
 
@@ -124,21 +124,20 @@ src/
 │   ├── (app)/             ← Protected pages (dashboard, workouts, runs, quests, profile)
 │   ├── (auth)/            ← Login / Sign-up pages
 │   └── (landing)/         ← Public marketing page
-├── components/            ← React UI components (workouts, runs, quests, dashboard, layout)
-├── lib/
-│   ├── config/            ← game-config.ts  (all balance constants)
-│   ├── constants/         ← Other shared constants
+├── components/            ← React UI: ui/ primitives and shared/ app-shell components
+├── server/                ← The whole back end ("server-only")
+│   ├── runtime.ts         ← Composition root: wired defineRoute, outbox dispatcher, listeners
+│   ├── platform/          ← config, env, domain errors, auth/, database/, events/, http/
+│   └── progression/ quests/ training/ achievements/ social/ notification/   ← feature modules
+├── shared/                ← Zod contracts, wire types and calendar helpers used by both sides
+├── lib/                   ← Browser side only
 │   ├── <domain>/          ← One folder per client domain: keys.ts, api.ts, hooks/
 │   ├── shared/            ← api-fetch.ts (apiFetch, ApiError)
-│   ├── domain/            ← Pure business rules (*-rules.ts)
-│   ├── hooks/             ← Custom React hooks
-│   ├── services/          ← Use-case services (one folder per domain)
-│   ├── utils/             ← Utility helpers (formatters, date math)
-│   ├── validations/       ← Zod schemas (API input validation)
-│   ├── auth/              ← Better Auth config and helpers
-│   └── mongodb.ts         ← Singleton MongoDB client
-├── scripts/               ← DB migration scripts
-├── env.ts                 ← Type-safe environment variable validation
+│   ├── auth/client.ts     ← Better Auth browser client
+│   ├── constants/  hooks/  utils/   ← Shared constants, custom hooks, formatters
+│   └── env.ts             ← The one browser-readable environment variable
+├── testing/               ← Test helpers (seedPlayer, transactions)
+├── scripts/               ← DB migration runner and numbered migrations
 └── proxy.ts               ← Next.js edge middleware (route protection)
 ```
 
@@ -219,9 +218,8 @@ POST /api/workouts
 
 **Code quality improvements already applied (from the P0/P2 audit fixes):**
 
-- Game balance constants extracted from magic numbers into `game-config.ts` (was P2 item #10)
+- Game balance constants extracted from magic numbers into `game-config.ts` (was P2 item #10; they now live in `src/server/platform/config.ts`)
 - The current user is read through TanStack Query (`invalidateQueries`) instead of the `window` event bus anti-pattern (was P2 item #11)
-- `UserMongoDoc` fields made non-optional where game data is always present
 - Dead batch fetch in `updateQuestProgress` removed
 - XP race condition in `grantUserXP` fixed (read moved inside the session)
 - Auth errors now return proper `401` status codes instead of being swallowed as `400`
@@ -231,7 +229,7 @@ POST /api/workouts
 - **Transactional outbox:** Background side effects (achievement evaluation and the notification inbox writes) are outbox rows written in the caller's transaction and delivered with the Next.js `after()` API once the response is sent, so a function killed after commit delays them but never loses them.
 - **Progression module:** `src/server/progression` owns XP, level, streak, stamina and totals in the `player_profiles` collection. `recordActivity` (workouts and runs) and `grantXp` (quest claims) share one XP path that writes an `xp_ledger` row, increments `totalXp` and emits `progression.leveled-up` when the level passes `highestLevel`, so a level lost and re-earned announces nothing. Editing or deleting an activity goes through `replaceSourceXp` and `revokeSource`, which replace or remove the activity's ledger row and set `totalXp` to the ledger sum, so the level can fall. Level and `xpToNextLevel` are computed from `totalXp`.
 - **Quests and training modules:** `src/server/quests` owns the quest definitions (typed constants with stable string ids), period rules, sync, progress and claim. `src/server/training` owns workouts, runs, templates, custom exercises and records; personal records and run stats are computed by database aggregation. Workout and run dates are returned as ISO instants and formatted in the user's time zone by the client.
-- **Pure Data Mappers:** Dynamic state assembly (calculating stamina recovery, zeroing a broken streak) happens in progression's `getPlayerState`, not in the data layer; `getUser` in `lib/services/users` composes the account and the player state into the `User` the API returns.
+- **Pure Data Mappers:** Dynamic state assembly (calculating stamina recovery, zeroing a broken streak) happens in progression's `getPlayerState`, not in the data layer; `getUser` in progression composes the account and the player state into the `User` the API returns.
 - **Pure Domain Evaluators:** Extracted complex orchestration out of transaction scripts (`logWorkout`, `logRun`) into deep, pure domain modules (`WorkoutEvaluator`, `RunEvaluator`). This cleanly separates the calculation of the "game loop" outcome from persistence, enabling rapid, 100% pure unit testing of all activity rules.
 - **Vitest Mocking:** Added a global `vitest.setup.ts` to elegantly mock the Next.js `next/server` `after()` API (handling both callbacks and Promises) without wiping out `NextResponse`, keeping the test suite fast and 100% green.
 - **Centralized API Error Handling:** Migrated all services to throw semantic exceptions (`ConflictError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, plus `DomainError` from the domain rules) and built every API route with `defineRoute`, which maps thrown errors in one place (`toErrorResponse`), ensuring consistent HTTP status codes across the app.
@@ -410,73 +408,39 @@ export async function teardown() {
 
 ### Level 1 — Unit Tests (Domain Layer)
 
-**File locations:** `src/lib/domain/__tests__/`  
+**File locations:** the module's `__tests__/` folder, beside the `*.rules.ts` file (`src/server/progression/__tests__/progression.rules.test.ts`)  
 **What they test:** The pure game math functions — XP calculation, level-up logic, streak counting, stamina math.  
 **Why they're fast:** Zero database. Zero network. Just JavaScript functions in, values out.
 
 #### Example: Testing the Level-Up Formula
 
 ```typescript
-// src/lib/domain/__tests__/user-rules.test.ts
+// src/server/progression/__tests__/progression.rules.test.ts
 
-describe("calcLevelUp", () => {
-  // TEST 1: Simple case — earn some XP but not enough to level up
-  it("should correctly add XP without leveling up", () => {
-    //         currentXp, level, xpToNextLevel, addedXp
-    const result = calcLevelUp(100, 1, 500, 50);
-    //                                   ↑              ↑
-    //                           at Level 1       add 50 XP
-
-    expect(result).toEqual({
-      newXp: 150, // 100 + 50 = 150
-      newLevel: 1, // didn't cross the 500 threshold — still Level 1
-      newXpToNextLevel: 500, // threshold unchanged
-      levelUp: false, // no level up happened
-    });
+describe('levelFromTotalXp', () => {
+  it('adds XP without leveling up', () => {
+    expect(levelFromTotalXp(100 + 50)).toEqual({ level: 1, xp: 150, xpToNextLevel: 500 });
   });
 
-  // TEST 2: XP crosses the threshold — level up should occur
-  it("should level up when XP exceeds threshold", () => {
-    //         currentXp, level, xpToNextLevel, addedXp
-    const result = calcLevelUp(450, 1, 500, 100);
-    //                          ↑                           ↑
-    //                   already at 450/500          earn 100 more
-
-    expect(result).toEqual({
-      newXp: 50, // 450 + 100 = 550, crossed 500 → 550 - 500 = 50 remaining
-      newLevel: 2, // leveled up to 2
-      newXpToNextLevel: 1000, // Level 2 costs 2 × 500 = 1000
-      levelUp: true,
-    });
+  it('levels up when XP exceeds the threshold', () => {
+    // Level 1 costs 500 XP: 450 + 100 crosses it, leaving 50 toward level 2 (which costs 1000)
+    expect(levelFromTotalXp(450 + 100)).toEqual({ level: 2, xp: 50, xpToNextLevel: 1000 });
   });
 
-  // TEST 3: Edge case — massive XP dump causes multiple level-ups at once
-  it("should handle multiple level ups at once", () => {
-    // Start: Level 1 with 450 XP (needs 50 more to level up)
-    // Add 2000 XP
-    // Level 1: 450 + 2000 = 2450 → cross 500 → 1950 left (Level 2, need 1000)
-    // Level 2: 1950 → cross 1000 → 950 left (Level 3, need 1500)
-    // Level 3: 950 < 1500 → stop
-    const result = calcLevelUp(450, 1, 500, 2000);
-
-    expect(result).toEqual({
-      newXp: 950,
-      newLevel: 3,
-      newXpToNextLevel: 1500,
-      levelUp: true,
-    });
+  it('handles multiple level ups at once', () => {
+    expect(levelFromTotalXp(450 + 2000)).toEqual({ level: 3, xp: 950, xpToNextLevel: 1500 });
   });
 });
 ```
 
-**What this proves:** The leveling formula handles normal XP gain, exact-threshold crossing, and multi-level jumps in one earning event — all without touching a database.
+The player profile stores one number, lifetime XP; level, XP into the level and XP to the next level are computed from it.
 
 ---
 
 #### Example: Testing Streak Logic
 
 ```typescript
-// src/lib/domain/__tests__/user-rules.test.ts
+// src/server/progression/__tests__/progression.rules.test.ts
 
 describe("calcNewStreak", () => {
   // Case 1: Brand new user logging their first ever activity
@@ -519,7 +483,7 @@ describe("calcNewStreak", () => {
 #### Example: Testing the Stamina System
 
 ```typescript
-// src/lib/domain/__tests__/stamina-rules.test.ts
+// src/server/progression/__tests__/progression.rules.test.ts
 
 describe("calcRecoveredStamina", () => {
   // The stamina system is "lazy recovery" — it doesn't tick every second.
@@ -592,49 +556,35 @@ describe("calcExhaustionDebuff", () => {
 
 ### Level 2 — Data Layer Tests (Integration)
 
-**File locations:** `src/lib/data/__tests__/`  
+**File locations:** `src/server/<module>/**/__tests__/<noun>.repository.test.ts`  
 **What they test:** The raw MongoDB functions — do they correctly write to the DB, read back out, and map the document shape correctly?  
 **Infrastructure:** Uses the same in-memory MongoDB from the global setup.
 
 ```typescript
-// src/lib/data/__tests__/custom-exercises-db.test.ts
+// src/server/training/exercises/__tests__/custom-exercise.repository.test.ts
 
-describe("custom-exercises-db Data Layer Test", () => {
-  const userId = "db-user-id";
+describe('custom-exercise repository Test', () => {
+    const userId = "db-user-id";
 
-  // Clean out any leftover test data before and after
-  beforeAll(async () => {
-    const col = await getCollection("customExercisesCollection");
-    await col.deleteMany({ userId });
-  });
-  afterAll(async () => {
-    const col = await getCollection("customExercisesCollection");
-    await col.deleteMany({ userId });
-  });
+    it('should create an exercise and assign an _id', async () => {
+        const doc = await insertCustomExercise({
+            userId,
+            name: "DB Test Exercise",
+            targetMuscle: TargetMuscle.Core
+        });
 
-  // TEST: Does insertOne give back a real MongoDB _id?
-  it("should create an exercise and assign an _id", async () => {
-    const doc = await createCustomExerciseFromDb({
-      userId,
-      name: "DB Test Exercise",
-      targetMuscle: TargetMuscle.Core,
+        expect(doc.id).toBeDefined();
+        expect(doc.userId).toBe(userId);
     });
 
-    expect(doc._id).toBeDefined(); // MongoDB should have assigned an ObjectId
-    expect(doc.userId).toBe(userId);
-  });
+    // MongoDB stores _id (ObjectId), but the app uses id (string).
+    it('listCustomExercisesForUser should map _id to id correctly', async () => {
+        const exercises = await listCustomExercisesForUser(userId);
 
-  // TEST: Does the toExercise() mapper work correctly?
-  // MongoDB stores _id (ObjectId), but the app uses id (string).
-  // This test verifies the conversion happens AND the internal _id is hidden.
-  it("getAllCustomExercisesFromDb should map _id to id correctly", async () => {
-    const exercises = await getAllCustomExercisesFromDb(userId);
-
-    expect(exercises.length).toBe(1);
-    expect(exercises[0].id).toBeDefined(); // ← public id field ✅
-    // @ts-expect-error: intentionally checking runtime field doesn't exist
-    expect(exercises[0]._id).toBeUndefined(); // ← MongoDB _id must be hidden ✅
-  });
+        expect(exercises.length).toBe(1);
+        expect(exercises[0].id).toBeDefined();
+        expect(exercises[0]).not.toHaveProperty("_id");
+    });
 });
 ```
 
@@ -644,7 +594,7 @@ describe("custom-exercises-db Data Layer Test", () => {
 
 ### Level 3 — Service Integration Tests (The Most Important Layer)
 
-**File locations:** `src/lib/services/__tests__/`  
+**File locations:** `src/server/<module>/**/__tests__/` (for example `src/server/training/workouts/__tests__/`)  
 **What they test:** The entire use-case from end to end — input goes in, business logic runs, database is written to, and the result is correct. This tests multiple layers working together.
 
 #### Example 1: The Complete Workout Logging Flow
@@ -655,50 +605,42 @@ describe("custom-exercises-db Data Layer Test", () => {
 describe('logWorkout Integration Test', () => {
   let userId: string;
 
-  // Before ALL tests: create a real user in the test DB
+  // Before ALL tests: seed a real account and player profile in the test DB
   beforeAll(async () => {
-    const usersCol = await getCollection<UserMongoDoc>("usersCollection");
-    const result = await usersCol.insertOne({
-      email: "test@example.com",
-      name: "Test User",
-      level: 1, xp: 0, xpToNextLevel: 500,
-      streak: 0, totalWorkouts: 0, totalDistance: 0,
-      createdAt: new Date(),
-      // stamina not set here — tests control this per-test
-    });
-    userId = result.insertedId.toString();
+    userId = await seedPlayer({ email: "test@example.com", name: "Test User" });
+  });
 
-    // Also create the indexes (specifically the unique idempotency index)
-    await ensureIndexes();
+  afterAll(async () => {
+    await deletePlayer(userId);
   });
 
   // After EACH test: wipe workouts so tests don't bleed into each other
   afterEach(async () => {
-    const workoutsCol = await getCollection("workoutsCollection");
+    const workoutsCol = await getCollection("workouts");
     await workoutsCol.deleteMany({});
   });
 
   // ─── TEST 1: The happy path ───────────────────────────────────────────
   it('should log a workout, calculate XP, and update user stats', async () => {
-    const workout = await logWorkout({
+    const { value: workout } = await logWorkout({
       title: "Morning Lift",
       duration: 60,
       exercises: [
         { name: "Bench Press", targetMuscle: TargetMuscle.Chest, sets: 3, reps: 10, weight: 135 },
         { name: "Squats",      targetMuscle: TargetMuscle.Legs,  sets: 3, reps: 10, weight: 225 }
       ]
-    }, userId);
+    }, userId, request());
 
     // The returned workout object should be correct
     expect(workout.id).toBeDefined();
     expect(workout.title).toBe("Morning Lift");
     expect(workout.xpEarned).toBeGreaterThan(0);
 
-    // The user's stats in MongoDB should reflect the workout
-    const user = await usersCol.findOne({ _id: new ObjectId(userId) });
-    expect(user!.totalWorkouts).toBe(1);       // incremented by 1 ✅
-    expect(user!.xp).toBe(workout.xpEarned);   // XP granted ✅
-    expect(user!.streak).toBe(1);              // streak started ✅
+    // The player profile in MongoDB should reflect the workout
+    const profile = await readProfile();
+    expect(profile.totalWorkouts).toBe(1);                             // incremented by 1 ✅
+    expect((await getPlayerState(userId)).xp).toBe(workout.xpEarned);  // XP granted ✅
+    expect(profile.streak).toBe(1);                                    // streak started ✅
   });
 ```
 
@@ -718,12 +660,12 @@ it("replays a retry with the same key and body, and never credits XP twice", asy
   const first = await logWorkout(workoutInput, userId, request);
   expect(first.replayed).toBe(false);
 
-  const xpAfterFirst = (await usersCol.findOne({ _id: new ObjectId(userId) }))!.xp;
+  const xpAfterFirst = (await getPlayerState(userId)).xp;
 
   // Retry with the SAME key and body — replayed, nothing runs again
   const second = await logWorkout(workoutInput, userId, request);
   expect(second).toEqual({ value: first.value, replayed: true });
-  expect((await usersCol.findOne({ _id: new ObjectId(userId) }))!.xp).toBe(xpAfterFirst);
+  expect((await getPlayerState(userId)).xp).toBe(xpAfterFirst);
 
   // Same key, different body — the earlier submit stands, so the retry is refused
   await expect(
@@ -747,14 +689,9 @@ it("should process lazy recovery before applying cost", async () => {
   const twoDaysAgo = new Date();
   twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
 
-  await usersCol.updateOne(
-    { _id: new ObjectId(userId) },
-    {
-      $set: { stamina: 10, lastStaminaUpdate: twoDaysAgo.toISOString() },
-    },
-  );
+  await setProfile({ stamina: 10, lastStaminaUpdate: twoDaysAgo });
 
-  // Act: log a 60-minute workout (cost = 15 + 30 = 45)
+  // Act: log a 60-minute workout (cost = 10 + 60 × 0.2 = 22)
   await logWorkout(
     {
       title: "Recovered Workout",
@@ -770,14 +707,14 @@ it("should process lazy recovery before applying cost", async () => {
       ],
     },
     userId,
+    request(),
   );
 
   // Assert:
-  // Recovery:  10 stamina + (2 days × 50/day) = 110 → capped at 100
-  // Cost:      100 - 45 = 55
-  // Final:     55
-  const userAfter = await usersCol.findOne({ _id: new ObjectId(userId) });
-  expect(userAfter!.stamina).toBe(55); // ✅
+  // Recovery:  10 stamina + (2 days × 100/day) = 210 → capped at 100
+  // Cost:      100 - 22 = 78
+  // Final:     78
+  expect((await readProfile()).stamina).toBe(78); // ✅
 });
 ```
 
@@ -808,7 +745,7 @@ it("should prevent duplicate custom exercises with the same name and muscle grou
   );
 
   // Confirm only ONE record in the DB
-  const col = await getCollection("customExercisesCollection");
+  const col = await getCollection("customExercises");
   const all = await col.find({ userId }).toArray();
   expect(all.length).toBe(1); // Not 2 ✅
 });
@@ -823,16 +760,13 @@ it("should prevent duplicate custom exercises with the same name and muscle grou
 | Test Type               | Tool                       | Speed                | What It Validates                                           |
 | ----------------------- | -------------------------- | -------------------- | ----------------------------------------------------------- |
 | **Unit**                | Vitest                     | ⚡ Instant (~ms)     | Pure game math — XP formulas, streak logic, stamina math    |
-| **Data Layer**          | Vitest + in-memory MongoDB | 🚀 Fast (~seconds)   | DB reads/writes, document mapping, null handling            |
+| **Repository**          | Vitest + in-memory MongoDB | 🚀 Fast (~seconds)   | DB reads/writes, document mapping, null handling            |
 | **Service Integration** | Vitest + in-memory MongoDB | 🏃 Medium (~seconds) | Full use-case: input → business logic → DB → correct output |
 | **E2E**                 | Playwright                 | 🐢 Slow (~minutes)   | Full browser flow against a live running app                |
 
 ### What's NOT Covered Yet (Gaps)
 
-- No tests for the `grantUserXP` race condition scenario
-- No tests for `syncUserQuests` period-boundary logic
 - API route tests cover workouts, runs, exercises, templates, quest claim and the outbox cron sweep; the other routes rely on the service integration tests, and `route-table.test.ts` guards that every route is built with `defineRoute`
-- Quest progress update tests are missing (the dead-code bug in `updateQuestProgress` would have been caught by these)
 
 To run all tests:
 

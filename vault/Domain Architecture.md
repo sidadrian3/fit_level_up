@@ -44,11 +44,11 @@ The following diagram illustrates how a typical action (like logging a workout) 
 
 ## 🧩 Feature Modules
 
-The back end is organised by feature, not by layer. Three modules own their whole slice, and each exposes one `index.ts` that other code must import through (ESLint enforces it):
+The back end is organised by feature, not by layer. Six modules own the whole back end, and each exposes one `index.ts` that other code must import through (ESLint enforces it):
 
 | Module | Owns |
 |---|---|
-| `src/server/progression` | XP, level, streak, stamina and totals on the player profile |
+| `src/server/progression` | XP, level, streak, stamina and totals on the player profile; `getUser` joins the account with the player state into the `User` the API returns |
 | `src/server/quests` | Quest definitions (`QUEST_DEFINITIONS`), period rules, sync, progress and claim |
 | `src/server/training` | Workouts, runs, templates, custom exercises and stats (personal records, dashboard), one folder and one `<noun>.service.ts` per sub-feature |
 | `src/server/achievements` | Evaluates unlock conditions when `activity.logged` or `progression.leveled-up` is delivered, writes unlocks, emits `achievement.unlocked`; lists achievements. Imported only by `runtime.ts` and `src/app` |
@@ -57,7 +57,7 @@ The back end is organised by feature, not by layer. Three modules own their whol
 
 Inside a module every file is `index.ts` or `<noun>.<role>.ts`, with role `service`, `repository`, `rules`, `definitions`, `events`, `listeners` or `adapters`. `index.ts` is the public surface. Routes and `<noun>.listeners.ts` files are the controllers: they call services, may wire one module's function into another, and hold no business rules. [[Server File Layout Plan]] records why.
 
-The remaining feature (users) still uses the `src/lib/services` and `src/lib/domain` folders until it is moved.
+`src/server` is the whole back end, with `platform/` for infrastructure. `src/lib` holds browser code only: query keys, hooks and client helpers. Dependency-cruiser fails `npm run lint` when UI code imports a server value, when `platform` imports a feature module, or when modules form a cycle.
 
 Inside a module the four layers keep the same names: use cases are plain functions, `*.rules.ts` files are pure, and `*.repository.ts` files are the only code that touches a collection, built on `userScopedRepository` so every query is filtered by `userId`. Modules call each other directly inside the caller's transaction when the result must commit together (training → quests → progression), and through events otherwise.
 
@@ -79,7 +79,7 @@ export const POST = defineRoute(
 ```
 
 ### 2. Services (Application Layer)
-**Location:** `src/server/<module>/**/<noun>.service.ts` (or `src/lib/services/...` for features not yet moved)
+**Location:** `src/server/<module>/**/<noun>.service.ts`
 
 The Service layer acts as the orchestrator. It manages the database transaction, stitches together domain logic, and triggers side effects. If something needs to happen in a specific order (like saving a workout, then updating a quest, then updating the user's XP), it happens here.
 
@@ -116,11 +116,11 @@ export async function logWorkout(input: CreateWorkoutInput, userId: string): Pro
 ```
 
 ### 3. Domain (Business Rules Layer)
-**Location:** `src/server/<module>/**/*.rules.ts` (or `src/lib/domain/...` for features not yet moved)
+**Location:** `src/server/<module>/**/*.rules.ts`
 
 The Domain layer is where the "game mechanics" live. It contains pure, synchronous functions that take inputs and calculate outputs. Because this layer has **no side effects** and doesn't touch the database, it is extremely fast and easy to write unit tests for.
 
-Domain rules never read the clock or assume a time zone. Every calendar-day rule (`calcNewStreak`, `calcDisplayStreak`, `calcActiveDays`, `getPeriodForCategory`) takes `now: Date` and the user's `timeZone` as arguments, and the service supplies both. The calendar helpers (`toLocalDay`, `addDays`, `startOfWeek`, `startOfLocalDay`) live in `src/shared/time/calendar.ts`; weeks run Monday to Sunday.
+Domain rules never read the clock or assume a time zone. Every calendar-day rule (`calcNewStreak`, `calcDisplayStreak`, `calcActiveDays` (in `training/stats`), `getPeriodForCategory`) takes `now: Date` and the user's `timeZone` as arguments, and the service supplies both. The calendar helpers (`toLocalDay`, `addDays`, `startOfWeek`, `startOfLocalDay`) live in `src/shared/time/calendar.ts`; weeks run Monday to Sunday.
 
 When a rule is violated (an incomplete quest claim, a friend request to yourself, an empty workout title) it throws a `DomainError` from `src/server/platform/domain.ts`. Its `kind` is `invalid` or `conflict`, and `toErrorResponse` maps those to `400` and `409`. The domain layer defines this error itself because it may not import from the HTTP platform area.
 
