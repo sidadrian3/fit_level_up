@@ -7,7 +7,7 @@ import { DailyQuests } from "./_components/DailyQuests";
 import { RecentActivity } from "./_components/RecentActivity";
 import { DashboardTabs } from "./_components/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import { getUser } from "@/server/progression";
 import { getActiveDaysThisWeek, getDashboardStats, getRecentWorkouts } from "@/server/training";
 import { getQuests } from "@/server/quests";
@@ -17,7 +17,7 @@ import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
 
 export default async function DashboardPage() {
 
-    const userId = await getAuthUserId();
+    const userId = await requireSessionUserId();
 
     const [user, recentWorkouts, allQuests] = await
         Promise.all([

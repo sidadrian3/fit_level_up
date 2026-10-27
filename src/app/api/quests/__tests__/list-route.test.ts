@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "../route";
 import { getCollection } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import type { Quest } from "@/shared/contracts/quest";
 
-vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn(),
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn(),
 }));
 
 const EXPECTED_KEYS = ["category", "claimed", "completed", "description", "icon", "id", "progress", "target", "title", "xpReward"];
@@ -16,7 +17,7 @@ describe("GET /api/quests", () => {
 
   beforeEach(async () => {
     userId = await seedPlayer({ email: `quests-list-${crypto.randomUUID()}@example.com`, name: "Quester", timeZone: "UTC" });
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
   });
 
   afterEach(async () => {

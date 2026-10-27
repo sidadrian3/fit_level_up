@@ -4,7 +4,10 @@ import { RATE_LIMIT_TIERS } from "@/server/platform/config";
 import type { DefinedRoute } from "@/server/platform/http";
 
 vi.mock("@/server/platform/http/rate-limiter", () => ({ createRateLimiter: () => vi.fn() }));
-vi.mock("@/lib/auth/auth-helpers", () => ({ getAuthUserId: vi.fn() }));
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn(),
+}));
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 const MUTATING_METHODS = new Set<string>(["POST", "PUT", "PATCH", "DELETE"]);

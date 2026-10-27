@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import { getCollection } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { POST } from "../route";
 
 const limit = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn().mockResolvedValue("fake-user-123"),
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn().mockResolvedValue("fake-user-123"),
 }));
 
 vi.mock("@/server/platform/http/rate-limiter", () => ({ createRateLimiter: () => limit }));
@@ -61,7 +62,7 @@ describe("POST /api/workouts - Idempotency-Key", () => {
     vi.clearAllMocks();
     limit.mockResolvedValue({ success: true, reset: Date.now() + 60_000 });
     userId = await seedPlayer({ email: `wk-${crypto.randomUUID()}@example.com`, name: "Route User", profile: {} });
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
   });
 
   afterEach(async () => {

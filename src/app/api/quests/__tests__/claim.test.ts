@@ -3,10 +3,11 @@ import { POST } from "../[id]/claim/route";
 import { getCollection } from "@/server/platform/database";
 import { calcLifetimeXp, getPlayerState } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 
-vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn(),
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn(),
 }));
 
 const userId = "claim-route-user";
@@ -24,7 +25,7 @@ function claim(id: string) {
 
 describe("POST /api/quests/[id]/claim", () => {
   beforeAll(() => {
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
   });
 
   afterEach(async () => {
@@ -60,7 +61,7 @@ describe("POST /api/quests/[id]/claim", () => {
       name: "Claimer",
       profile: { totalXp: calcLifetimeXp(1, 450) },
     });
-    vi.mocked(getAuthUserId).mockResolvedValue(claimerId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(claimerId);
 
     try {
       const quest = await (
@@ -87,7 +88,7 @@ describe("POST /api/quests/[id]/claim", () => {
       ).deleteMany({ userId: claimerId });
       await (await getCollection("outbox")).deleteMany({});
       await deletePlayer(claimerId);
-      vi.mocked(getAuthUserId).mockResolvedValue(userId);
+      vi.mocked(requireSessionUserId).mockResolvedValue(userId);
     }
   });
 });

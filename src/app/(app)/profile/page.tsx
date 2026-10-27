@@ -4,13 +4,13 @@ import { ProfileHeader } from "./_components/ProfileHeader";
 import { AchievementGrid } from "./_components/AchievementGrid";
 import { PersonalRecords } from "./_components/PersonalRecords";
 
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import { getUser } from "@/server/progression";
 import { getDashboardStats } from "@/server/training";
 import { countUnlockedAchievements, listAchievements } from "@/server/achievements";
 
 export default async function ProfilePage() {
-    const userId = await getAuthUserId();
+    const userId = await requireSessionUserId();
 
     const [user, achievements] = await Promise.all([
         getUser(userId),

@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import { getCollection, type PlayerProfileDoc } from "@/server/platform/database";
 import { calcLifetimeXp } from "@/server/progression";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 import { GAME_CONFIG } from "@/server/platform/config";
 import { GET } from "../route";
 
-vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn(),
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn(),
 }));
 
 vi.mock("@/server/platform/http/rate-limiter", () => ({
@@ -37,7 +38,7 @@ describe("GET /api/user", () => {
         ...profile,
       },
     });
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
   }
 
   async function getBody() {
@@ -124,7 +125,7 @@ describe("GET /api/user", () => {
       name: "Bare",
     });
     userId = insertedId.toString();
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
 
     expect(await getBody()).toMatchObject({
       level: 1,

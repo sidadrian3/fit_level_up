@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import { buildFriendshipPairKey } from "@/server/social";
 import { getCollection, type FriendshipDoc, type NotificationDoc } from "@/server/platform/database";
 import { calcLifetimeXp } from "@/server/progression";
@@ -12,7 +12,10 @@ vi.mock("next/server", async (importOriginal) => ({
   after: () => {},
 }));
 
-vi.mock("@/lib/auth/auth-helpers", () => ({ getAuthUserId: vi.fn() }));
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn(),
+}));
 
 vi.mock("@/server/platform/http/rate-limiter", () => ({
   createRateLimiter: () => async () => ({ success: true, reset: Date.now() + 60_000 }),
@@ -34,7 +37,7 @@ describe("GET /api/cron/outbox-sweep", () => {
     await (await getCollection("outbox")).deleteMany({});
     userId = await seedPlayer({ name: "Lifter", profile: { totalXp: calcLifetimeXp(1, 499) } });
     friendId = await seedPlayer({ name: "Friend", profile: {} });
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
 
     const now = new Date();
     await (await getCollection<FriendshipDoc>("friendships")).insertOne({
