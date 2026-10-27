@@ -6,8 +6,8 @@ Index of study guides — walkthroughs of already-built parts of the system, for
 
 - [[Developer Handbook]] — the front door: the system on one page, reading paths by goal, the map of every note, a glossary, and the rule for keeping guides current
 - [[Project Briefing]] — plain-English tour of what the product is, what users can do and how the pieces fit
-- [[Domain Architecture]] — the four layers (route, service, domain, data) and how one action flows through them
-- [[Architecture Review]] — request lifecycle, auth, rate limiting, SSE and data-flow diagrams
+- [[Domain Architecture]] — the four layers (route, service, rules, repository), the six `src/server` modules, and how one action flows through them
+- [[Architecture Review]] — superseded by [[Architecture Overhaul Design Spec]]; the pre-overhaul request lifecycle, auth, rate limiting, SSE and data-flow diagrams, kept for their reasoning
 - [[Data Model And API Reference]] — every collection and index, every API route, every page
 - [[Developer SOP Guide]] — setup, env vars, everyday commands, hooks, the agent pipeline, testing, vault conventions
 

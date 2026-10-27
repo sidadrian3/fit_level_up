@@ -1,5 +1,7 @@
 # ⚡ FitLevelUp — Architecture Review
 
+> **Superseded by [[Architecture Overhaul Design Spec]].** This review describes the system as it stood before the overhaul: Upstash Redis SSE, `src/lib/{services,domain,data,sse,api,auth}`, and a `handleApiError()` call in every route. None of that exists now. The reasoning below is kept for history; for how the code works today read [[Domain Architecture]] and [[Data Model And API Reference]].
+
 > **Stack:** Next.js 16 App Router · MongoDB + Better-Auth · Upstash Redis SSE · TanStack Query
 
 ---

@@ -23,12 +23,14 @@ Single Next.js 16 (App Router) package — no workspaces.
 src/
   app/            # pages ((app), (auth), (landing) route groups) and api/ route handlers
   components/     # React components by feature; components/ui/ holds the shared primitives
-  lib/
-    domain/       # pure business rules, *-rules.ts / *-evaluator.ts
-    services/     # use-case orchestration, one folder per domain
-    auth/  api/  sse/  hooks/  <domain>/  shared/  utils/  validations/  constants/  config/
-  scripts/        # DB migration scripts
-  env.ts          # validated environment variables
+  server/         # everything that runs only on the server ("server-only")
+    runtime.ts    # composition root: the wired defineRoute, the outbox dispatcher, the listener list
+    platform/     # infrastructure: config, env, domain, auth/, database/, events/, http/
+    progression/  quests/  training/  achievements/  social/  notification/   # feature modules
+  shared/         # isomorphic code: contracts/ (Zod schemas and wire types), time/, static definitions
+  lib/            # browser side only: <domain>/{api,keys,hooks}, auth/client.ts, env.ts, shared/api-fetch.ts, utils/, constants/, hooks/
+  testing/        # test helpers (seedPlayer, transactions)
+  scripts/        # DB migration runner, numbered migrations, outbox operator tool
   proxy.ts        # route protection (Next.js middleware)
 tests/e2e/        # Playwright
 vault/            # Obsidian second brain — see CONTEXT.md
@@ -68,7 +70,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 - `src/server/platform/` is infrastructure, one file per concern or a folder when a concern has several distinct parts: `config`, `env`, `domain`, `auth/`, `database/`, `events/`, `http/`.
 - A service that touches more than one collection uses `client.startSession()` + `session.withTransaction(...)` and passes the `session` into every repository call (see `logWorkout`).
 - Services are plain exported functions, not classes. `src/server/progression` owns every game-state transition (XP, level, streak, stamina, totals) through `recordActivity` and `grantXp`, so those rules cannot be applied twice or differently; no other code reads or writes `player_profiles`.
-- Older code under `src/lib/services` and `src/lib/domain` has not moved into `src/server` yet.
+- `src/lib` is browser-only. Dependency-cruiser enforces the boundaries as part of `npm run lint`: no cycles, `src/shared` imports nothing app-side, UI code reaches `src/server` for types only, `platform` imports no feature module, only `runtime.ts` wires `achievements` and `notification`, and only `src/app` imports `runtime.ts`.
 
 ### Front-end structure (Next.js App Router)
 
@@ -85,7 +87,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 
 - Write the failing test first, then implement the minimum code to pass it.
 - **Integration tests first.** Cover each use case end to end through its service against the in-memory MongoDB replica set (see `src/server/training/workouts/__tests__/log-workout.test.ts`): at least the happy path and one error path per use case. Route handlers with real branching get a route test (see `src/app/api/workouts/__tests__/route.test.ts`).
-- **Unit tests only for real branching logic** — XP and stamina formulas, streak and quest rules, boundary checks. These live in `src/lib/domain/__tests__/`. Pass-through routes, simple queries and mapping functions get no unit test of their own; the integration test covers them.
+- **Unit tests only for real branching logic** — XP and stamina formulas, streak and quest rules, boundary checks. These sit in the module's `__tests__/` folder next to the `*.rules.ts` file they cover. Pass-through routes, simple queries and mapping functions get no unit test of their own; the integration test covers them.
 - Create a test file only when it holds a test the rules above call for.
 - Do not mark a task complete until all relevant tests pass. `npm run test:run` is the one-shot command (`npm test` starts watch mode).
 
@@ -122,7 +124,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 
 - A type used by one file stays in that file.
 - A type shared across files lives in `src/shared/contracts/<domain>.ts`, next to the Zod schemas it is inferred from.
-- Domain-owned database documents (`UserMongoDoc`, etc.) stay next to their `-db.ts` file.
+- Database document types (`*Doc`) live in `src/server/platform/database/schema.ts`, next to the collection and index definitions.
 
 ### No Deprecated APIs
 
@@ -163,7 +165,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 ### Domain Data Extraction
 
 - Never hardcode domain constants (XP rates, level formulas, stamina costs, quest or achievement thresholds, exercise lists) inside React components or services.
-- Game tuning lives in `src/server/platform/config.ts`; static lists live in `src/lib/constants/`. Type them `as const` and export them for reuse.
+- Game tuning lives in `src/server/platform/config.ts`; static lists live in `src/shared/` (definitions the server also needs) or `src/lib/constants/` (browser-only). Type them `as const` and export them for reuse.
 
 ### React Query & API Types
 
@@ -175,7 +177,7 @@ Every feature flows through the same layers. Read [[Domain Architecture]] before
 
 ### Testing & Mocks
 
-- Services are tested against the real in-memory replica set from `vitest.global-setup.ts`, not against mocked `-db.ts` modules. A mock that lets a test pass without exercising Mongo semantics (transactions, unique indexes, `$inc`) hides exactly the bugs this layer exists to prevent.
+- Services are tested against the real in-memory replica set from `vitest.global-setup.ts`, not against mocked repositories. A mock that lets a test pass without exercising Mongo semantics (transactions, unique indexes, `$inc`) hides exactly the bugs this layer exists to prevent.
 - Mock only true external boundaries (Upstash Redis, the clock when a test needs it).
 - `fileParallelism` is off because tests share one replica set; clean up the data your test created.
 

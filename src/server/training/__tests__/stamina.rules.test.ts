@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { calcStaminaCost, calcExhaustionDebuff } from '../stamina-rules';
+import { calcStaminaCost, calcExhaustionDebuff } from '../stamina.rules';
 
-describe('stamina-rules', () => {
+describe('stamina.rules', () => {
   describe('calcStaminaCost', () => {
     it('should calculate the correct cost for a 60 minute workout', () => {
       expect(calcStaminaCost(60)).toBe(22); // 10 + (60 * 0.2)

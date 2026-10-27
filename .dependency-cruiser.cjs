@@ -16,14 +16,11 @@ module.exports = {
       to: { path: "^src/(server|lib|components|app)" },
     },
     {
-      name: "legacy-and-ui-not-into-server",
+      name: "ui-not-into-server",
       severity: "error",
       comment:
-        "G3: lib, components and page _components reach src/server only for types, except the old back end (strangler exemption).",
-      from: {
-        path: ["^src/(lib|components)", "^src/app/.*/_components/"],
-        pathNot: "^src/lib/(services|domain|data|sse|api|auth)/",
-      },
+        "G3: lib, components and page _components reach src/server only for types.",
+      from: { path: ["^src/(lib|components)", "^src/app/.*/_components/"] },
       to: { path: "^src/server", dependencyTypesNot: ["type-only"] },
     },
     {

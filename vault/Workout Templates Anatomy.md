@@ -36,11 +36,11 @@ By keeping it as an enum, the application avoids typos in the database (e.g., so
 
 ---
 
-## 2. Workout Templates (The Bypass Flow)
+## 2. Workout Templates (The Light Flow)
 
 A Workout Template is a saved blueprint of exercises (with their anatomy tags) that a user can quickly load later. 
 
-Unlike logging a *real* workout—which requires heavy math for Stamina costs, XP gains, and triggering side effects (Quests, Achievements)—saving a template does **none of those things**. Because of this, the architecture intentionally bypasses the Service and Domain layers for simplicity.
+Unlike logging a *real* workout—which requires heavy math for Stamina costs, XP gains, and triggering side effects (Quests, Achievements)—saving a template does **none of those things**. Because of this, the flow skips the Domain layer and the other modules: the template service only wraps the insert in `createOnce` so a retry returns the same template.
 
 ### 🏗️ Visual Flow (Template Creation)
 
@@ -51,13 +51,12 @@ Unlike logging a *real* workout—which requires heavy math for Stamina costs, X
    │ (2) POST /api/workout-templates
    ▼
 [ API Layer ] (route.ts)
-   │ - Authenticates User
-   │ - Validates payload matches schemas
+   │ - defineRoute: authenticates, rate-limits, validates the payload and the Idempotency-Key
    │
-   │ (3) createWorkoutTemplateInDb()
+   │ (3) createWorkoutTemplate()
    ▼
-[ Data Layer ] (workout-templates-db.ts)
-   │ - Inserts directly into MongoDB
+[ Service + Data Layer ] (template.service.ts, template.repository.ts)
+   │ - createOnce: inserts once per Idempotency-Key
    │ ◄─ Returns newly created template ID
    │
    ▼
@@ -88,30 +87,12 @@ const onSubmit = async (e: React.FormEvent) => {
 ```
 
 **2. The API Layer (`src/app/api/workout-templates/route.ts`)**
-The API validates the request, and instantly passes it to the Data Layer.
+The route declares its contract to `defineRoute` and hands the validated body to the service.
 ```typescript
-export async function POST(req: Request) {
-    try {
-        const userId = await getAuthUserId();
-        const body = await req.json();
-        
-        // Ensure the payload is structurally valid
-        const input = WorkoutTemplateSchema.parse(body);
-
-        // BYPASS: Jump straight to the database layer!
-        const template = await createWorkoutTemplateInDb({
-            userId,
-            name: input.name,
-            exercises: input.exercises, // Includes the TargetMuscle anatomy data
-            idempotencyKey: input.idempotencyKey,
-            createdAt: new Date().toISOString(),
-        });
-
-        return NextResponse.json(template, {status: 201});
-    } catch(err) {
-        return handleApiError(err);
-    }
-}
+export const POST = defineRoute(
+  { name: "templates.create", auth: "user", throttle: "standard", body: WorkoutTemplateSchema, status: 201, idempotency: "required" },
+  ({ userId, body, idempotency }) => createWorkoutTemplate(body, userId, idempotency)
+);
 ```
 
 **3. The Data Layer (`src/server/training/templates/template.repository.ts`)**

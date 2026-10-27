@@ -1,5 +1,6 @@
 import { formatDuration } from "@/lib/utils/formatters";
 import type { PersonalRecord } from "@/shared/contracts/personal-record";
+import { addDays, startOfWeek, toLocalDay } from "@/shared/time/calendar";
 
 export const FIVE_K_WINDOW_KM = { min: 4.8, max: 5.2 } as const;
 export const TEN_K_WINDOW_KM = { min: 9.8, max: 10.2 } as const;
@@ -31,4 +32,24 @@ export function buildPersonalRecords(liftMaxes: readonly LiftMax[], runs: RunRec
     }
 
     return records;
+}
+
+/** Which days of the user's current local week (Monday-Sunday) had activity. */
+export function calcActiveDays(activityInstants: Date[], now: Date, timeZone: string): boolean[] {
+    const activeDays = [false, false, false, false, false, false, false];
+    const weekStart = startOfWeek(toLocalDay(now, timeZone));
+    const weekEnd = addDays(weekStart, 7);
+
+    for (const instant of activityInstants) {
+        const day = toLocalDay(instant, timeZone);
+        if (day >= weekStart && day < weekEnd) {
+            activeDays[dayIndexInWeek(weekStart, day)] = true;
+        }
+    }
+
+    return activeDays;
+}
+
+function dayIndexInWeek(weekStart: string, day: string): number {
+    return Math.round((Date.parse(day) - Date.parse(weekStart)) / 86_400_000);
 }

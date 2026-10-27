@@ -7,19 +7,17 @@ import { DailyQuests } from "./_components/DailyQuests";
 import { RecentActivity } from "./_components/RecentActivity";
 import { DashboardTabs } from "./_components/DashboardTabs";
 import { StatCard } from "@/components/ui/StatCard";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
-import { getUser } from "@/lib/services/users/get-user";
-import { getDashboardStats, getRecentWorkouts, getWorkoutDatesInRange } from "@/server/training";
+import { requireSessionUserId } from "@/server/platform/auth";
+import { getUser } from "@/server/progression";
+import { getActiveDaysThisWeek, getDashboardStats, getRecentWorkouts } from "@/server/training";
 import { getQuests } from "@/server/quests";
 import { countUnlockedAchievements } from "@/server/achievements";
 import { Dumbbell, Footprints, Trophy, Zap } from "lucide-react";
-import { calcActiveDays } from "@/lib/domain/user-rules";
-import { weekInstants } from "@/shared/time/calendar";
 
 
 export default async function DashboardPage() {
 
-    const userId = await getAuthUserId();
+    const userId = await requireSessionUserId();
 
     const [user, recentWorkouts, allQuests] = await
         Promise.all([
@@ -29,13 +27,10 @@ export default async function DashboardPage() {
         ]);
 
     const now = new Date();
-    const { thisWeekFrom, nextWeekFrom } = weekInstants(now, user.timeZone);
-    const [stats, weekWorkoutDates] = await Promise.all([
+    const [stats, activeDays] = await Promise.all([
         getDashboardStats(userId, user, { countAchievements: countUnlockedAchievements, now }),
-        getWorkoutDatesInRange(userId, thisWeekFrom, nextWeekFrom),
+        getActiveDaysThisWeek(userId, { timeZone: user.timeZone, now }),
     ]);
-
-    const activeDays = calcActiveDays(weekWorkoutDates, now, user.timeZone);
 
     // Filter for daily quests first, then limit to top 5
     const dailyQuests = allQuests.filter(q => q.category === "daily").slice(0, 5);

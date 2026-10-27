@@ -35,7 +35,7 @@ Validated at startup by `src/server/platform/env/env.ts` (server variables) and 
 | Command | Does |
 |---|---|
 | `npm run dev` | Dev server on port 3000 |
-| `npm run lint` | ESLint (check only), then the dependency-cruiser rules in `.dependency-cruiser.cjs` (cycles and who may import whom; two cycles in old `src/lib` code are baselined in `.dependency-cruiser-known-violations.json`) |
+| `npm run lint` | ESLint (check only), then the dependency-cruiser rules in `.dependency-cruiser.cjs` (cycles and who may import whom; `.dependency-cruiser-known-violations.json` baselines known violations and is empty) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:run` | All Vitest tests once, against an in-memory MongoDB replica set |
 | `npm test` | Vitest in watch mode |
@@ -78,8 +78,8 @@ The pre-commit hook lints staged files, then runs the dependency-cruiser rules o
 
 ## 9. Testing
 
-- Use cases: integration tests against the in-memory replica set (`vitest.global-setup.ts`), in the module's `__tests__/` folder (`src/server/<module>/**/__tests__/`, or `src/lib/services/__tests__/` for features not yet moved).
-- Domain rules: unit tests next to the `*.rules.ts` file (`src/lib/domain/__tests__/` for features not yet moved).
+- Use cases: integration tests against the in-memory replica set (`vitest.global-setup.ts`), in the module's `__tests__/` folder (`src/server/<module>/**/__tests__/`).
+- Domain rules: unit tests next to the `*.rules.ts` file (`src/server/<module>/**/__tests__/`).
 - Routes with branching: tests in `src/app/api/**/__tests__/`.
 - User journeys: Playwright in `tests/e2e/`.
 - Tests share one replica set, so files run serially; clean up the data a test creates.

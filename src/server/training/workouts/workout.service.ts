@@ -20,7 +20,6 @@ import {
   deleteWorkoutById,
   findRecentWorkouts,
   findWorkoutByIdempotencyKey,
-  findWorkoutDatesInRange,
   insertWorkout,
   listWorkoutsPage,
   updateWorkoutFields,
@@ -174,6 +173,3 @@ export function getRecentWorkouts(userId: string, limit: number = MAX_RECENT_WOR
     return findRecentWorkouts(userId, Math.min(limit, MAX_RECENT_WORKOUTS));
 }
 
-export function getWorkoutDatesInRange(userId: string, from: Date, toExclusive: Date): Promise<Date[]> {
-    return findWorkoutDatesInRange(userId, from, toExclusive);
-}

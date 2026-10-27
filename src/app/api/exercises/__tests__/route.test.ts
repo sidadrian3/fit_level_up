@@ -4,8 +4,9 @@ import { getCollection } from "@/server/platform/database";
 
 const userId = "exercise-route-user";
 
-vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn().mockResolvedValue("exercise-route-user"),
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn().mockResolvedValue("exercise-route-user"),
 }));
 
 const limit = vi.hoisted(() => vi.fn());

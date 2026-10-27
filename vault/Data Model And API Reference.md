@@ -1,6 +1,6 @@
 # Data Model And API Reference
 
-Every MongoDB collection, every API route and every page in FitLevelUp. The code is the source of truth: collection names, document types, indexes and validators come from `src/server/platform/database/schema.ts`, and shared types from `src/lib/types.ts` and `src/shared/contracts/`. This note is kept in step with them by the Handbook Sync step ([[Developer Handbook]] §7).
+Every MongoDB collection, every API route and every page in FitLevelUp. The code is the source of truth: collection names, document types, indexes and validators come from `src/server/platform/database/schema.ts`, and shared types from `src/shared/contracts/`. This note is kept in step with them by the Handbook Sync step ([[Developer Handbook]] §7).
 
 ---
 

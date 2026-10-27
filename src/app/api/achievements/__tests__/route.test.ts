@@ -1,18 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "../route";
 import { getCollection } from "@/server/platform/database";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import type { Achievement } from "@/shared/contracts/achievement";
 
-vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn(),
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn(),
 }));
 
 const userId = "achievements-route-user";
 
 describe("GET /api/achievements", () => {
   beforeEach(() => {
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
   });
 
   afterEach(async () => {

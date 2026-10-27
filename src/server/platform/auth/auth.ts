@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { client } from "@/server/platform/database";
 import { env } from "@/server/platform/env";
+import { UnauthorizedError } from "@/server/platform/http";
 import { timeZoneSchema } from "@/shared/contracts/user";
 
 const db = client.db(env.MONGODB_DB);
@@ -35,4 +36,10 @@ export async function getSessionUserId(): Promise<string | null> {
     console.error("Failed to get session in getSessionUserId:", error);
     return null;
   }
+}
+
+export async function requireSessionUserId(): Promise<string> {
+  const userId = await getSessionUserId();
+  if (!userId) throw new UnauthorizedError("Unauthorized");
+  return userId;
 }

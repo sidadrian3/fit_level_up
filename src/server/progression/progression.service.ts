@@ -20,7 +20,9 @@ import {
   type Totals,
 } from "./profile.repository";
 import { deleteXp, recordXp, sumXp, upsertXp, type XpSource } from "./xp-ledger.repository";
-import { getUserTimeZone } from "@/server/platform/auth";
+import { getAccount, getUserTimeZone } from "@/server/platform/auth";
+import { NotFoundError } from "@/server/platform/http";
+import type { User } from "@/shared/contracts/user";
 import { addDays, toLocalDay } from "@/shared/time/calendar";
 
 type XpGrant = {
@@ -104,6 +106,29 @@ export async function getPlayerState(
   const profile = await findProfile(userId, { session });
   const timeZone = await getUserTimeZone(userId, { session });
   return toPlayerState(profile ?? newProfileDefaults(now), timeZone, now);
+}
+
+export async function getUser(
+  userId: string,
+  { session, now = new Date() }: { session?: ClientSession; now?: Date } = {},
+): Promise<User> {
+  // Sequential: the session may be a transaction, which forbids concurrent operations.
+  const account = await getAccount(userId, { session });
+  if (!account) throw new NotFoundError("User not found");
+  const player = await getPlayerState(userId, { now, session });
+
+  return {
+    ...account,
+    level: player.level,
+    xp: player.xp,
+    xpToNextLevel: player.xpToNextLevel,
+    streak: player.streak,
+    totalWorkouts: player.totalWorkouts,
+    totalDistance: player.totalDistance,
+    stamina: player.stamina,
+    lastActivityDate: player.lastActivityDay,
+    lastStaminaUpdate: player.lastStaminaUpdate.toISOString(),
+  };
 }
 
 export async function getPlayerStates(

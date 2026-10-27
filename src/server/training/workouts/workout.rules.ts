@@ -4,7 +4,7 @@ import type { CreateWorkoutInput } from "@/shared/contracts/workout";
 import type { Exercise } from "@/shared/contracts/exercise";
 import { GAME_CONFIG } from "@/server/platform/config";
 import { DomainError } from "@/server/platform/domain";
-import { calcStaminaCost, calcExhaustionDebuff } from "@/lib/domain/stamina-rules";
+import { calcStaminaCost, calcExhaustionDebuff } from "../stamina.rules";
 
 export function validateWorkoutInput(input: CreateWorkoutInput): void {
     if (!input.title.trim()) {

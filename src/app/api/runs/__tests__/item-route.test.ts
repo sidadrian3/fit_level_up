@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { ObjectId } from "mongodb";
 import { PUT, DELETE } from "../[id]/route";
-import { getAuthUserId } from "@/lib/auth/auth-helpers";
+import { requireSessionUserId } from "@/server/platform/auth";
 import { getCollection, type PlayerProfileDoc } from "@/server/platform/database";
 import { seedPlayer, deletePlayer } from "@/testing/players";
 
-vi.mock("@/lib/auth/auth-helpers", () => ({
-  getAuthUserId: vi.fn(),
+vi.mock("@/server/platform/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/platform/auth")>()),
+  requireSessionUserId: vi.fn(),
 }));
 
 const NOT_FOUND = "Run not found or invalid ID";
@@ -33,7 +34,7 @@ function del(id: string) {
 
 describe("/api/runs/[id]", () => {
   beforeAll(() => {
-    vi.mocked(getAuthUserId).mockResolvedValue("run-item-route-user");
+    vi.mocked(requireSessionUserId).mockResolvedValue("run-item-route-user");
   });
 
   it.each([
@@ -75,7 +76,7 @@ describe("/api/runs/[id] with stored rows", () => {
   beforeEach(async () => {
     userId = await seedPlayer({ email: `runs-item-${crypto.randomUUID()}@example.com`, name: "Owner", profile: startingProfile });
     otherUserId = await seedPlayer({ email: `runs-other-${crypto.randomUUID()}@example.com`, name: "Other" });
-    vi.mocked(getAuthUserId).mockResolvedValue(userId);
+    vi.mocked(requireSessionUserId).mockResolvedValue(userId);
   });
 
   afterEach(async () => {

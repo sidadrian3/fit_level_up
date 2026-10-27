@@ -42,6 +42,16 @@ Open issues found while documenting the codebase for the vault (2026-10-20). Whe
 
 **Found in:** `src/app/(app)/dashboard/page.tsx`, `src/app/(app)/profile/page.tsx`.
 
+## 4. Every protected navigation makes an HTTP round trip to the app's own server
+
+**Where:** `src/proxy.ts` calls the session endpoint through `@better-fetch/fetch` to decide whether a request is signed in.
+
+**Effect:** each protected page navigation pays for one extra request to the same deployment, which adds latency and a second function invocation on Vercel. It is a cost, not a defect: access control is correct.
+
+**Fix:** check the session cookie in the proxy (Better Auth's `getSessionCookie`) and leave full session validation to `requireSessionUserId` in routes and pages. It changes how sessions are checked on navigation, so it needs its own change and test, not a refactor commit. Audit finding F-18 in [[Architecture Overhaul Audit]].
+
+**Found in:** `src/proxy.ts`.
+
 ---
 
 [[Guides Index]]
